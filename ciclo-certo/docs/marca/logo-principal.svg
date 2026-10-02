@@ -1,0 +1,11 @@
+<!-- Esta versao colorida e a assinatura principal para fundos claros. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 120" role="img" aria-labelledby="titulo descricao">
+  <title id="titulo">Ciclo Certo</title>
+  <desc id="descricao">Simbolo verde de ciclo e folha ao lado do nome Ciclo Certo.</desc>
+  <path d="M63 18a40 40 0 1 0 34 61" fill="none" stroke="#17694C" stroke-linecap="round" stroke-width="10"/>
+  <path d="m101 75-4 25-23-11" fill="none" stroke="#17694C" stroke-linecap="round" stroke-linejoin="round" stroke-width="10"/>
+  <path d="M56 67c0-22 14-36 35-39 1 22-14 36-35 39Z" fill="#8ECA93"/>
+  <path d="M58 64c9-11 18-19 29-27" fill="none" stroke="#17694C" stroke-linecap="round" stroke-width="4"/>
+  <text x="130" y="58" fill="#18332F" font-family="Arial, sans-serif" font-size="38" font-weight="700">Ciclo Certo</text>
+  <text x="132" y="84" fill="#41766A" font-family="Arial, sans-serif" font-size="15" letter-spacing="1.2">COOPERATIVA DE RECICLAVEIS</text>
+</svg>

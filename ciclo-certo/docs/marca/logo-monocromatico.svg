@@ -1,0 +1,13 @@
+<!-- Esta versao usa apenas uma cor para impressao simples e fundos claros. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 120" role="img" aria-labelledby="titulo descricao">
+  <title id="titulo">Ciclo Certo monocromatico</title>
+  <desc id="descricao">Simbolo e nome Ciclo Certo em verde escuro.</desc>
+  <g fill="none" stroke="#18332F" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M63 18a40 40 0 1 0 34 61" stroke-width="10"/>
+    <path d="m101 75-4 25-23-11" stroke-width="10"/>
+    <path d="M56 67c0-22 14-36 35-39 1 22-14 36-35 39Z" stroke-width="5"/>
+    <path d="M58 64c9-11 18-19 29-27" stroke-width="4"/>
+  </g>
+  <text x="130" y="58" fill="#18332F" font-family="Arial, sans-serif" font-size="38" font-weight="700">Ciclo Certo</text>
+  <text x="132" y="84" fill="#18332F" font-family="Arial, sans-serif" font-size="15" letter-spacing="1.2">COOPERATIVA DE RECICLAVEIS</text>
+</svg>
