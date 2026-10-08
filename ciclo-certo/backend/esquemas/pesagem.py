@@ -1,15 +1,17 @@
-# Os esquemas garantem que cada pesagem tenha um material valido e quilos positivos.
-from pydantic import BaseModel, Field
+# Os esquemas validam o material da cartilha e a leitura positiva da balança.
+from pydantic import BaseModel, ConfigDict, Field
 
 
-# Recebe os dois dados medidos na balanca para registrar uma pesagem.
+# A coleta é indicada no caminho; o perfil autorizado vem do token.
 class PesagemEntrada(BaseModel):
     material: str = Field(pattern="^(papel|vidro|plástico|metal)$")
     quilos: float = Field(gt=0, le=1000)
 
 
-# Devolve a pesagem com os pontos que aquele material gerou na coleta.
+# A saída lê os atributos do registro persistido sem alterar o contrato do frontend.
 class PesagemSaida(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int = Field(gt=0)
     coleta_id: int = Field(gt=0)
     material: str = Field(pattern="^(papel|vidro|plástico|metal)$")

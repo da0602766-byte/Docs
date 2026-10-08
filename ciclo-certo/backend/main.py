@@ -6,6 +6,7 @@ import configuracao as configuracao
 from rotas import coletas as rotas_coletas
 from rotas import pesagens as rotas_pesagens
 from rotas import usuarios as rotas_usuarios
+from rotas import autenticacao as rotas_autenticacao
 
 
 # Cria a aplicacao sem concentrar aqui nenhuma rota de recurso.
@@ -22,5 +23,6 @@ app.add_middleware(
 
 # Conecta os routers, que mantem cada recurso separado da inicializacao da aplicacao.
 app.include_router(rotas_usuarios.router)
+app.include_router(rotas_autenticacao.router)
 app.include_router(rotas_coletas.router)
 app.include_router(rotas_pesagens.router)

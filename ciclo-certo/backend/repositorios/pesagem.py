@@ -1,18 +1,30 @@
-# Esta lista guarda as pesagens em memoria, ligadas pelo id da coleta.
-pesagens = []
+# O repositório confirma pesagem e total da coleta na mesma transação.
+from sqlalchemy import select
+
+from modelos.coleta import Coleta
+from modelos.pesagem import Pesagem
 
 
-# Le somente as pesagens pertencentes a uma coleta para montar seus detalhes.
-def listar_por_coleta(coleta_id: int):
-    resultado = []
-    for pesagem in pesagens:
-        if pesagem["coleta_id"] == coleta_id:
-            resultado.append(pesagem)
-    return resultado
+# Consulta somente o histórico da coleta autorizada pelo serviço.
+def listar_por_coleta(sessao, coleta_id: int):
+    return list(sessao.scalars(select(Pesagem).where(Pesagem.coleta_id == coleta_id)))
 
 
-# Grava uma pesagem e cria um identificador simples enquanto nao existe banco de dados.
-def criar(dados_pesagem: dict):
-    pesagem_nova = {"id": len(pesagens) + 1, **dados_pesagem}
-    pesagens.append(pesagem_nova)
-    return pesagem_nova
+# O bloqueio espera outras pesagens e relê o total antes de acrescentar os novos pontos.
+def salvar(sessao, dados_pesagem: dict, situacao_coleta: str):
+    consulta = (
+        select(Coleta)
+        .where(Coleta.id == dados_pesagem["coleta_id"])
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    coleta = sessao.scalars(consulta).first()
+    if coleta is None:
+        return None
+
+    pesagem = Pesagem(**dados_pesagem)
+    sessao.add(pesagem)
+    coleta.pontos += dados_pesagem["pontos"]
+    coleta.situacao = situacao_coleta
+    sessao.commit()
+    return pesagem

@@ -1,28 +1,35 @@
-# As rotas de pesagem deixam o calculo de pontos concentrado no servico.
-from fastapi import APIRouter, HTTPException, status
+# As rotas separam a consulta do histórico da gravação exclusiva da cooperativa.
+from fastapi import APIRouter, Depends, HTTPException
 
+from banco import obter_sessao
 from esquemas.pesagem import PesagemEntrada, PesagemSaida
+from rotas.autenticacao import exigir_cooperativa, obter_usuario_atual
 from servicos import pesagem as servico_pesagem
+from servicos.excecoes import AcessoNegado, MaterialInvalido
 
-
-# Mantem as pesagens como recurso da coleta a que elas pertencem.
 router = APIRouter(prefix="/coletas/{coleta_id}/pesagens", tags=["Pesagens"])
 
 
-# Lista as pesagens de uma coleta para a moradora conferir de onde vieram os pontos.
+# Moradores veem apenas as pesagens de suas coletas; a cooperativa consulta todas.
 @router.get("", response_model=list[PesagemSaida])
-def listar_pesagens(coleta_id: int):
-    pesagens = servico_pesagem.listar_pesagens(coleta_id)
+def listar_pesagens(coleta_id: int, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
+    try:
+        pesagens = servico_pesagem.listar_pesagens(sessao, coleta_id, usuario)
+    except AcessoNegado as erro:
+        raise HTTPException(status_code=403, detail=str(erro)) from erro
     if pesagens is None:
-        raise HTTPException(status_code=404, detail="Coleta nao encontrada.")
+        raise HTTPException(status_code=404, detail="Coleta não encontrada.")
     return pesagens
 
 
-# Registra uma pesagem e usa 201 porque ela passa a existir na memoria.
-@router.post("", response_model=PesagemSaida, status_code=status.HTTP_201_CREATED)
-def registrar_pesagem(coleta_id: int, dados_entrada: PesagemEntrada):
-    resultado = servico_pesagem.registrar_pesagem(coleta_id, dados_entrada)
-    if isinstance(resultado, str):
-        codigo = 404 if resultado == "Coleta nao encontrada." else 422
-        raise HTTPException(status_code=codigo, detail=resultado)
-    return resultado
+# O perfil é verificado antes de registrar qualquer alteração no banco.
+@router.post("", response_model=PesagemSaida, status_code=201)
+def registrar_pesagem(coleta_id: int, dados: PesagemEntrada,
+                      usuario=Depends(exigir_cooperativa), sessao=Depends(obter_sessao)):
+    try:
+        pesagem = servico_pesagem.registrar_pesagem(sessao, coleta_id, dados, usuario)
+    except MaterialInvalido as erro:
+        raise HTTPException(status_code=422, detail=str(erro)) from erro
+    if pesagem is None:
+        raise HTTPException(status_code=404, detail="Coleta não encontrada.")
+    return pesagem

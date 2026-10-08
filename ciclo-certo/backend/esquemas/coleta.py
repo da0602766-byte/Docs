@@ -1,18 +1,16 @@
-# Os esquemas validam o agendamento e padronizam a coleta devolvida ao front.
+# A identificação do morador vem do login, nunca do corpo do agendamento.
 from datetime import date
-
 from pydantic import BaseModel, Field
 
 
-# Recebe somente os dados que a moradora informa ao agendar uma coleta.
+# Recebe somente os dados do agendamento; campos extras não alteram o dono.
 class ColetaEntrada(BaseModel):
-    morador_id: int = Field(gt=0)
     endereco: str = Field(min_length=10, max_length=160)
     dia: date
     materiais_informados: list[str] = Field(min_length=1, max_length=6)
 
 
-# Devolve a coleta com os dados calculados e o nome que a interface precisa mostrar.
+# Mantém o contrato de saída das quatro telas existentes.
 class ColetaSaida(BaseModel):
     id: int = Field(gt=0)
     morador_id: int = Field(gt=0)

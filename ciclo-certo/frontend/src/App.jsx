@@ -1,6 +1,6 @@
-// Este componente organiza a escolha de perfil e as quatro telas da cartilha.
+// O aplicativo autentica a pessoa antes de apresentar as quatro telas da cartilha.
 import React, { useEffect, useState } from "react";
-import { buscarColeta, criarColeta, criarPesagem, listarColetas, listarPesagens, listarUsuarios } from "./api";
+import { buscarColeta, criarColeta, criarPesagem, listarColetas, listarPesagens, buscarUsuarioAtual, entrar, cadastrarUsuario } from "./api";
 
 // Mostra os botões certos sem disponibilizar tarefas da cooperativa para a moradora.
 function Cabecalho({ perfil, tela, aoMudarTela }) {
@@ -8,9 +8,49 @@ function Cabecalho({ perfil, tela, aoMudarTela }) {
   return <header className="cabecalho"><div className="marca"><span className="marca-simbolo" aria-hidden="true"><span>↻</span></span><div><p className="sobretitulo">Cooperativa de recicláveis</p><h1>Ciclo Certo</h1></div></div>{perfil && <nav aria-label="Navegação principal">{itens.map(([codigo, rotulo]) => <button aria-current={tela === codigo ? "page" : undefined} className={tela === codigo ? "aba ativa" : "aba"} key={codigo} onClick={() => aoMudarTela(codigo)} type="button">{rotulo}</button>)}</nav>}</header>;
 }
 
-// Mantem o perfil em uma lista, como pede a cartilha antes de existir login.
-function SeletorPerfil({ usuarios, perfilId, aoEscolher }) {
-  return <label className="seletor-perfil"><span className="seletor-rotulo"><span className="indicador-online" aria-hidden="true"></span>Estou usando como</span><select value={perfilId} onChange={(evento) => aoEscolher(Number(evento.target.value))}><option value="">Escolha seu perfil</option>{usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nome} — {usuario.tipo}</option>)}</select></label>;
+// A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
+function Login({ aoEntrar, aviso }) {
+  const [cadastro, setCadastro] = useState(false);
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [tipo, setTipo] = useState("morador");
+  const [enviando, setEnviando] = useState(false);
+  const [mensagem, setMensagem] = useState("");
+
+  // O cadastro é confirmado antes do login; só o token fica no localStorage.
+  function enviar(evento) {
+    evento.preventDefault();
+    setEnviando(true);
+    setMensagem("");
+    const preparacao = cadastro ? cadastrarUsuario({ nome, email, senha, tipo }) : Promise.resolve();
+    preparacao.then(() => entrar(email, senha))
+      .then((dados) => { localStorage.setItem("token", dados.access_token); setSenha(""); aoEntrar(dados.access_token); })
+      .catch((falha) => setMensagem(falha.message))
+      .finally(() => setEnviando(false));
+  }
+
+  // A troca de formulário não conserva a senha digitada no modo anterior.
+  function alternar() {
+    setCadastro(!cadastro);
+    setMensagem("");
+    setSenha("");
+  }
+
+  return <main className="pagina pagina-acesso"><Cabecalho /><section className="painel painel-acesso">
+    <p className="sobretitulo">Moradores e cooperativa</p>
+    <h2>{cadastro ? "Criar sua conta" : "Entrar no Ciclo Certo"}</h2>
+    <p>{cadastro ? "Informe seus dados para começar." : "Acompanhe suas coletas e os pontos de cada entrega."}</p>
+    <form onSubmit={enviar}>
+      {cadastro && <label>Nome<input autoComplete="name" minLength={2} maxLength={80} required value={nome} onChange={(evento) => setNome(evento.target.value)} /></label>}
+      <label>E-mail<input type="email" autoComplete="username" maxLength={100} required value={email} onChange={(evento) => setEmail(evento.target.value)} /></label>
+      <label>Senha<input type="password" autoComplete={cadastro ? "new-password" : "current-password"} minLength={cadastro ? 8 : undefined} maxLength={cadastro ? 72 : undefined} required value={senha} onChange={(evento) => setSenha(evento.target.value)} />{cadastro && <span className="ajuda-campo">Use de 8 a 72 caracteres.</span>}</label>
+      {cadastro && <label>Perfil<select value={tipo} onChange={(evento) => setTipo(evento.target.value)}><option value="morador">Morador</option><option value="cooperativa">Cooperativa</option></select></label>}
+      <button disabled={enviando} type="submit">{enviando ? "Aguarde..." : cadastro ? "Criar conta e entrar" : "Entrar"}</button>
+    </form>
+    {(mensagem || aviso) && <p className="aviso erro" role="alert">{mensagem || aviso}</p>}
+    <button className="secundario alternar-acesso" disabled={enviando} type="button" onClick={alternar}>{cadastro ? "Já tenho uma conta" : "Quero criar uma conta"}</button>
+  </section></main>;
 }
 
 // Exibe o formulario de Joana e envia apenas o que foi informado no agendamento.
@@ -27,7 +67,7 @@ function AgendarColeta({ morador, aoConcluir }) {
     evento.preventDefault();
     setEnviando(true); setErro(""); setMensagem("");
     const listaMateriais = materiais.split(",").map((item) => item.trim()).filter(Boolean);
-    criarColeta({ morador_id: morador.id, endereco, dia, materiais_informados: listaMateriais })
+    criarColeta({ endereco, dia, materiais_informados: listaMateriais })
       .then((coleta) => { setMensagem(`Coleta agendada para ${formatarDia(coleta.dia)}.`); setEndereco(""); setDia(""); setMateriais(""); aoConcluir(); })
       .catch((falha) => setErro(falha.message))
       .finally(() => setEnviando(false));
@@ -73,11 +113,11 @@ function MinhasColetas({ morador, atualizacao }) {
   const [erro, setErro] = useState("");
   const [tentativa, setTentativa] = useState(0);
 
-  // A consulta usa o id da moradora na própria requisição, conforme a cartilha.
+  // O token permite ao backend filtrar as coletas da pessoa autenticada.
   useEffect(() => {
     setCarregando(true);
     setErro("");
-    listarColetas({ moradorId: morador.id })
+    listarColetas()
       .then(setColetas)
       .catch((falha) => setErro(falha.message))
       .finally(() => setCarregando(false));
@@ -153,38 +193,75 @@ function Balanca({ coletaSelecionada, aoVoltar, aoAtualizar }) {
   return <section className="painel painel-operador balanca-operador"><div className="cabecalho-painel"><div><p className="sobretitulo">Área da cooperativa</p><h2>A balança</h2><p>Confira a coleta antes de lançar o peso do material.</p></div><button className="secundario botao-voltar" onClick={aoVoltar} type="button">Voltar à rota</button></div><div className="grade-balanca"><aside className="contexto-coleta"><span className="sobretitulo">Coleta selecionada</span><strong>{coleta.nome_morador}</strong><span>{coleta.endereco}</span><span>Dia: {formatarDia(coleta.dia)}</span><span>Situação: {coleta.situacao}</span><div className="total-coleta"><span>Total da coleta</span><strong>{coleta.pontos.toFixed(2)} pontos</strong></div></aside><div className="area-pesagem"><h3>Nova pesagem</h3><form onSubmit={registrarPesagem}><label>Material<select onChange={(evento) => setMaterial(evento.target.value)} value={material}><option value="papel">Papel</option><option value="vidro">Vidro</option><option value="plástico">Plástico</option><option value="metal">Metal</option></select></label><label>Quilos<input min="0.01" onChange={(evento) => setQuilos(evento.target.value)} placeholder="Ex.: 2,5" required step="0.01" type="number" value={quilos} /></label><button disabled={enviando || (confirmacao && confirmacao.total === null)} type="submit">{enviando ? "Registrando..." : "Registrar pesagem"}</button></form>{erro && <p className="aviso erro" role="alert">{erro}</p>}{confirmacao && <div className="confirmacao-pesagem" role="status"><strong>Pesagem registrada</strong><span>{confirmacao.pesagem.material} · {confirmacao.pesagem.quilos} kg</span><span>Esta pesagem: {confirmacao.pesagem.pontos.toFixed(2)} pontos</span><span>Novo total da coleta: {confirmacao.total === null ? "Aguardando atualização" : `${confirmacao.total.toFixed(2)} pontos`}</span>{confirmacao.total === null && !enviando && <button className="secundario" disabled={atualizandoTotal} onClick={atualizarTotal} type="button">{atualizandoTotal ? "Atualizando..." : "Tentar novamente"}</button>}</div>}</div></div></section>;
 }
 
-// Alterna entre Joana e Osmar sem criar login, senha ou acesso protegido.
+// O token identifica a sessão; a API confirma o perfil antes de liberar qualquer tela.
 export default function App() {
-  const [usuarios, setUsuarios] = useState([]);
-  const [perfilId, setPerfilId] = useState("");
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [perfil, setPerfil] = useState(null);
   const [tela, setTela] = useState("");
   const [coletaSelecionada, setColetaSelecionada] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(Boolean(token));
   const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
   const [tentativa, setTentativa] = useState(0);
 
-  // Carrega os perfis do back e permite recuperar a tela inicial após uma falha.
-  useEffect(() => { setCarregando(true); setErro(""); listarUsuarios().then(setUsuarios).catch((falha) => setErro(falha.message)).finally(() => setCarregando(false)); }, [tentativa]);
+  // Uma resposta antiga não pode preencher o perfil depois que a sessão mudou.
+  useEffect(() => {
+    let ativa = true;
+    if (!token) { setPerfil(null); setCarregando(false); return () => { ativa = false; }; }
+    setCarregando(true);
+    setErro("");
+    buscarUsuarioAtual()
+      .then((usuario) => { if (ativa) { setPerfil(usuario); setTela(usuario.tipo === "morador" ? "agendar" : "rota"); } })
+      .catch((falha) => { if (ativa) setErro(falha.message); })
+      .finally(() => { if (ativa) setCarregando(false); });
+    return () => { ativa = false; };
+  }, [token, tentativa]);
 
-  const perfil = usuarios.find((usuario) => usuario.id === Number(perfilId));
+  // A API dispara este evento quando uma sessão foi recusada por expiração ou token inválido.
+  useEffect(() => {
+    function encerrarSessao() {
+      setToken(null); setPerfil(null); setColetaSelecionada(null); setErro("");
+      setAviso("Sua sessão expirou. Entre novamente.");
+    }
+    window.addEventListener("ciclo-certo-sessao-expirada", encerrarSessao);
+    return () => window.removeEventListener("ciclo-certo-sessao-expirada", encerrarSessao);
+  }, []);
 
-  // Troca de perfil e abre a primeira tarefa relevante para aquela pessoa.
-  function escolherPerfil(id) { const escolhido = usuarios.find((usuario) => usuario.id === id); setPerfilId(id); setColetaSelecionada(null); setTela(escolhido?.tipo === "morador" ? "agendar" : "rota"); }
+  // A saída remove somente o token; a senha nunca foi persistida.
+  function sair() {
+    localStorage.removeItem("token");
+    setToken(null); setPerfil(null); setColetaSelecionada(null); setErro(""); setAviso("");
+  }
 
-  // Leva a coleta clicada da rota para a balanca, mantendo seu contexto visivel.
-  function selecionarColeta(coleta) { setColetaSelecionada(coleta); setTela("balanca"); }
+  // Cada novo login recomeça o contexto para não reutilizar uma coleta da sessão anterior.
+  function receberToken(novoToken) {
+    setPerfil(null); setColetaSelecionada(null); setErro(""); setAviso(""); setToken(novoToken);
+  }
 
-  // Seleciona uma das quatro telas sem repetir a logica da navegacao no cabecalho.
+  // Mantém o contexto da coleta ao navegar da rota para a balança.
+  function selecionarColeta(coleta) {
+    setColetaSelecionada(coleta); setTela("balanca");
+  }
+
+  // As quatro telas existentes continuam organizadas pelo perfil confirmado no backend.
   function conteudoPrincipal() {
-    if (!perfil) return <section className="painel boas-vindas"><div className="boas-vindas-texto"><p className="sobretitulo">Seu reciclável faz a diferença</p><h2>Do agendamento aos pontos, tudo no lugar certo.</h2><p>Escolha seu perfil acima e acompanhe cada etapa da coleta com clareza e tranquilidade.</p><div className="beneficios" aria-label="Benefícios do Ciclo Certo"><span>✓ Agende em minutos</span><span>✓ Pontos transparentes</span><span>✓ Coleta organizada</span></div></div><div className="boas-vindas-visual" aria-hidden="true"><div className="orbita orbita-maior"></div><div className="orbita orbita-menor"></div><span className="folha folha-um">●</span><span className="folha folha-dois">●</span><strong>♻</strong><small>Cada ciclo conta</small></div></section>;
-    if (tela === "agendar") return <AgendarColeta aoConcluir={() => setAtualizacao((valor) => valor + 1)} morador={perfil} />;
-    if (tela === "minhas") return <MinhasColetas atualizacao={atualizacao} morador={perfil} />;
+    if (perfil.tipo === "morador") {
+      return tela === "minhas"
+        ? <MinhasColetas atualizacao={atualizacao} morador={perfil} />
+        : <AgendarColeta aoConcluir={() => setAtualizacao((valor) => valor + 1)} morador={perfil} />;
+    }
     if (tela === "rota") return <Rota aoSelecionarColeta={selecionarColeta} atualizacao={atualizacao} />;
     return <Balanca aoAtualizar={() => setAtualizacao((valor) => valor + 1)} aoVoltar={() => setTela("rota")} coletaSelecionada={coletaSelecionada} />;
   }
 
-  if (carregando) return <main className="pagina pagina-centralizada"><p className="estado carregando">Conectando ao Ciclo Certo...</p></main>;
-  if (erro) return <main className="pagina pagina-centralizada"><div className="erro-com-acao" role="alert"><p>Não foi possível carregar os perfis: {erro}</p><button onClick={() => setTentativa((valor) => valor + 1)} type="button">Tentar novamente</button></div></main>;
-  return <main className={`pagina ${perfil?.tipo === "cooperativa" ? "pagina-operador" : "pagina-morador"}`}><Cabecalho aoMudarTela={setTela} perfil={perfil} tela={tela} /><section className="barra-perfil" aria-label="Escolha de perfil"><SeletorPerfil aoEscolher={escolherPerfil} perfilId={perfilId} usuarios={usuarios} />{perfil && <p className="saudacao">{perfil.tipo === "cooperativa" ? "Área de trabalho de" : "Olá,"} <strong>{perfil.nome}</strong>{perfil.tipo === "morador" ? "." : ""}</p>}</section><div className="conteudo-principal" key={`${perfilId}-${tela}`}>{conteudoPrincipal()}</div><footer>Feito para aproximar moradores e a cooperativa do bairro.</footer></main>;
+  if (!token) return <Login aoEntrar={receberToken} aviso={aviso} />;
+  if (carregando) return <main className="pagina pagina-centralizada"><p className="estado carregando">Carregando seu perfil...</p></main>;
+  if (erro || !perfil) return <main className="pagina pagina-centralizada"><div className="erro-com-acao" role="alert"><p>{erro || "Não foi possível carregar seu perfil."}</p><button onClick={() => setTentativa((valor) => valor + 1)} type="button">Tentar novamente</button><button className="secundario" onClick={sair} type="button">Voltar ao login</button></div></main>;
+  return <main className={`pagina ${perfil.tipo === "cooperativa" ? "pagina-operador" : "pagina-morador"}`}>
+    <Cabecalho aoMudarTela={setTela} perfil={perfil} tela={tela} />
+    <section className="barra-perfil barra-sessao" aria-label="Usuário conectado"><p className="saudacao">{perfil.tipo === "cooperativa" ? "Área de trabalho de" : "Olá,"} <strong>{perfil.nome}</strong></p><button className="secundario" type="button" onClick={sair}>Sair</button></section>
+    <div className="conteudo-principal" key={perfil.id}>{conteudoPrincipal()}</div>
+    <footer>Feito para aproximar moradores e a cooperativa do bairro.</footer>
+  </main>;
 }

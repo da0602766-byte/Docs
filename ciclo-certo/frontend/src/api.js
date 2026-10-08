@@ -1,34 +1,71 @@
-// Este modulo concentra o fetch para que as telas usem a mesma comunicacao com a API.
+// Centraliza a comunicação e envia a identidade pelo token, nunca por um seletor de perfil.
 const enderecoApi = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-// Converte uma resposta HTTP em JSON ou em erro quando a API recusou a requisicao.
-function tratarResposta(resposta) {
+// A API pode devolver validações em lista; a interface apresenta uma mensagem legível.
+function tratarResposta(resposta, protegida, tokenEnviado) {
+  if (protegida && resposta.status === 401 && localStorage.getItem("token") === tokenEnviado) {
+    localStorage.removeItem("token");
+    window.dispatchEvent(new Event("ciclo-certo-sessao-expirada"));
+  }
   return resposta.json().then((dados) => {
-    if (!resposta.ok) throw new Error(dados.detail || "Não foi possível concluir a solicitação.");
+    if (!resposta.ok) {
+      const mensagem = Array.isArray(dados.detail)
+        ? "Confira os campos: " + dados.detail.map((erro) => erro.loc.at(-1)).join(", ") + "."
+        : dados.detail;
+      throw new Error(mensagem || "Não foi possível concluir a solicitação.");
+    }
     return dados;
   });
 }
 
-// Busca os perfis usados temporariamente no seletor sem senha.
-export function listarUsuarios() { return fetch(`${enderecoApi}/usuarios`).then(tratarResposta); }
+// Cada chamada usa o token atual e uma resposta antiga não encerra uma sessão mais recente.
+function solicitar(caminho, opcoes = {}, protegida = true) {
+  const token = localStorage.getItem("token");
+  const headers = { ...opcoes.headers };
+  if (protegida && token) headers.Authorization = "Bearer " + token;
+  return fetch(enderecoApi + caminho, { ...opcoes, headers })
+    .then((resposta) => tratarResposta(resposta, protegida, token));
+}
 
-// Busca as coletas, montando apenas os filtros que a tela informou.
+// O login OAuth2 recebe formulário; a senha não fica salva no navegador.
+export function entrar(email, senha) {
+  return solicitar("/login", { method: "POST", body: new URLSearchParams({ username: email, password: senha }) }, false);
+}
+
+// O cadastro usa somente os dados que a própria pessoa informou.
+export function cadastrarUsuario(dados) {
+  return solicitar("/usuarios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) }, false);
+}
+
+// O perfil da tela é confirmado pela API a partir do token.
+export function buscarUsuarioAtual() {
+  return solicitar("/usuarios/eu");
+}
+
+// O morador recebe suas coletas; dia e morador são filtros opcionais da cooperativa.
 export function listarColetas(filtros = {}) {
   const consulta = new URLSearchParams();
   if (filtros.dia) consulta.set("dia", filtros.dia);
   if (filtros.moradorId) consulta.set("morador_id", filtros.moradorId);
-  const sufixo = consulta.toString() ? `?${consulta.toString()}` : "";
-  return fetch(`${enderecoApi}/coletas${sufixo}`).then(tratarResposta);
+  return solicitar("/coletas" + (consulta.size ? "?" + consulta.toString() : ""));
 }
 
-// Busca o contexto completo de uma coleta antes de ela ser pesada.
-export function buscarColeta(coletaId) { return fetch(`${enderecoApi}/coletas/${coletaId}`).then(tratarResposta); }
+// O backend verifica o dono antes de apresentar o detalhe.
+export function buscarColeta(coletaId) {
+  return solicitar("/coletas/" + coletaId);
+}
 
-// Envia o agendamento em JSON, como a API espera no POST de coleta.
-export function criarColeta(dados) { return fetch(`${enderecoApi}/coletas`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) }).then(tratarResposta); }
+// A requisição de agendamento não precisa identificar o usuário no corpo.
+export function criarColeta(dados) {
+  return solicitar("/coletas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
+}
 
-// Busca os itens pesados de uma coleta para explicar a origem dos pontos.
-export function listarPesagens(coletaId) { return fetch(`${enderecoApi}/coletas/${coletaId}/pesagens`).then(tratarResposta); }
+// O mesmo token protege o histórico da coleta.
+export function listarPesagens(coletaId) {
+  return solicitar("/coletas/" + coletaId + "/pesagens");
+}
 
-// Envia uma pesagem em JSON para que o back aplique a regra de pontos.
-export function criarPesagem(coletaId, dados) { return fetch(`${enderecoApi}/coletas/${coletaId}/pesagens`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) }).then(tratarResposta); }
+// A API permite somente à cooperativa registrar o peso.
+export function criarPesagem(coletaId, dados) {
+  return solicitar("/coletas/" + coletaId + "/pesagens", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
+}

@@ -1,31 +1,26 @@
-# Esta lista guarda as coletas somente enquanto a aplicacao esta em execucao.
-coletas = []
+# Só este repositório usa o modelo de coleta e aplica os filtros ao SQL.
+from sqlalchemy import select
+from modelos.coleta import Coleta
 
 
-# Le todas as coletas para que o servico aplique os filtros da cartilha.
-def listar():
-    return coletas
+# A sessão é recebida primeiro para participar da mesma requisição dos demais recursos.
+def listar(sessao, dia=None, morador_id: int = None):
+    consulta = select(Coleta)
+    if dia is not None:
+        consulta = consulta.where(Coleta.dia == dia)
+    if morador_id is not None:
+        consulta = consulta.where(Coleta.morador_id == morador_id)
+    return list(sessao.scalars(consulta))
 
 
-# Busca uma coleta pelo id antes de ela ser mostrada ou receber uma pesagem.
-def buscar_por_id(coleta_id: int):
-    for coleta in coletas:
-        if coleta["id"] == coleta_id:
-            return coleta
-    return None
+# Devolve o registro ou None, deixando a resposta HTTP para a rota.
+def buscar_por_id(sessao, coleta_id: int):
+    return sessao.get(Coleta, coleta_id)
 
 
-# Grava uma coleta nova e atribui um id simples enquanto nao existe banco de dados.
-def criar(dados_coleta: dict):
-    coleta_nova = {"id": len(coletas) + 1, **dados_coleta}
-    coletas.append(coleta_nova)
-    return coleta_nova
-
-
-# Atualiza os campos que a regra da pesagem recalcula na coleta ja existente.
-def atualizar_pontos_e_situacao(coleta_id: int, pontos: float, situacao: str):
-    coleta = buscar_por_id(coleta_id)
-    if coleta is not None:
-        coleta["pontos"] = pontos
-        coleta["situacao"] = situacao
+# Persiste os valores iniciais já definidos pela regra no serviço.
+def salvar(sessao, dados_coleta: dict):
+    coleta = Coleta(**dados_coleta)
+    sessao.add(coleta)
+    sessao.commit()
     return coleta

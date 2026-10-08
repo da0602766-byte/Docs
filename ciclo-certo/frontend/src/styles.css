@@ -1278,3 +1278,9 @@ footer {
     width: 100%;
   }
 }
+/* O acesso usa o mesmo painel do projeto e mantém os campos legíveis no celular. */
+.painel-acesso { width: min(100%, 480px); margin: 2rem auto; }
+.painel-acesso form { display: grid; gap: 1rem; }
+.painel-acesso .alternar-acesso { margin-top: 1rem; width: 100%; }
+.barra-sessao { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.barra-sessao button { width: auto; }

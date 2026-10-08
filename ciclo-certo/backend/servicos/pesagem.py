@@ -1,41 +1,33 @@
-# O servico calcula os pontos e atualiza a coleta sem colocar regra de negocio na rota.
+# Os pontos continuam sendo calculados no serviço, sem números de status HTTP.
 from esquemas.pesagem import PesagemEntrada
-from repositorios import coleta as repositorio_coleta
 from repositorios import pesagem as repositorio_pesagem
+from servicos import coleta as servico_coleta
+from servicos.excecoes import AcessoNegado, MaterialInvalido
 
-
-# Guarda a pontuacao por quilo definida diretamente na cartilha.
+# Esta tabela é a regra da cartilha, não um cadastro de dados de demonstração.
 pontos_por_material = {"papel": 1, "vidro": 1, "plástico": 2, "metal": 4}
 
 
-# Lista as pesagens quando a coleta existe e sinaliza a ausencia dela com None.
-def listar_pesagens(coleta_id: int):
-    coleta = repositorio_coleta.buscar_por_id(coleta_id)
+# Aplica a propriedade da coleta antes de mostrar suas pesagens.
+def listar_pesagens(sessao, coleta_id: int, usuario):
+    coleta = servico_coleta.buscar_coleta(sessao, coleta_id, usuario)
     if coleta is None:
         return None
-    return repositorio_pesagem.listar_por_coleta(coleta_id)
+    return repositorio_pesagem.listar_por_coleta(sessao, coleta_id)
 
 
-# Registra a pesagem, soma os pontos e marca a primeira pesagem como coleta realizada.
-def registrar_pesagem(coleta_id: int, dados_entrada: PesagemEntrada):
-    coleta = repositorio_coleta.buscar_por_id(coleta_id)
-    if coleta is None:
-        return "Coleta nao encontrada."
-
+# Somente a cooperativa registra o peso, e o repositório confirma os dois registros juntos.
+def registrar_pesagem(sessao, coleta_id: int, dados_entrada: PesagemEntrada, usuario):
+    if usuario.tipo != "cooperativa":
+        raise AcessoNegado("Somente a cooperativa pode registrar pesagens.")
+    if servico_coleta.buscar_coleta(sessao, coleta_id, usuario) is None:
+        return None
     pontos_por_quilo = pontos_por_material.get(dados_entrada.material)
     if pontos_por_quilo is None:
-        return "Material nao previsto na cartilha."
-
-    pontos_da_pesagem = dados_entrada.quilos * pontos_por_quilo
-    pesagem_nova = repositorio_pesagem.criar(
-        {
-            "coleta_id": coleta_id,
-            "material": dados_entrada.material,
-            "quilos": dados_entrada.quilos,
-            "pontos": pontos_da_pesagem,
-        }
-    )
-    repositorio_coleta.atualizar_pontos_e_situacao(
-        coleta_id, coleta["pontos"] + pontos_da_pesagem, "coletada"
-    )
-    return pesagem_nova
+        raise MaterialInvalido("Material não previsto na cartilha.")
+    return repositorio_pesagem.salvar(sessao, {
+        "coleta_id": coleta_id,
+        "material": dados_entrada.material,
+        "quilos": dados_entrada.quilos,
+        "pontos": dados_entrada.quilos * pontos_por_quilo,
+    }, "coletada")
