@@ -45,7 +45,7 @@ Data: 21/10/2026. Este registro distingue testes executados de verificações pe
 
 ## Limites
 
-- Preparação do GitHub Pages: builds local e `/Docs/` aprovados; teste de domínio público simulado confirma fotos/fontes e ausência de chamadas ao localhost sem API configurada. Fluxos locais revalidados em 1440, 390 e 320 px. Detalhes em `publicacao.md`.
+- Após a confirmação de uso em localhost, Pages foi desativado pela API do GitHub (DELETE 204; consulta posterior 404). A configuração de publicação foi revertida; nenhum banco ou dado de usuário foi removido.
 
 - Ensaio de prompt nesta conversa não é teste independente do modelo ou da API OpenAI.
 - O módulo de IA não está implementado; seus testes de integração ficam no roadmap.

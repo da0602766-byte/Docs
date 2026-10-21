@@ -54,6 +54,8 @@ Base: cartilha, código e escolhas do aluno em 21/10/2026. Registros para estudo
 
 ## Visual solicitado a partir do ZIP
 
+Uso definido posteriormente pelo aluno: localhost, com GitHub somente para versionamento. A publicação temporária no Pages foi desativada e a configuração de publicação revertida, preservando o visual e as funcionalidades locais.
+
 - Decisão: adaptar a composição do Volta ao Ciclo Certo, incluindo página pública e acesso; preservar nome, autenticação e chamadas reais da API.
 - Motivo: aplicar o visual sem transferir dados fictícios, perfil sem senha, período de coleta ou arredondamento de pontos do protótipo.
 - Implementação: CSS comum, fontes/fotos locais, navegação inferior e rota em cartões no celular; Playwright como ferramenta de desenvolvimento.

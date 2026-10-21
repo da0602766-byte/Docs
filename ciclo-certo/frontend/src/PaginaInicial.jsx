@@ -1,8 +1,8 @@
 import React from "react";
 
 // A página pública apresenta o serviço e encaminha todas as ações para o login.
-const HERO_PHOTO = import.meta.env.BASE_URL + "imagens/reciclaveis.jpg";
-const COOP_PHOTO = import.meta.env.BASE_URL + "imagens/cooperativa.jpg";
+const HERO_PHOTO = "/imagens/reciclaveis.jpg";
+const COOP_PHOTO = "/imagens/cooperativa.jpg";
 
 const RATES = [
   { material: "Papel", points: 1, note: "Jornal, caixas, papelão e folhas limpas" },

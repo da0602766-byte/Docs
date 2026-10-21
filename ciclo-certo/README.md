@@ -1,5 +1,7 @@
 # Ciclo Certo
 
+**Execução em localhost.** Por decisão do aluno, o GitHub é usado para versionar o código; não há publicação pelo GitHub Pages. Neste ambiente, abra `http://127.0.0.1:5175`, com API em `http://127.0.0.1:8000` e MySQL local.
+
 Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de cada pesagem, substituindo o acompanhamento por telefone e planilha.
 
 - **Morador (Joana, celular):** agenda, acompanha suas coletas e consulta pesagens/pontos.
@@ -10,8 +12,6 @@ Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de 
 Fontes: [cartilha](docs/CARTILHA.md), [briefing](docs/BRIEFING.md), [DER](docs/DER.md), [marca e styleguide](docs/styleguide/README.md). Continuidade em [.docs/](.docs/README.md); regras de trabalho em [REGRAS.md](REGRAS.md).
 
 Visual adaptado de `volta-projeto.zip`: página inicial, acesso e quatro telas responsivas. A página pública leva ao login; contas, coletas e pesagens continuam ligadas à API real. Veja a [análise e adaptação](.docs/visual-volta.md).
-
-Publicação do frontend: [Ciclo Certo no GitHub Pages](https://da0602766-byte.github.io/Docs/). O acesso às contas online depende da API hospedada; sem ela, a página pública funciona e os formulários informam indisponibilidade. Configuração e testes em [publicação](.docs/publicacao.md).
 
 ## Preparação em uma instalação nova
 

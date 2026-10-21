@@ -1,8 +1,5 @@
 // Centraliza a comunicação e envia a identidade pelo token, nunca por um seletor de perfil.
-// A publicação nunca usa o computador do visitante como servidor da aplicação.
-const ambienteLocal = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-const enderecoApi = (import.meta.env.VITE_API_URL || (ambienteLocal ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
-export const acessoDisponivel = Boolean(enderecoApi);
+const enderecoApi = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 // A API pode devolver validações em lista; a interface apresenta uma mensagem legível.
 function tratarResposta(resposta, protegida, tokenEnviado) {
@@ -23,7 +20,6 @@ function tratarResposta(resposta, protegida, tokenEnviado) {
 
 // Cada chamada usa o token atual e uma resposta antiga não encerra uma sessão mais recente.
 function solicitar(caminho, opcoes = {}, protegida = true) {
-  if (!acessoDisponivel) return Promise.reject(new Error("O acesso às contas ainda não está disponível nesta versão online."));
   const token = localStorage.getItem("token");
   const headers = { ...opcoes.headers };
   if (protegida && token) headers.Authorization = "Bearer " + token;

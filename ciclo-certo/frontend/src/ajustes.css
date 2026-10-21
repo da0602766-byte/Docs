@@ -54,9 +54,6 @@ html { scroll-behavior: smooth; }
 .painel-acesso { padding: 32px; }
 .painel-acesso h2 { font-size: 26px; line-height: 1.2; }
 .painel-acesso form { display: grid; gap: 18px; margin-top: 28px; }
-.campos-acesso { display: grid; gap: 18px; padding: 0; margin: 0; border: 0; min-width: 0; }
-.campos-acesso:disabled { opacity: .6; }
-.aviso-acesso { margin-top: 18px; }
 .alternar-acesso { display: grid; justify-items: center; gap: 4px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
 .alternar-acesso button { min-height: 44px; font-weight: 600; color: var(--green); text-decoration: underline; text-underline-offset: 4px; }
 .lp-logo { white-space: nowrap; }

@@ -3,5 +3,4 @@ venv/
 __pycache__/
 node_modules/
 dist/
-dist-pages/
 resultados-visuais/
