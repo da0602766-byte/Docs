@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS coletas (
     CONSTRAINT conferir_pontos_coleta CHECK (pontos >= 0),
     CONSTRAINT conferir_materiais_coleta CHECK (
         JSON_TYPE(materiais_informados) = 'ARRAY'
-        AND JSON_LENGTH(materiais_informados) BETWEEN 1 AND 6
+        AND JSON_LENGTH(materiais_informados) >= 1
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
 
@@ -45,6 +45,6 @@ CREATE TABLE IF NOT EXISTS pesagens (
     PRIMARY KEY (id),
     INDEX indice_pesagens_coleta (coleta_id),
     CONSTRAINT pesagem_pertence_coleta FOREIGN KEY (coleta_id) REFERENCES coletas (id),
-    CONSTRAINT conferir_quilos_pesagem CHECK (quilos > 0 AND quilos <= 1000),
+    CONSTRAINT conferir_quilos_pesagem CHECK (quilos > 0),
     CONSTRAINT conferir_pontos_pesagem CHECK (pontos >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;

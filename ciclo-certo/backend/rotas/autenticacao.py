@@ -12,7 +12,9 @@ esquema_oauth = OAuth2PasswordBearer(tokenUrl="login")
 
 
 # OAuth2PasswordRequestForm recebe username e password como formulário, não JSON.
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token,
+             responses={401: {"description": "E-mail ou senha incorretos."}},
+             description="Recebe formulário OAuth2: username é o e-mail e password é a senha. Devolve token com validade de 60 minutos.")
 def login(formulario: OAuth2PasswordRequestForm = Depends(), sessao=Depends(obter_sessao)):
     usuario = servico_usuario.autenticar(sessao, formulario.username, formulario.password)
     if usuario is None:

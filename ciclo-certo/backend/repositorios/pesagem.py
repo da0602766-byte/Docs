@@ -1,4 +1,6 @@
 # O repositório confirma pesagem e total da coleta na mesma transação.
+from math import isfinite
+
 from sqlalchemy import select
 
 from modelos.coleta import Coleta
@@ -22,9 +24,13 @@ def salvar(sessao, dados_pesagem: dict, situacao_coleta: str):
     if coleta is None:
         return None
 
+    # Confere o total após o bloqueio, incluindo pesagens simultâneas, antes de gravar.
+    novo_total = coleta.pontos + dados_pesagem["pontos"]
+    if not isfinite(novo_total):
+        raise OverflowError("O total excede a capacidade numérica do sistema.")
     pesagem = Pesagem(**dados_pesagem)
     sessao.add(pesagem)
-    coleta.pontos += dados_pesagem["pontos"]
+    coleta.pontos = novo_total
     coleta.situacao = situacao_coleta
     sessao.commit()
     return pesagem

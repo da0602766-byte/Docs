@@ -1,43 +1,44 @@
 # Styleguide
 
-Este guia local registra as escolhas aplicadas no frontend enquanto o arquivo Figma nao existe.
+Atualizado em 21/10/2026 com o visual solicitado a partir de `volta-projeto.zip`. Adaptações em [visual-volta.md](../../.docs/visual-volta.md).
 
 ## Marca
 
-- Nome: **Ciclo Certo**.
-- Assinatura: `Cooperativa de reciclaveis`.
-- A marca usa um circulo aberto e uma folha para comunicar o ciclo do material e o cuidado do bairro.
-- Use [logo-principal.svg](../marca/logo-principal.svg) em fundos claros e
-  [logo-monocromatico.svg](../marca/logo-monocromatico.svg) quando houver apenas uma cor disponivel.
+- Nome **Ciclo Certo**, com folha em quadrado verde na interface.
+- Os arquivos autorais [logo principal](../marca/logo-principal.svg) e [monocromático](../marca/logo-monocromatico.svg) foram preservados; não são a assinatura renderizada no novo cabeçalho.
 
 ## Cores
 
-| Uso | Cor | Codigo |
-|---|---|---|
-| Acao principal | Verde vivo | `#087A58` |
-| Acao em destaque | Verde renovacao | `#10A875` |
-| Texto | Verde profundo | `#173B35` |
-| Fundo | Verde nevoa | `#EFF8F2` |
-| Destaque decorativo | Lima | `#B7ED63` |
-| Confirmacao | Verde claro | `#DFF7E9` |
-| Aviso de coleta agendada | Amarelo claro | `#FFF2C8` |
-| Erro | Vinho | `#A32842` |
+| Uso | Cor |
+|---|---|
+| Ação e próxima coleta | `#1F3D2B` |
+| Ação ao passar o ponteiro | `#2D5039` |
+| Texto | `#1D2A21` |
+| Fundo creme | `#F7F5EE` |
+| Cartões | `#FFFDF8` |
+| Bordas | `#E2E0D6` |
+| Destaque lima | `#D4E7A4` |
+| Texto secundário | `#5F6A60` |
+| Agendada | fundo `#F5E7D4`, texto `#8A5A22` |
+| Coletada | fundo `#E4EED2`, texto `#3D5F2C` |
+| Erro | fundo `#FFF2EC`, texto `#87371C` |
 
 ## Tipografia e componentes
 
-- Fonte: Segoe UI, com Arial como alternativa; ambas funcionam sem carregar biblioteca externa.
-- Botoes tem no minimo 48 px de altura para facilitar o toque da Joana e o uso no galpao.
-- Campos usam cantos de 13 px; cartoes e paineis usam de 20 a 28 px para separar os niveis da interface.
-- A situacao sempre aparece como selo: amarelo para `agendada` e verde para `coletada`.
+- DM Sans para texto e Manrope para títulos; fontes locais, alternativas Segoe UI/sans-serif.
+- Botões principais e campos com altura mínima de 48 px; ações compactas da tabela com 44 px.
+- Campos com raio de 8 px e cartões com 12 px. Hierarquia por espaçamento e bordas discretas.
+- Situação identificada por texto e cor.
+- Pontos oficiais formatados em português com até 15 algarismos significativos. A interface não arredonda os cálculos do backend.
 
-## Movimento e interacao
+## Responsividade e acesso
 
-- Botoes sobem 2 px no hover e recuam no clique para comunicar a acao sem atrasar a tarefa.
-- Campos recebem borda verde e anel de foco visivel para apoiar a navegacao por teclado.
-- A troca de tela usa uma entrada curta de 420 ms; avisos e listas usam transicoes menores.
-- `prefers-reduced-motion` desativa os movimentos para quem configurou essa preferencia no sistema.
+- Navegação superior no computador; inferior até 960 px.
+- Rota em cartões até 720 px; formulário, resumo e balança em uma coluna em telas menores.
+- Controles por teclado, foco visível, rótulos, mensagens de erro/status e link para pular ao conteúdo.
+- `prefers-reduced-motion` remove movimentos.
+- Fotos/fontes locais; [créditos e licenças](../../frontend/public/CREDITOS.md).
 
-## Responsividade
+## Verificação
 
-- A partir de 620 px ou menos, o cabecalho muda para uma coluna, os formularios usam uma coluna e os botoes ocupam melhor a largura do celular.
-- A tabela da rota pode rolar horizontalmente em telas pequenas; assim nenhuma informacao e escondida.
+Layout conferido em Edge com viewports de 1440, 390 e 320 px. Teste com API simulada: `npm run test:visual` na pasta `frontend`. Evidências e limites em [validação](../../.docs/validacao.md).

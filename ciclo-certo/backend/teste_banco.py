@@ -131,7 +131,7 @@ class TesteBanco(unittest.TestCase):
             antigo = conexao.execute(text("SELECT nome, tipo, email, senha_hash FROM usuarios WHERE id = 1")).one()
             versao = conexao.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
         self.assertEqual(tuple(antigo), ("Usuário anterior", "morador", None, None))
-        self.assertEqual(versao, "0002_email_senha")
+        self.assertEqual(versao, "0003_limites_cartilha")
 
     # O token identifica o próprio perfil e cada rota da cartilha exige autenticação.
     def test_usuario_atual_e_rotas_sem_token(self):
@@ -203,8 +203,41 @@ class TesteBanco(unittest.TestCase):
             self.assertEqual(atual["situacao"], "coletada")
             self.assertAlmostEqual(atual["pontos"], total)
         self.assertEqual(len(self.cliente.get(caminho, headers=self.cabecalho).json()), 4)
-        for peso in [0, -1, 1001]:
+        for peso in [0, -1]:
             self.assertEqual(self.cliente.post(caminho, json={"material": "papel", "quilos": peso}, headers=self.cabecalho_cooperativa).status_code, 422)
+
+    # Exercita a nova migration e os pesos antes recusados, sem mudar a pontuação.
+    def test_pesos_sem_teto_ou_precisao_inventada(self):
+        coleta = self.agendar(materiais_informados=["papel"] * 7)
+        self.assertEqual(coleta["situacao"], "agendada")
+        self.assertEqual(coleta["pontos"], 0)
+        caminho = f"/coletas/{coleta['id']}/pesagens"
+        total = 0
+        for material, peso, pontos in [("metal", 1001, 4004), ("papel", 0.001, 0.001)]:
+            resposta = self.cliente.post(caminho, json={"material": material, "quilos": peso}, headers=self.cabecalho_cooperativa)
+            self.assertEqual(resposta.status_code, 201)
+            self.assertAlmostEqual(resposta.json()["pontos"], pontos)
+            total += pontos
+        atual = self.cliente.get(f"/coletas/{coleta['id']}", headers=self.cabecalho).json()
+        self.assertEqual(atual["situacao"], "coletada")
+        self.assertAlmostEqual(atual["pontos"], total)
+
+    # Recusa valores não representáveis sem salvar pesagens parciais ou contaminar o total.
+    def test_valores_numericos_invalidos(self):
+        coleta = self.agendar()
+        caminho = f"/coletas/{coleta['id']}/pesagens"
+        for peso in ["NaN", "Infinity", "-Infinity", 1e308]:
+            resposta = self.cliente.post(caminho, json={"material": "metal", "quilos": peso}, headers=self.cabecalho_cooperativa)
+            self.assertEqual(resposta.status_code, 422)
+        self.assertEqual(self.cliente.get(caminho, headers=self.cabecalho).json(), [])
+        # Dois valores individualmente finitos também podem estourar o total acumulado.
+        primeira = self.cliente.post(caminho, json={"material": "papel", "quilos": 1e308}, headers=self.cabecalho_cooperativa)
+        self.assertEqual(primeira.status_code, 201)
+        segunda = self.cliente.post(caminho, json={"material": "papel", "quilos": 1e308}, headers=self.cabecalho_cooperativa)
+        self.assertEqual(segunda.status_code, 422)
+        self.assertEqual(len(self.cliente.get(caminho, headers=self.cabecalho).json()), 1)
+        atual = self.cliente.get(f"/coletas/{coleta['id']}", headers=self.cabecalho).json()
+        self.assertEqual(atual["pontos"], 1e308)
 
     # Uma falha na atualização da coleta deve desfazer também a pesagem inserida.
     def test_transacao_desfaz_gravacao_incompleta(self):

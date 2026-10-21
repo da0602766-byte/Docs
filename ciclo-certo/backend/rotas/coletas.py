@@ -8,11 +8,14 @@ from rotas.autenticacao import exigir_morador, obter_usuario_atual
 from servicos import coleta as servico_coleta
 from servicos.excecoes import AcessoNegado
 
-router = APIRouter(prefix="/coletas", tags=["Coletas"])
+router = APIRouter(prefix="/coletas", tags=["Coletas"], responses={
+    401: {"description": "Token ausente, inválido ou vencido."},
+    403: {"description": "Perfil sem permissão ou coleta de outro morador."},
+})
 
 
 # O serviço limita a lista do morador, mantendo os filtros de dia e da rota da cooperativa.
-@router.get("", response_model=list[ColetaSaida])
+@router.get("", response_model=list[ColetaSaida], description="Morador recebe somente suas coletas; cooperativa consulta todas. Filtros opcionais por dia e morador; trocar o filtro não dá acesso às coletas de outro morador.")
 def listar_coletas(dia: date | None = None, morador_id: int | None = None,
                    usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
     try:
@@ -22,7 +25,7 @@ def listar_coletas(dia: date | None = None, morador_id: int | None = None,
 
 
 # O detalhe respeita a propriedade do morador e continua devolvendo 404 quando não existe.
-@router.get("/{coleta_id}", response_model=ColetaSaida)
+@router.get("/{coleta_id}", response_model=ColetaSaida, responses={404: {"description": "Coleta não encontrada."}})
 def buscar_coleta(coleta_id: int, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
     try:
         coleta = servico_coleta.buscar_coleta(sessao, coleta_id, usuario)
@@ -34,6 +37,6 @@ def buscar_coleta(coleta_id: int, usuario=Depends(obter_usuario_atual), sessao=D
 
 
 # O agendamento não recebe identificação do dono no corpo.
-@router.post("", response_model=ColetaSaida, status_code=201)
+@router.post("", response_model=ColetaSaida, status_code=201, description="Somente morador. O dono vem do token; a coleta começa agendada com zero pontos. Materiais informados não geram pontos.")
 def agendar_coleta(dados: ColetaEntrada, usuario=Depends(exigir_morador), sessao=Depends(obter_sessao)):
     return servico_coleta.agendar_coleta(sessao, dados, usuario)

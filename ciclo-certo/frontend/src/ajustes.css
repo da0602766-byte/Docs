@@ -1,0 +1,99 @@
+/* Integra o visual do ZIP aos estados reais de acesso, consulta e gravação. */
+html { scroll-behavior: smooth; }
+.ws input:not([type="radio"]):not([type="checkbox"]), .ws textarea { width: 100%; min-width: 0; min-height: 48px; padding: 12px 14px; border: 1px solid #d3d1c6; border-radius: 8px; background: #fff; }
+.ws textarea { min-height: 124px; resize: vertical; }
+.ws .ws-input-icon input:not([type="radio"]):not([type="checkbox"]) { padding-left: 42px; }
+.ws textarea:focus { outline: 2px solid var(--green); outline-offset: 2px; }
+.ws-btn, .lp-btn, .botao-sair { min-height: 48px; }
+.ws-btn { white-space: normal; }
+.ws-btn-sm { min-height: 44px; white-space: nowrap; }
+.ws-logo { white-space: nowrap; }
+.ws-context { white-space: nowrap; }
+.ws-header-inner { gap: 20px; }
+.ws-user { min-width: 0; }
+.ws-user-text { max-width: 180px; }
+.ws-user-text strong { overflow-wrap: anywhere; line-height: 1.2; }
+.botao-sair { padding: 8px 12px; color: var(--green); text-decoration: underline; text-underline-offset: 4px; }
+.pular-conteudo { position: fixed; top: -100px; z-index: 50; padding: 12px; background: white; }
+.pular-conteudo:focus { top: 8px; left: 8px; }
+.pagina-centralizada { display: grid; place-items: center; padding: 24px; }
+.estado { padding: 24px; color: #5f6a60; }
+.erro-com-acao, .aviso.erro { padding: 16px; border: 1px solid #e4c5b9; border-radius: 8px; background: #fff2ec; color: #87371c; }
+.erro-com-acao { display: grid; justify-items: start; gap: 12px; }
+.aviso.erro { margin-top: 16px; }
+.rodape-app { padding: 0 24px 24px; text-align: center; color: #5f6a60; font-size: 12px; }
+.controles-dia { display: flex; align-items: end; gap: 10px; }
+.ws-route { overflow-x: auto; }
+.ws-table { min-width: 760px; }
+.ws-table td { overflow-wrap: anywhere; }
+.ws-route-card-bottom { margin-top: 14px; }
+.ws-route-card-top strong, .ws-route-card-address { overflow-wrap: anywhere; }
+.ws-summary dd, .ws-next-address, .ws-chips span, .ws-next-chips span { overflow-wrap: anywhere; }
+.ws-summary .ws-notice { margin: 0; }
+.proxima-acao { margin-top: 18px; }
+.ws-pickup-main, .ws-history, .ws-detail { min-width: 0; }
+.ws-pickup-points { max-width: 150px; overflow-wrap: anywhere; }
+.detalhe-coleta { margin-top: 14px; }
+.detalhe-coleta > .ws-help { margin-bottom: 14px; }
+.detalhe-total { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--green); }
+.detalhe-total strong { text-align: right; overflow-wrap: anywhere; }
+.ws-receipt { table-layout: fixed; }
+.ws-receipt td { overflow-wrap: anywhere; }
+.ws-receipt td + td, .ws-receipt th + th { padding-left: 8px; }
+.grade-balanca { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
+.campo-materiais { padding: 0; margin: 0; border: 0; min-width: 0; }
+.campo-materiais legend { margin-bottom: 8px; }
+.ws-material-pick label { min-width: 0; padding: 12px 8px; }
+.confirmacao-pesagem { display: grid; gap: 6px; margin-top: 18px; padding: 16px; border: 1px solid #d5e2bf; border-radius: 8px; color: #2f4f2a; background: var(--soft); }
+.grade-acesso { display: grid; grid-template-columns: 1fr 440px; gap: 90px; align-items: center; padding-block: 56px; max-width: 1100px; }
+.apresentacao-acesso h1 { font-size: clamp(36px, 4vw, 52px); line-height: 1.12; margin-bottom: 18px; }
+.apresentacao-acesso > p:not(.ws-kicker) { color: var(--muted); max-width: 430px; }
+.apresentacao-acesso img { width: 100%; height: 250px; object-fit: cover; border-radius: 12px; margin-top: 28px; }
+.acesso-legenda { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; margin-top: 12px; }
+.acesso-voltar { margin: 0 0 0 auto; min-height: 48px; }
+.painel-acesso { padding: 32px; }
+.painel-acesso h2 { font-size: 26px; line-height: 1.2; }
+.painel-acesso form { display: grid; gap: 18px; margin-top: 28px; }
+.alternar-acesso { display: grid; justify-items: center; gap: 4px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.alternar-acesso button { min-height: 44px; font-weight: 600; color: var(--green); text-decoration: underline; text-underline-offset: 4px; }
+.lp-logo { white-space: nowrap; }
+.lp-nav { gap: 16px; }
+.lp-nav-links { gap: 16px; }
+.lp-nav-actions { gap: 12px; }
+.lp-topline-right { display: flex; align-items: center; }
+.exemplo { display: block; font-family: "DM Sans", "Segoe UI", sans-serif; font-size: 11px; font-weight: 500; color: #5f6a60; }
+@media (max-width: 1180px) { .ws-context { display: none; } .lp-nav-links { display: none; } }
+@media (max-width: 960px) {
+  .grade-balanca { grid-template-columns: 1fr; }
+  .grade-acesso { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+  .rodape-app { padding-bottom: 104px; }
+  .ws-main { padding-bottom: 36px; }
+}
+@media (max-width: 720px) {
+  .grade-acesso { display: block; max-width: 480px; padding-block: 28px; }
+  .apresentacao-acesso { margin-bottom: 24px; }
+  .apresentacao-acesso h1 { font-size: 32px; }
+  .apresentacao-acesso h1 br, .apresentacao-acesso img, .acesso-legenda { display: none; }
+  .painel-acesso { padding: 24px; }
+  .ws-pickup-points { max-width: 95px; }
+  .ws-pickup-points strong { font-size: 16px; }
+  .ws-route { overflow: visible; }
+  .ws-route-card-top { grid-template-columns: auto minmax(0, 1fr); }
+  .ws-route-card-top .ws-tag { grid-column: 2; justify-self: start; }
+  .ws-material-pick { grid-template-columns: 1fr 1fr; }
+  .ws-page-head > .ws-btn { align-self: start; }
+  .ws-header-inner { gap: 8px; }
+}
+@media (max-width: 380px) {
+  .ws-pickup-row { gap: 8px; padding: 12px; grid-template-columns: 38px minmax(0, 1fr) auto; }
+  .ws-date { width: 38px; }
+  .ws-pickup-title { font-size: 13px; }
+  .ws-avatar { display: none; }
+  .lp-logo { font-size: 21px; }
+  .lp-nav { gap: 8px; }
+  .lp-nav-actions .lp-btn { padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

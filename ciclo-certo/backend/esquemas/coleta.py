@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class ColetaEntrada(BaseModel):
     endereco: str = Field(min_length=10, max_length=160)
     dia: date
-    materiais_informados: list[str] = Field(min_length=1, max_length=6)
+    materiais_informados: list[str] = Field(min_length=1)
 
 
 # Mantém o contrato de saída das quatro telas existentes.

@@ -5,9 +5,13 @@ from banco import obter_sessao
 from esquemas.pesagem import PesagemEntrada, PesagemSaida
 from rotas.autenticacao import exigir_cooperativa, obter_usuario_atual
 from servicos import pesagem as servico_pesagem
-from servicos.excecoes import AcessoNegado, MaterialInvalido
+from servicos.excecoes import AcessoNegado, MaterialInvalido, ValorNumericoInvalido
 
-router = APIRouter(prefix="/coletas/{coleta_id}/pesagens", tags=["Pesagens"])
+router = APIRouter(prefix="/coletas/{coleta_id}/pesagens", tags=["Pesagens"], responses={
+    401: {"description": "Token ausente, inválido ou vencido."},
+    403: {"description": "Perfil sem permissão ou coleta de outro morador."},
+    404: {"description": "Coleta não encontrada."},
+})
 
 
 # Moradores veem apenas as pesagens de suas coletas; a cooperativa consulta todas.
@@ -23,12 +27,14 @@ def listar_pesagens(coleta_id: int, usuario=Depends(obter_usuario_atual), sessao
 
 
 # O perfil é verificado antes de registrar qualquer alteração no banco.
-@router.post("", response_model=PesagemSaida, status_code=201)
+@router.post("", response_model=PesagemSaida, status_code=201,
+             description="Somente cooperativa. Papel e vidro: 1 ponto/kg; plástico: 2; metal: 4. Soma ao total e muda a coleta para coletada na primeira pesagem.",
+             responses={422: {"description": "Material ou peso inválido, ou valor fora da capacidade numérica do sistema."}})
 def registrar_pesagem(coleta_id: int, dados: PesagemEntrada,
                       usuario=Depends(exigir_cooperativa), sessao=Depends(obter_sessao)):
     try:
         pesagem = servico_pesagem.registrar_pesagem(sessao, coleta_id, dados, usuario)
-    except MaterialInvalido as erro:
+    except (MaterialInvalido, ValorNumericoInvalido) as erro:
         raise HTTPException(status_code=422, detail=str(erro)) from erro
     if pesagem is None:
         raise HTTPException(status_code=404, detail="Coleta não encontrada.")

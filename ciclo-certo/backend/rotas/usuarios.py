@@ -11,7 +11,9 @@ router = APIRouter(prefix="/usuarios", tags=["Usuários"])
 
 
 # O cadastro permanece público; cada pessoa informa os próprios dados, sem perfis precriados.
-@router.post("", status_code=201, response_model=UsuarioSaida)
+@router.post("", status_code=201, response_model=UsuarioSaida,
+             responses={409: {"description": "E-mail já cadastrado."}},
+             description="Cadastro público do exercício. Guarda somente o hash Argon2 e não devolve senha nem hash.")
 def cadastrar_usuario(dados: UsuarioCriar, sessao=Depends(obter_sessao)):
     try:
         return servico_usuario.cadastrar(sessao, dados)
@@ -20,12 +22,15 @@ def cadastrar_usuario(dados: UsuarioCriar, sessao=Depends(obter_sessao)):
 
 
 # Devolve somente quem foi identificado pelo token desta requisição.
-@router.get("/eu", response_model=UsuarioSaida)
+@router.get("/eu", response_model=UsuarioSaida, responses={401: {"description": "Token ausente, inválido ou vencido."}})
 def consultar_usuario_atual(usuario=Depends(obter_usuario_atual)):
     return usuario
 
 
 # Preserva o caminho antigo como consulta administrativa, sem o seletor público de identidades.
-@router.get("", response_model=list[UsuarioSaida])
+@router.get("", response_model=list[UsuarioSaida], responses={
+    401: {"description": "Token ausente, inválido ou vencido."},
+    403: {"description": "Somente a cooperativa pode consultar usuários."},
+})
 def listar_usuarios(usuario=Depends(exigir_cooperativa), sessao=Depends(obter_sessao)):
     return servico_usuario.listar_usuarios(sessao)

@@ -12,7 +12,7 @@ class Coleta(Base):
         Index("indice_coletas_morador", "morador_id"),
         CheckConstraint("CHAR_LENGTH(endereco) >= 10", name="conferir_endereco_coleta"),
         CheckConstraint("pontos >= 0", name="conferir_pontos_coleta"),
-        CheckConstraint("JSON_TYPE(materiais_informados) = 'ARRAY' AND JSON_LENGTH(materiais_informados) BETWEEN 1 AND 6", name="conferir_materiais_coleta"),
+        CheckConstraint("JSON_TYPE(materiais_informados) = 'ARRAY' AND JSON_LENGTH(materiais_informados) >= 1", name="conferir_materiais_coleta"),
         {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_as_cs"},
     )
 
