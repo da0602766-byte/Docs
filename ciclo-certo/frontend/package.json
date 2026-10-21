@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:pages": "vite build --base=/Docs/",
     "preview": "vite preview",
-    "test:visual": "node testes/visual.cjs"
+    "test:visual": "node testes/visual.cjs",
+    "test:pages": "node testes/pages.cjs"
   },
   "dependencies": {
     "react": "^19.1.0",

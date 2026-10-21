@@ -11,6 +11,8 @@ Fontes: [cartilha](docs/CARTILHA.md), [briefing](docs/BRIEFING.md), [DER](docs/D
 
 Visual adaptado de `volta-projeto.zip`: página inicial, acesso e quatro telas responsivas. A página pública leva ao login; contas, coletas e pesagens continuam ligadas à API real. Veja a [análise e adaptação](.docs/visual-volta.md).
 
+Publicação do frontend: [Ciclo Certo no GitHub Pages](https://da0602766-byte.github.io/Docs/). O acesso às contas online depende da API hospedada; sem ela, a página pública funciona e os formulários informam indisponibilidade. Configuração e testes em [publicação](.docs/publicacao.md).
+
 ## Preparação em uma instalação nova
 
 Requisitos: Python 3.13 (versão usada na validação), MySQL 8.0.16 ou superior e Node compatível com o Vite instalado (20.19+ na linha 20 ou 22.12+ nas linhas posteriores).

@@ -3,54 +3,54 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/fontes/fonte-0.ttf) format('truetype');
+  src: url(./fonte-0.ttf) format('truetype');
 }
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/fontes/fonte-1.ttf) format('truetype');
+  src: url(./fonte-1.ttf) format('truetype');
 }
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/fontes/fonte-2.ttf) format('truetype');
+  src: url(./fonte-2.ttf) format('truetype');
 }
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/fontes/fonte-3.ttf) format('truetype');
+  src: url(./fonte-3.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/fontes/fonte-4.ttf) format('truetype');
+  src: url(./fonte-4.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/fontes/fonte-5.ttf) format('truetype');
+  src: url(./fonte-5.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/fontes/fonte-6.ttf) format('truetype');
+  src: url(./fonte-6.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 800;
   font-display: swap;
-  src: url(/fontes/fonte-7.ttf) format('truetype');
+  src: url(./fonte-7.ttf) format('truetype');
 }
