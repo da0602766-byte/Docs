@@ -1,3 +1,74 @@
+# IA planejada: ajudar a descrever materiais no agendamento
+
+Estado: **planejada, sem implementação nesta revisão**. Escolha revista em 21/10/2026 e registro autorizado pelo aluno com `pode seguir`: ajudar Joana a organizar os materiais informados, sugerir categorias e fazer uma pergunta curta quando houver ambiguidade, usando OpenAI.
+
+Esta é a escolha atual desta discussão. O plano anterior de explicação dos pontos, com seu prompt e ensaios, está preservado integralmente na seção histórica abaixo. Esses ensaios não validam a nova funcionalidade. Briefing, roadmap e demais documentos ainda refletem a escolha anterior; sua atualização ficou para próximas etapas por solicitação do aluno.
+
+## Problema e motivo da escolha
+
+Joana permanece moradora, usando o celular; Osmar permanece coordenador da cooperativa. O [briefing](../docs/BRIEFING.md), nas seções Público e Dores e soluções, descreve Joana com pressa e pouca paciência para formulários longos. A seção Decisões de modelagem e de interface distingue materiais informados de pesagens reais.
+
+A oportunidade escolhida é interpretar uma descrição espontânea, organizar os itens e sugerir categorias para facilitar o preenchimento de Agendar coleta. O valor da IA está na interpretação de expressões variadas e na formulação de esclarecimentos adequados ao texto recebido. A dificuldade de descrever materiais é uma hipótese, não uma dor comprovada por pesquisa.
+
+Foram comparadas duas opções nesta rodada: explicar os pontos no detalhe da coleta e ajudar na descrição dos materiais. O aluno escolheu a segunda, incluindo tanto organização do texto quanto sugestão de categorias, com pergunta curta em caso de dúvida. A explicação de pontos atende mais diretamente à dor prioritária do briefing; o benefício da opção escolhida depende de ela reduzir o esforço de agendamento sem prolongar a tarefa.
+
+## Entrada, saída e fluxo de uso
+
+- Entrada: descrição livre dos materiais, respostas aos esclarecimentos e orientações de classificação fornecidas pelo backend.
+- Saída: lista editável de itens com descrição, categoria sugerida quando houver informação suficiente e indicação de dúvidas; durante o esclarecimento, uma pergunta curta por vez.
+- Categorias sugeridas: papel, vidro, plástico e metal. Um item sem informação suficiente permanece sem categoria definida, preservando sua descrição. Isso não cria uma nova categoria de pesagem nem uma restrição ao campo livre do agendamento.
+
+1. Joana escreve o que separou e solicita ajuda na tela Agendar coleta.
+2. O frontend envia a descrição ao backend autenticado; o serviço verifica o perfil morador antes de chamar o provedor.
+3. O backend fornece à OpenAI o texto necessário, os esclarecimentos e as orientações. O modelo organiza os itens, sugere categorias ou retorna uma pergunta curta.
+4. Joana responde à pergunta; outra chamada pode completar a sugestão. Se ela não souber responder, o item pode continuar sem categoria definida.
+5. O backend valida o formato e as categorias da resposta; a tela apresenta a sugestão para revisão. Validação de formato não comprova que a classificação está correta.
+6. Joana confere, edita e seleciona **Usar descrição** para preencher o formulário. Essa ação não grava uma coleta.
+7. Joana confirma o agendamento pela ação normal da tela. O serviço existente valida e grava os dados confirmados.
+
+Exemplo fictício, ilustrativo e não executado pela API: Joana escreve "Tenho jornais, garrafas e latas de alumínio". A pergunta é "As garrafas são de vidro ou plástico?". Após "De vidro", a prévia sugere jornais → papel, garrafas de vidro → vidro e latas de alumínio → metal. Joana pode corrigir qualquer sugestão antes de aplicá-la.
+
+## Responsabilidades, limites e continuidade
+
+A IA apenas organiza descrições, sugere categorias e pede esclarecimento. Não estima pesos ou pontos, não certifica aceitação de objetos pela cooperativa e não cria coletas ou pesagens. Materiais informados continuam sendo uma expectativa; somente as pesagens geram pontos, conforme [a regra da cartilha](../docs/CARTILHA.md).
+
+O serviço mantém autorização, validações e regras de negócio. A coleta nasce agendada com zero pontos; os multiplicadores e a mudança de situação permanecem sob responsabilidade do serviço.
+
+O provedor não precisa de histórico de coletas, nome, endereço, e-mail ou credenciais. A integração deve limitar o envio ao conteúdo necessário sobre materiais; a chave da OpenAI fica no backend. Texto recebido é dado de entrada, sem autoridade para mudar regras ou conceder acesso.
+
+Joana é responsável pela revisão da sugestão e pela confirmação final do agendamento. Se a IA errar, ela edita ou descarta a prévia. Se houver recusa, resposta inválida, indisponibilidade ou tempo de espera excedido, a interface informa a falha e preserva o texto digitado. O preenchimento manual permite continuar a tarefa, inclusive quando Joana não consegue esclarecer um material.
+
+## Arquitetura e integração previstas
+
+Fluxo: `React → rota autenticada FastAPI → serviço de assistência → API OpenAI → validação no backend → prévia no React`.
+
+O contrato atual em `backend/esquemas/coleta.py` recebe `materiais_informados` como lista de textos. A proposta é uma rota separada para obter sugestões, sem persistência nessa etapa. Após revisão humana, a descrição segue pelo agendamento existente. A autenticação identifica Joana no backend; o token não é enviado ao modelo.
+
+A escolha técnica proposta é usar chamadas ao modelo com saída estruturada, controladas pelo backend. Uma entrada clara pode ser resolvida em uma chamada; um esclarecimento demanda outra após a resposta de Joana. Esse fluxo não caracteriza um sistema multiagente.
+
+Não há ferramentas acessíveis ao modelo neste recorte. Um agente com ferramentas só teria contribuição demonstrável se precisasse consultar, por exemplo, um catálogo oficial e atualizado da cooperativa; esse recurso não foi estabelecido no contexto. Separar interpretação, classificação e revisão entre agentes acrescentaria coordenação sem benefício identificado. Não foram propostos agentes autônomos nem troca de informações entre agentes.
+
+## Provedor escolhido e comparação
+
+O aluno escolheu **OpenAI**. As documentações consultadas nesta discussão apresentam saída estruturada por esquema na [OpenAI](https://developers.openai.com/api/docs/guides/structured-outputs), no [Gemini](https://ai.google.dev/gemini-api/docs/structured-output) e no [Claude](https://platform.claude.com/docs/en/build-with-claude/structured-outputs). As três oferecem caminhos para organizar uma resposta consumida pelo backend, sujeitos à compatibilidade do modelo e às restrições de cada API.
+
+OpenAI já constava do planejamento anterior, mas não havia integração para reaproveitar. A escolha não estabelece superioridade de qualidade, custo ou velocidade. Não foram cotados preços, confirmados acesso da conta ou disponibilidade de modelos, nem realizadas chamadas ao provedor. A comparação prática exigirá os mesmos exemplos fictícios em português, avaliando fidelidade ao texto, qualidade das perguntas, tempo de resposta e custo medido.
+
+## Suposições e definições pendentes
+
+- ? A assistência reduz o esforço real de Joana; validar se a pergunta adicional ajuda mais do que atrasa o agendamento.
+- ? Categorias ficam apenas na prévia, salvando a descrição confirmada na lista atual `materiais_informados`.
+- ? Modelo OpenAI compatível, orçamento, tempo de espera e limite de interações.
+- ? Nome e contrato definitivo da rota de assistência e do formato estruturado de resposta.
+
+Esta revisão registra somente o planejamento autorizado. Não inclui código, instalação de bibliotecas, testes de integração ou implementação da funcionalidade. O registro anterior segue abaixo como histórico.
+
+---
+
+# Histórico preservado — plano anterior
+
+O conteúdo a seguir documenta a escolha anterior de explicar pontos. Seus estados, decisões, prompt e resultados pertencem àquele planejamento e não substituem a escolha atual registrada acima.
+
 # IA planejada: explicar os pontos da coleta
 
 Estado: **planejado, sem endpoint ou integração OpenAI implementados**. Escolhas do aluno em 21/10/2026: explicação ao morador, um agente e OpenAI.
