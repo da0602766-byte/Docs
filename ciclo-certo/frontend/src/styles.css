@@ -10,7 +10,8 @@ a { color: inherit; }
 /* Landing page */
 .lp { --lp-ink: #1d2a21; --lp-green: #1f3d2b; --lp-green-2: #2d5039; --lp-lime: #d4e7a4; --lp-cream: #f7f5ee; --lp-paper: #fffdf8; --lp-line: #e2e0d6; --lp-muted: #5f6a60; background: var(--lp-cream); color: var(--lp-ink); font-size: 16px; }
 .lp-wrap { width: min(1160px, calc(100% - 64px)); margin-inline: auto; }
-.lp a { color: inherit; text-decoration: none; }
+/* Os links preservam as cores de cada botão e de suas variantes. */
+.lp a { text-decoration: none; }
 .lp h1, .lp h2, .lp h3 { color: var(--lp-ink); font-family: Manrope, sans-serif; letter-spacing: -0.025em; }
 .lp :focus-visible { outline: 2px solid var(--lp-green); outline-offset: 3px; border-radius: 4px; }
 .lp section { scroll-margin-top: 24px; }

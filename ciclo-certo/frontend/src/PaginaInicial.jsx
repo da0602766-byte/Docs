@@ -49,7 +49,7 @@ function Logo() {
   );
 }
 
-export default function PaginaInicial({ onEnter }) {
+export default function PaginaInicial() {
   return (
     <div className="lp">
       <div className="lp-topline">
@@ -70,8 +70,8 @@ export default function PaginaInicial({ onEnter }) {
           <a href="#perguntas">Perguntas</a>
         </nav>
         <div className="lp-nav-actions">
-          <button className="lp-link-btn" onClick={() => onEnter("cooperativa")}>Área da cooperativa</button>
-          <button className="lp-btn lp-btn-sm" onClick={() => onEnter("moradora")}>Agendar coleta</button>
+          <a className="lp-link-btn" href="/cooperador">Área da cooperativa</a>
+          <a className="lp-btn lp-btn-sm" href="/login">Agendar coleta</a>
         </div>
       </header>
 
@@ -85,8 +85,8 @@ export default function PaginaInicial({ onEnter }) {
               você vê quantos quilos entregou e quantos pontos cada material rendeu.
             </p>
             <div className="lp-actions">
-              <button className="lp-btn" onClick={() => onEnter("moradora")}>Agendar minha coleta <Icon name="arrow" size={18} /></button>
-              <button className="lp-btn lp-btn-ghost" onClick={() => onEnter("cooperativa")}>Sou da cooperativa</button>
+              <a className="lp-btn" href="/login">Agendar minha coleta <Icon name="arrow" size={18} /></a>
+              <a className="lp-btn lp-btn-ghost" href="/cooperador">Sou da cooperativa</a>
             </div>
             <dl className="lp-facts">
               <div><dt>3 passos</dt><dd>endereço, dia e materiais</dd></div>
@@ -153,7 +153,7 @@ export default function PaginaInicial({ onEnter }) {
               <li><span>2</span><div><strong>Acompanhe</strong><p>Veja a situação de cada coleta: agendada enquanto aguarda, coletada depois da pesagem.</p></div></li>
               <li><span>3</span><div><strong>Confira</strong><p>Abra qualquer coleta para ver o peso de cada material e os pontos que ele rendeu.</p></div></li>
             </ol>
-            <button className="lp-btn" onClick={() => onEnter("moradora")}>Entrar na minha conta <Icon name="arrow" size={18} /></button>
+            <a className="lp-btn" href="/login">Entrar na minha conta <Icon name="arrow" size={18} /></a>
           </div>
 
           <div className="lp-phone" aria-label="Exemplo da tela Minhas coletas">
@@ -183,7 +183,7 @@ export default function PaginaInicial({ onEnter }) {
               </div>
               <div>
                 <p className="lp-body">O coordenador vê todas as coletas do dia de uma vez, monta a rota e registra cada pesagem logo que o material desce do caminhão. A conta dos pontos é feita pelo sistema, com a mesma regra para todo mundo.</p>
-                <button className="lp-btn lp-btn-light" onClick={() => onEnter("cooperativa")}>Abrir área da cooperativa <Icon name="arrow" size={18} /></button>
+                <a className="lp-btn lp-btn-light" href="/cooperador">Abrir área da cooperativa <Icon name="arrow" size={18} /></a>
               </div>
             </div>
 
@@ -276,8 +276,8 @@ export default function PaginaInicial({ onEnter }) {
             <p>Agende a coleta e acompanhe a pesagem pelo celular.</p>
           </div>
           <div className="lp-actions">
-            <button className="lp-btn lp-btn-light" onClick={() => onEnter("moradora")}>Agendar coleta <Icon name="arrow" size={18} /></button>
-            <button className="lp-btn lp-btn-outline-light" onClick={() => onEnter("cooperativa")}>Área da cooperativa</button>
+            <a className="lp-btn lp-btn-light" href="/login">Agendar coleta <Icon name="arrow" size={18} /></a>
+            <a className="lp-btn lp-btn-outline-light" href="/cooperador">Área da cooperativa</a>
           </div>
         </section>
       </main>

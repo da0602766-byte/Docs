@@ -30,7 +30,11 @@ fs.mkdirSync(pasta, {recursive: true});
           expirada = false;
           return responder({access_token: 'token-de-teste', token_type: 'bearer'});
         }
-        if (caminho === '/usuarios' && req.method() === 'POST') return responder({id:1,...JSON.parse(req.postData()), senha: undefined}, 201);
+        if (caminho === '/usuarios' && req.method() === 'POST') {
+          const dados = JSON.parse(req.postData());
+          assert.equal(dados.tipo, new URL(pagina.url()).pathname === '/cooperador' ? 'cooperativa' : 'morador');
+          return responder({id:1,...dados, senha: undefined}, 201);
+        }
         assert.equal(req.headers().authorization, 'Bearer token-de-teste');
         if (expirada) return responder({detail:'Sessão expirada'},401);
         if (caminho === '/usuarios/eu') return responder({id:1,nome:'Ana de Teste',email:'ana@example.org',tipo:perfil});
@@ -77,7 +81,7 @@ fs.mkdirSync(pasta, {recursive: true});
       }
       async function entrar() {
         await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
-        await pagina.getByLabel('Senha',{exact:true}).fill('TesteLocal2026!');
+        await pagina.getByLabel(/^Senha/).fill('TesteLocal2026!');
         await pagina.getByRole('button',{name:'Entrar',exact:true}).click();
         await pagina.getByRole('heading',{name:perfil==='morador'?'Olá, Ana.':'Rota do dia',exact:true}).waitFor();
       }
@@ -88,15 +92,20 @@ fs.mkdirSync(pasta, {recursive: true});
       await pagina.locator('img').evaluateAll(imgs=>Promise.all(imgs.map(img=>{img.loading='eager';return img.decode();})));
       assert.equal(await pagina.locator('img').evaluateAll(imgs=>imgs.every(i=>i.complete && i.naturalWidth>0)),true);
       await capturar('inicio');
-      await pagina.getByRole('button',{name:'Agendar minha coleta'}).click();
+      await pagina.getByRole('link',{name:'Agendar minha coleta'}).click();
       await capturar('login');
       await pagina.getByRole('button',{name:'Criar minha conta',exact:true}).click();
       await pagina.getByLabel('Nome',{exact:true}).fill('Ana de Teste');
-      await pagina.getByRole('combobox').selectOption('morador');
+      assert.equal(new URL(pagina.url()).pathname, '/login');
+      assert.equal(await pagina.getByRole('combobox').count(), 0);
       await capturar('cadastro');
-      await pagina.getByRole('button',{name:'Entrar na minha conta',exact:true}).click();
       await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
-      await pagina.getByLabel('Senha',{exact:true}).fill('errada');
+      await pagina.getByLabel(/^Senha/).fill('TesteLocal2026!');
+      await pagina.getByRole('button',{name:'Criar conta e entrar',exact:true}).click();
+      await pagina.getByRole('heading',{name:'Olá, Ana.',exact:true}).waitFor();
+      await pagina.getByRole('button',{name:'Sair',exact:true}).click();
+      await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
+      await pagina.getByLabel(/^Senha/).fill('errada');
       await pagina.getByRole('button',{name:'Entrar',exact:true}).click();
       await pagina.getByRole('alert').filter({hasText:'incorretos'}).waitFor();
       await entrar();
@@ -128,7 +137,35 @@ fs.mkdirSync(pasta, {recursive: true});
       await pagina.getByRole('alert').filter({hasText:'Sua sessão expirou'}).waitFor();
       assert.equal(await pagina.evaluate(()=>localStorage.getItem('token')),null);
       perfil='cooperativa';
-      await entrar();
+      // A área do morador recusa a conta da cooperativa antes de consultar coletas.
+      await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
+      await pagina.getByLabel(/^Senha/).fill('TesteLocal2026!');
+      await pagina.getByRole('button',{name:'Entrar',exact:true}).click();
+      await pagina.getByRole('alert').filter({hasText:'exclusivo para moradores'}).waitFor();
+      assert.equal(await pagina.evaluate(()=>localStorage.getItem('token')),null);
+      await pagina.getByRole('link',{name:'Sou cooperador · acessar a cooperativa',exact:true}).click();
+      assert.equal(new URL(pagina.url()).pathname, '/cooperador');
+      await pagina.reload();
+      await pagina.getByRole('heading',{name:'Acesso do cooperador',exact:true}).waitFor();
+      // A recusa funciona também quando um morador tenta a área do cooperador.
+      perfil='morador';
+      await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
+      await pagina.getByLabel(/^Senha/).fill('TesteLocal2026!');
+      await pagina.getByRole('button',{name:'Entrar',exact:true}).click();
+      await pagina.getByRole('alert').filter({hasText:'exclusivo para cooperadores'}).waitFor();
+      assert.equal(await pagina.evaluate(()=>localStorage.getItem('token')),null);
+      perfil='cooperativa';
+      await pagina.getByRole('button',{name:'Criar minha conta',exact:true}).click();
+      assert.equal(await pagina.getByRole('alert').count(),0);
+      assert.equal(await pagina.getByRole('combobox').count(),0);
+      await pagina.getByLabel('Nome',{exact:true}).fill('Ana de Teste');
+      await pagina.getByLabel('E-mail',{exact:true}).fill('ana@example.org');
+      await pagina.getByLabel(/^Senha/).fill('TesteLocal2026!');
+      await capturar('cadastro-cooperador');
+      await pagina.getByRole('button',{name:'Criar conta e entrar',exact:true}).click();
+      await pagina.getByRole('heading',{name:'Rota do dia',exact:true}).waitFor();
+      await pagina.reload();
+      await pagina.getByRole('heading',{name:'Rota do dia',exact:true}).waitFor();
       await capturar('rota');
       await pagina.getByLabel('Escolher dia').fill('2020-01-01');
       await pagina.getByText('Nenhuma coleta neste dia.',{exact:true}).waitFor();
@@ -152,10 +189,19 @@ fs.mkdirSync(pasta, {recursive: true});
       await pagina.getByRole('cell',{name:'0,001 kg',exact:true}).waitFor();
       await capturar('pesagem-confirmada');
       await pagina.getByRole('button',{name:'Sair',exact:true}).click();
-      await pagina.getByRole('heading',{name:'Que bom ter você aqui.'}).waitFor();
+      await pagina.getByRole('heading',{name:'Acesso do cooperador',exact:true}).waitFor();
+      await capturar('login-cooperador');
+      await entrar();
+      await pagina.getByRole('button',{name:'Sair',exact:true}).click();
+      await pagina.getByRole('link',{name:'Página inicial',exact:true}).click();
+      await pagina.getByRole('link',{name:'Sou da cooperativa',exact:true}).click();
+      assert.equal(new URL(pagina.url()).pathname,'/cooperador');
+      await pagina.goBack();
+      await pagina.goForward();
+      await pagina.getByRole('heading',{name:'Acesso do cooperador',exact:true}).waitFor();
       assert.equal(await pagina.evaluate(()=>localStorage.getItem('token')),null);
       assert.deepEqual(erros,[]);
-      console.log(`OK ${largura}px: página inicial, login/erro, cadastro visual, histórico/repetição, sete materiais, F5, expiração, filtro, balança, recuperação sem duplicar, precisão e saída.`);
+      console.log(`OK ${largura}px: links por perfil, cadastro sem seletor, recusa de perfil incorreto, F5, voltar/avançar, login/erro, expiração, histórico, agendamento, filtro, pesagens e saída.`);
       await contexto.close();
     }
   } finally { await navegador.close(); }

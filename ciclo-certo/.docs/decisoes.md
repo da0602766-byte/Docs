@@ -20,7 +20,14 @@ Base: cartilha, código e escolhas do aluno em 21/10/2026. Registros para estudo
 
 - Decisão: dono pelo token; morador vê suas coletas; cooperativa consulta todas e pesa.
 - Motivo: mudar um ID no cliente não pode dar acesso ao outro morador.
-- Fora: poderes concedidos pela interface. Cadastro com escolha de perfil acompanha o exercício; implantação pública exigiria outra decisão administrativa.
+- Fora: poderes concedidos pela interface. A API permite cadastro dos dois perfis no exercício; implantação pública exigiria outra decisão administrativa.
+
+## Acessos separados — 22/10/2026
+
+- Pedido do aluno: endereço exclusivo `/cooperador` e acesso normal do morador pelo site, em `/login`.
+- Interface: links reais na página inicial; login e cadastro com perfil fixo pelo endereço, sem seletor. O valor interno do cooperador continua `cooperativa`.
+- Conferência: `/usuarios/eu` confirma o perfil da conta antes de exibir as telas. Perfil incompatível limpa o token da sessão e oferece o link correto. As permissões das rotas continuam sendo verificadas pelo backend.
+- Não foi criada aprovação administrativa de contas. Os dois cadastros continuam disponíveis no exercício.
 - Onde: serviços, dependências de autenticação e tabela do README.
 
 ## Pesagem e total juntos

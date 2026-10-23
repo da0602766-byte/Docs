@@ -98,6 +98,15 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 Abra <http://127.0.0.1:5173>. O endereço deve coincidir exatamente com ORIGEM_FRONTEND. Se a porta estiver ocupada, escolha outra explicitamente e ajuste o .env antes de reiniciar o backend.
 
+### Acessos por perfil
+
+Na porta local 5175 usada neste ambiente:
+
+- Morador: <http://127.0.0.1:5175/login>, acessível pelos links de agendamento na página inicial.
+- Cooperador: <http://127.0.0.1:5175/cooperador>, acessível pelos links da cooperativa.
+
+Cada endereço apresenta login e cadastro do próprio perfil, sem seletor. O cadastro envia `morador` em `/login` e `cooperativa` em `/cooperador`. Após o login, `/usuarios/eu` confirma o perfil: contas do outro perfil recebem uma mensagem e um link para o acesso correspondente. Atualizar, sair e entrar novamente conserva o endereço do acesso. Se usar outra porta, substitua 5175 nos links.
+
 A API padrão é http://127.0.0.1:8000. Para outra, configure VITE_API_URL no ambiente do frontend e reinicie/recompile; essa variável contém só endereço, nunca segredo.
 
 Para gerar e servir a versão compilada, dentro de frontend/:
@@ -130,7 +139,7 @@ Essa senha serve apenas à demonstração local. No banco de uso normal, cadastr
 7. Peso zero/negativo ou material não previsto responde 422. Peso 1.001 kg de papel e peso 0,001 kg são aceitos: não existe teto de 1.000 kg ou precisão obrigatória de centésimos.
 8. Confira senha incorreta, F5, Sair e token vencido: o front não salva a senha e pede novo login quando recebe 401.
 
-O cadastro permite escolher perfil, conforme o exercício. Em implantação pública, a concessão do perfil cooperativa precisa de uma decisão administrativa que não faz parte desta entrega.
+O cadastro pela API continua aceitando os dois perfis, conforme o exercício; na interface, o perfil é definido pelo endereço de acesso. Em implantação pública, a concessão do perfil cooperativa precisa de uma decisão administrativa que não faz parte desta entrega.
 
 ## Rotas e permissões
 

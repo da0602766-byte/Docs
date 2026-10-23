@@ -5,12 +5,13 @@ import { Icone, TabelaPontos, Situacao, Navegacao, materiaisDaCartilha } from ".
 import { buscarColeta, criarColeta, criarPesagem, listarColetas, listarPesagens, buscarUsuarioAtual, entrar, cadastrarUsuario } from "./api";
 
 // A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
-function Login({ aoEntrar, aviso, aoVoltar }) {
+function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
   const [cadastro, setCadastro] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [tipo, setTipo] = useState("morador");
+  // O endereço define o cadastro; a API continua responsável pelas permissões.
+  const cooperador = tipo === "cooperativa";
   const [enviando, setEnviando] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
@@ -19,6 +20,7 @@ function Login({ aoEntrar, aviso, aoVoltar }) {
     evento.preventDefault();
     setEnviando(true);
     setMensagem("");
+    aoLimparAviso();
     const preparacao = cadastro ? cadastrarUsuario({ nome, email, senha, tipo }) : Promise.resolve();
     preparacao.then(() => entrar(email, senha))
       .then((dados) => { localStorage.setItem("token", dados.access_token); setSenha(""); aoEntrar(dados.access_token); })
@@ -31,20 +33,21 @@ function Login({ aoEntrar, aviso, aoVoltar }) {
     setCadastro(!cadastro);
     setMensagem("");
     setSenha("");
+    aoLimparAviso();
   }
 
-  return <div className="ws acesso"><header className="ws-header"><div className="ws-container ws-header-inner"><span className="ws-logo"><span className="ws-logo-mark"><Icone name="leaf" /></span>Ciclo Certo</span><button className="ws-back acesso-voltar" onClick={aoVoltar}><Icone name="back" size={16} />Página inicial</button></div></header>
-    <main className="ws-container grade-acesso"><section className="apresentacao-acesso"><p className="ws-kicker">Cada material tem um novo começo</p><h1>Uma coleta.<br /> Um novo ciclo.</h1><p>Agende a retirada dos seus recicláveis e acompanhe cada pesagem, com os pontos sempre à vista.</p><img src="/imagens/reciclaveis.jpg" alt="Materiais separados para reciclagem" /><div className="acesso-legenda"><Icone name="leaf" />Moradores e cooperativa, juntos pelo bairro.</div></section>
-    <section className="ws-card painel-acesso"><p className="ws-kicker">Sua área no Ciclo Certo</p><h2>{cadastro ? "Criar sua conta" : "Que bom ter você aqui."}</h2><p className="ws-sub">{cadastro ? "Preencha seus dados para começar." : "Entre para acessar suas coletas."}</p>
+  return <div className="ws acesso"><header className="ws-header"><div className="ws-container ws-header-inner"><span className="ws-logo"><span className="ws-logo-mark"><Icone name="leaf" /></span>Ciclo Certo</span><a className="ws-back acesso-voltar" href="/"><Icone name="back" size={16} />Página inicial</a></div></header>
+    <main className="ws-container grade-acesso"><section className="apresentacao-acesso"><p className="ws-kicker">{cooperador ? "Quem cuida de cada novo ciclo" : "Cada material tem um novo começo"}</p><h1>{cooperador ? <>Sua equipe.<br /> Um novo ciclo.</> : <>Uma coleta.<br /> Um novo ciclo.</>}</h1><p>{cooperador ? "Organize a rota do dia, registre as pesagens e acompanhe os pontos de cada coleta." : "Agende a retirada dos seus recicláveis e acompanhe cada pesagem, com os pontos sempre à vista."}</p><img src="/imagens/reciclaveis.jpg" alt="Materiais separados para reciclagem" /><div className="acesso-legenda"><Icone name="leaf" />Moradores e cooperativa, juntos pelo bairro.</div></section>
+    <section className="ws-card painel-acesso"><p className="ws-kicker">{cooperador ? "Área do cooperador" : "Área do morador"}</p><h2>{cadastro ? (cooperador ? "Criar conta de cooperador" : "Criar sua conta") : (cooperador ? "Acesso do cooperador" : "Que bom ter você aqui.")}</h2><p className="ws-sub">{cadastro ? (cooperador ? "Cadastre seus dados para atuar na cooperativa." : "Preencha seus dados para começar como morador.") : (cooperador ? "Entre com sua conta da cooperativa." : "Entre com sua conta de morador para acessar suas coletas.")}</p>
     <form onSubmit={enviar}>
       {cadastro && <label className="ws-field"><span className="ws-label">Nome</span><input autoComplete="name" minLength={2} maxLength={80} required value={nome} onChange={(evento) => setNome(evento.target.value)} /></label>}
       <label className="ws-field"><span className="ws-label">E-mail</span><input type="email" autoComplete="username" maxLength={100} required value={email} onChange={(evento) => setEmail(evento.target.value)} placeholder="seu@email.com" /></label>
       <label className="ws-field"><span className="ws-label">Senha</span><input type="password" autoComplete={cadastro ? "new-password" : "current-password"} minLength={cadastro ? 8 : undefined} maxLength={cadastro ? 72 : undefined} required value={senha} onChange={(evento) => setSenha(evento.target.value)} />{cadastro && <span className="ws-help">Use de 8 a 72 caracteres.</span>}</label>
-      {cadastro && <label className="ws-field"><span className="ws-label">Perfil</span><select value={tipo} onChange={(evento) => setTipo(evento.target.value)}><option value="morador">Morador</option><option value="cooperativa">Cooperativa</option></select></label>}
       <button className="ws-btn ws-btn-block" disabled={enviando} type="submit">{enviando ? "Aguarde..." : cadastro ? "Criar conta e entrar" : "Entrar"}<Icone name="arrow" size={18} /></button>
     </form>
     {(mensagem || aviso) && <p className="aviso erro" role="alert">{mensagem || aviso}</p>}
     <div className="alternar-acesso"><span>{cadastro ? "Já faz parte do Ciclo Certo?" : "Ainda não tem conta?"}</span><button disabled={enviando} type="button" onClick={alternar}>{cadastro ? "Entrar na minha conta" : "Criar minha conta"}</button></div>
+    <p className="ws-help"><a href={cooperador ? "/login" : "/cooperador"}>{cooperador ? "Sou morador · acessar minha conta" : "Sou cooperador · acessar a cooperativa"}</a></p>
   </section></main></div>;
 }
 
@@ -220,10 +223,11 @@ function Balanca({ coletaSelecionada, aoVoltar, aoAtualizar }) {
 
 // O token identifica a sessão; a API confirma o perfil antes de liberar qualquer tela.
 export default function App() {
+  const tipoAcesso = window.location.pathname.replace(/\/+$/, "") === "/cooperador" ? "cooperativa" : "morador";
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [perfil, setPerfil] = useState(null);
   const [tela, setTela] = useState("");
-  const [paginaInicial, setPaginaInicial] = useState(!token);
+  const [paginaInicial, setPaginaInicial] = useState(!token && window.location.pathname === "/");
   const [coletaSelecionada, setColetaSelecionada] = useState(null);
   const [atualizacao, setAtualizacao] = useState(0);
   const [carregando, setCarregando] = useState(Boolean(token));
@@ -238,11 +242,20 @@ export default function App() {
     setCarregando(true);
     setErro("");
     buscarUsuarioAtual()
-      .then((usuario) => { if (ativa) { setPerfil(usuario); setTela(usuario.tipo === "morador" ? "minhas" : "rota"); } })
+      .then((usuario) => {
+        if (!ativa) return;
+        // Uma conta do outro perfil deve usar seu próprio endereço de acesso.
+        if (usuario.tipo !== tipoAcesso) {
+          localStorage.removeItem("token"); setToken(null); setPerfil(null); setPaginaInicial(false);
+          setAviso(tipoAcesso === "cooperativa" ? "Este acesso é exclusivo para cooperadores. Se você é morador, use o acesso do morador abaixo." : "Este acesso é exclusivo para moradores. Se você é cooperador, use o acesso da cooperativa abaixo.");
+          return;
+        }
+        setPerfil(usuario); setTela(usuario.tipo === "morador" ? "minhas" : "rota");
+      })
       .catch((falha) => { if (ativa) setErro(falha.message); })
       .finally(() => { if (ativa) setCarregando(false); });
     return () => { ativa = false; };
-  }, [token, tentativa]);
+  }, [token, tentativa, tipoAcesso]);
 
   // A API dispara este evento quando uma sessão foi recusada por expiração ou token inválido.
   useEffect(() => {
@@ -282,8 +295,8 @@ export default function App() {
     return <Balanca aoAtualizar={() => setAtualizacao((valor) => valor + 1)} aoVoltar={() => setTela("rota")} coletaSelecionada={coletaSelecionada} />;
   }
 
-  if (!token && paginaInicial) return <PaginaInicial onEnter={() => { setPaginaInicial(false); window.scrollTo(0, 0); }} />;
-  if (!token) return <Login aoEntrar={receberToken} aviso={aviso} aoVoltar={() => { setPaginaInicial(true); window.scrollTo(0, 0); }} />;
+  if (!token && paginaInicial) return <PaginaInicial />;
+  if (!token) return <Login aoEntrar={receberToken} aviso={aviso} tipo={tipoAcesso} aoLimparAviso={() => setAviso("")} />;
   if (carregando) return <main className="ws pagina-centralizada"><p className="estado carregando">Carregando seu perfil...</p></main>;
   if (erro || !perfil) return <main className="ws pagina-centralizada"><div className="erro-com-acao" role="alert"><p>{erro || "Não foi possível carregar seu perfil."}</p><button className="ws-btn" onClick={() => setTentativa((valor) => valor + 1)} type="button">Tentar novamente</button><button className="ws-btn ws-btn-ghost" onClick={sair} type="button">Voltar ao login</button></div></main>;
   return <div className="ws"><Navegacao perfil={perfil} tela={tela} aoMudarTela={(destino) => { setTela(destino); window.scrollTo(0, 0); }} aoSair={sair} /><main id="conteudo" className="ws-container ws-main" key={perfil.id}>{conteudoPrincipal()}</main><footer className="rodape-app">Ciclo Certo · Cada material tem um novo começo.</footer></div>;

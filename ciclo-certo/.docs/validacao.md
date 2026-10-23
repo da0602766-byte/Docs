@@ -1,6 +1,18 @@
 # Validação da entrega
 
-Data: 21/10/2026. Este registro distingue testes executados de verificações pendentes.
+Data: 21/10/2026, com validação dos acessos separados em 22/10/2026. Este registro distingue testes executados de verificações pendentes.
+
+## Acessos separados — 22/10/2026
+
+- Correção posterior das cores: removida a declaração `color: inherit` de `.lp a`, que sobrepunha as cores dos links com aparência de botão. Botões verdes voltam a ter texto branco; variantes claras e contornadas conservam suas cores. Build e testes de interface aprovados novamente em 1440, 390 e 320 px; captura da página inicial inspecionada.
+
+- Compilação `npm run build`: aprovada com Vite 7.3.7.
+- `npm run test:visual`: aprovado no Edge em 1440, 390 e 320 px, com API simulada e sem escrita no banco real.
+- Conferidos links da página inicial para `/login` e `/cooperador`, abertura direta e F5 no cooperador, voltar/avançar no navegador e permanência no acesso ao sair e entrar novamente.
+- Cadastros dos dois acessos enviam o perfil correspondente, sem seletor. Login com perfil incompatível é recusado pela interface, remove o token e oferece o link correto; trocar de formulário limpa o aviso anterior.
+- Repetidos os fluxos existentes de histórico, agendamento, expiração, rota e pesagens, incluindo recuperação do total sem duplicar registro.
+- Capturas de login/cadastro inspecionadas em computador e celular; sem rolagem horizontal nas larguras verificadas.
+- Backend e banco não foram alterados. A validação desta mudança usa respostas simuladas; não comprova disponibilidade do MySQL nem substitui o teste integrado com contas reais autorizadas.
 
 ## Executado no projeto
 
