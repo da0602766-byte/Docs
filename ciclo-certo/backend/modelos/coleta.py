@@ -1,6 +1,6 @@
 # O modelo conserva a relação com o morador e os campos utilizados nas quatro telas.
 from sqlalchemy import CheckConstraint, Column, Date, Enum, ForeignKey, Index, Integer, JSON, String
-from sqlalchemy.dialects.mysql import DOUBLE
+from sqlalchemy import Double
 from banco import Base
 
 
@@ -12,8 +12,8 @@ class Coleta(Base):
         Index("indice_coletas_morador", "morador_id"),
         CheckConstraint("CHAR_LENGTH(endereco) >= 10", name="conferir_endereco_coleta"),
         CheckConstraint("pontos >= 0", name="conferir_pontos_coleta"),
-        CheckConstraint("JSON_TYPE(materiais_informados) = 'ARRAY' AND JSON_LENGTH(materiais_informados) >= 1", name="conferir_materiais_coleta"),
-        {"mysql_engine": "InnoDB", "mysql_charset": "utf8mb4", "mysql_collate": "utf8mb4_0900_as_cs"},
+        # CASE evita chamar json_array_length em um objeto JSON inválido para a regra.
+        CheckConstraint("CASE WHEN json_typeof(materiais_informados) = 'array' THEN json_array_length(materiais_informados) >= 1 ELSE false END", name="conferir_materiais_coleta"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,5 +21,5 @@ class Coleta(Base):
     endereco = Column(String(160), nullable=False)
     dia = Column(Date, nullable=False)
     materiais_informados = Column(JSON, nullable=False)
-    situacao = Column(Enum("agendada", "coletada"), nullable=False, server_default="agendada")
-    pontos = Column(DOUBLE(asdecimal=False), nullable=False, server_default="0")
+    situacao = Column(Enum("agendada", "coletada", native_enum=False, create_constraint=True, name="conferir_situacao_coleta"), nullable=False, server_default="agendada")
+    pontos = Column(Double(asdecimal=False), nullable=False, server_default="0")

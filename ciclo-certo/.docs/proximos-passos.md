@@ -1,10 +1,12 @@
 # Próximos passos
 
-Atualizado em 21/10/2026; consulte `validacao.md` para o que foi efetivamente executado.
+Atualizado em 28/10/2026; consulte `validacao.md` para o que foi efetivamente executado.
 
 ## Entrega atual
 
-Decisão do aluno: manter o sistema em localhost. O GitHub Pages foi desativado e seu workflow removido; não publicar novamente sem solicitação explícita. Frontend local em `http://127.0.0.1:5175`, API em `http://127.0.0.1:8000` e MySQL local.
+Decisão do aluno: manter frontend e API em localhost e migrar o banco para Supabase. O GitHub Pages foi desativado e seu workflow removido; não publicar novamente sem solicitação explícita. Frontend local em `http://127.0.0.1:5175`, API em `http://127.0.0.1:8000` e PostgreSQL no projeto Supabase `plhfkhxzmxzyfygjyzbk`. O `.env` já aponta para esse destino; o MySQL original foi preservado como snapshot, sem sincronização automática.
+
+Migração concluída em 28/10/2026: 4 usuários preservados, nenhuma coleta/pesagem existente; 17 testes passaram em cada banco. Ao iniciar a API pelo comando do README, ela usa Supabase. Não havia servidor local em execução durante a troca. Operação e backup em `backend/supabase/README.md`. O backend agora é exclusivamente PostgreSQL, sem fallback MySQL; scripts antigos em `backend/legado/mysql/`. Os testes atuais são executados por `python -m unittest teste_banco -v` no schema PostgreSQL descartável.
 
 1. Revisar pessoalmente o novo visual e conferir em aparelhos físicos. As quatro telas foram inspecionadas e exercitadas em Edge, nas larguras 1440, 390 e 320 px; detalhes em `visual-volta.md`.
 2. Repetir o roteiro integrado com contas autorizadas se houver mudanças na API. Login incorreto, F5, Sair, expiração e recuperação de falhas passaram no navegador com API simulada; testes HTTP reais anteriores em `validacao.md`.

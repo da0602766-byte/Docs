@@ -1,50 +1,76 @@
-# Testes usam somente um banco descartável; nenhuma credencial fictícia vai para a aplicação.
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+# Reaproveita os contratos HTTP existentes em schema PostgreSQL descartável autorizado.
+import os
 from pathlib import Path
-import secrets
+import re
 import subprocess
 import sys
 import unittest
-from uuid import uuid4
 
-from alembic import command
-from alembic.config import Config
 from fastapi.testclient import TestClient
-import jwt
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
-import banco as banco
-import configuracao as configuracao
+import banco
+import configuracao
 from main import app
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+import secrets
+from uuid import uuid4
+import jwt
+from sqlalchemy.exc import SQLAlchemyError
 from repositorios import pesagem as repositorio_pesagem
 from seguranca import gerar_hash_senha, verificar_senha, validar_token_acesso
 
 
-# O banco exclusivo permite verificar migrations, persistência e autorização sem dados reais.
+# O pooler ignora options no handshake; SET na sessão seleciona o schema com segurança.
+def criar_engine_teste(url, esquema):
+    if not re.fullmatch(r"ciclo_certo_teste_[a-f0-9]{32}", esquema):
+        raise RuntimeError("Nome de schema descartável inválido.")
+    engine = create_engine(url, pool_pre_ping=True, connect_args={"sslmode": "require", "prepare_threshold": None})
+
+    # Cada conexão do pool recebe o schema exclusivo antes de executar SQL dos testes.
+    @event.listens_for(engine, "connect")
+    def selecionar_schema(conexao, registro):
+        anterior = conexao.autocommit
+        conexao.autocommit = True
+        try:
+            with conexao.cursor() as cursor:
+                cursor.execute(f"SET search_path TO {esquema}")
+        finally:
+            conexao.autocommit = anterior
+
+    return engine
+
+
 class TesteBanco(unittest.TestCase):
-    # Cria a estrutura antiga e migra um usuário sem credenciais para verificar a preservação.
+    # O administrador deve criar previamente apenas este schema e conceder USAGE/CREATE.
     @classmethod
     def setUpClass(cls):
-        cls.nome_banco = "ciclo_certo_teste_" + uuid4().hex
-        cls.engine_original = banco.engine
-        cls.engine_administrativo = create_engine(banco.endereco_banco.set(database=None), connect_args={"use_pure": True})
-        with cls.engine_administrativo.begin() as conexao:
-            conexao.execute(text(f"CREATE DATABASE `{cls.nome_banco}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs"))
-        cls.engine = create_engine(banco.endereco_banco.set(database=cls.nome_banco), pool_pre_ping=True, connect_args={"use_pure": True})
-        cls.Sessao = sessionmaker(bind=cls.engine, expire_on_commit=False)
-        banco.engine = cls.engine
-        cls.configuracao_alembic = Config(str(Path(__file__).with_name("alembic.ini")))
-        command.upgrade(cls.configuracao_alembic, "0001_estrutura")
+        cls.esquema = configuracao.esquema_teste_supabase
+        if not re.fullmatch(r"ciclo_certo_teste_[a-f0-9]{32}", cls.esquema):
+            raise RuntimeError("SUPABASE_ESQUEMA_TESTE precisa identificar um schema descartável exclusivo.")
+        url = make_url(configuracao.database_url)
+        if url.get_backend_name() != "postgresql":
+            raise RuntimeError("Os testes Supabase exigem PostgreSQL.")
+        cls.url_teste = url
+        cls.engine = criar_engine_teste(url, cls.esquema)
+        with cls.engine.connect() as conexao:
+            if conexao.execute(text("SELECT current_schema()")).scalar_one() != cls.esquema:
+                raise RuntimeError("Schema de teste não encontrado; recusado acesso a public.")
+            if inspect(conexao).get_table_names(schema=cls.esquema):
+                raise RuntimeError("Schema de teste já contém tabelas.")
+        # Usa exatamente a estrutura aplicada no Supabase, apenas trocando o schema.
+        estrutura = (Path(__file__).parent / "supabase" / "estrutura.sql").read_text(encoding="utf-8")
+        estrutura = estrutura.replace("SET search_path TO public;", f"SET search_path TO {cls.esquema};").replace("public.", cls.esquema + ".")
+        estrutura = estrutura.replace("GRANT USAGE ON SCHEMA public TO ciclo_certo_backend;", "")
         with cls.engine.begin() as conexao:
+            conexao.exec_driver_sql(estrutura)
             conexao.execute(text("INSERT INTO usuarios (nome, tipo) VALUES ('Usuário anterior', 'morador')"))
-        command.upgrade(cls.configuracao_alembic, "head")
-        banco.engine = cls.engine_original
+        cls.Sessao = sessionmaker(bind=cls.engine, expire_on_commit=False)
 
-        # Substitui apenas a dependência das requisições deste processo de teste.
+        # Só as requisições desta suíte recebem o banco de teste.
         def obter_sessao_teste():
             with cls.Sessao() as sessao:
                 yield sessao
@@ -52,19 +78,37 @@ class TesteBanco(unittest.TestCase):
         app.dependency_overrides[banco.obter_sessao] = obter_sessao_teste
         cls.cliente = TestClient(app)
 
-    # Encerra todas as conexões antes de remover somente o banco criado por esta execução.
+    # Remove somente as tabelas conhecidas do schema temporário validado acima.
     @classmethod
     def tearDownClass(cls):
         cls.cliente.close()
         app.dependency_overrides.clear()
+        with cls.engine.begin() as conexao:
+            assert conexao.execute(text("SELECT current_schema()")).scalar_one() == cls.esquema
+            banco.Base.metadata.drop_all(conexao)
         cls.engine.dispose()
-        banco.engine = cls.engine_original
-        if cls.nome_banco.startswith("ciclo_certo_teste_") and cls.nome_banco != configuracao.mysql_banco:
-            with cls.engine_administrativo.begin() as conexao:
-                conexao.execute(text(f"DROP DATABASE `{cls.nome_banco}`"))
-        cls.engine_administrativo.dispose()
 
-    # Cada caso usa contas próprias e aleatórias apenas no banco temporário.
+    # No PostgreSQL o baseline já inclui as colunas opcionais de usuários antigos.
+    def test_migracao_preserva_usuario_antigo(self):
+        with self.engine.connect() as conexao:
+            antigo = conexao.execute(text("SELECT nome, tipo, email, senha_hash FROM usuarios WHERE id = 1")).one()
+        self.assertEqual(tuple(antigo), ("Usuário anterior", "morador", None, None))
+
+    # A URL vai no ambiente do processo filho, nunca na linha de comando ou nos logs.
+    def test_persistencia_em_outro_processo(self):
+        coleta = self.agendar()
+        programa = (
+            "import configuracao; from sqlalchemy.orm import sessionmaker; "
+            "from teste_banco import criar_engine_teste; from repositorios import coleta; "
+            "engine=criar_engine_teste(configuracao.database_url, configuracao.esquema_teste_supabase); "
+            "Sessao=sessionmaker(bind=engine); "
+            f"sessao=Sessao(); print(coleta.buscar_por_id(sessao,{coleta['id']}).morador_id); sessao.close()"
+        )
+        ambiente = dict(os.environ, DATABASE_URL=self.url_teste.render_as_string(hide_password=False))
+        resultado = subprocess.run([sys.executable, "-c", programa], cwd=Path(__file__).parent, env=ambiente, capture_output=True, text=True, check=True)
+        self.assertEqual(int(resultado.stdout.strip()), self.morador["id"])
+
+
     def setUp(self):
         self.morador, self.email, self.senha, self.token = self.cadastrar_e_entrar("morador")
         self.outro, self.outro_email, self.outro_senha, self.outro_token = self.cadastrar_e_entrar("morador")
@@ -73,7 +117,7 @@ class TesteBanco(unittest.TestCase):
         self.cabecalho_outro = {"Authorization": "Bearer " + self.outro_token}
         self.cabecalho_cooperativa = {"Authorization": "Bearer " + self.token_cooperativa}
 
-    # Confere os contratos de cadastro e login e nunca imprime senhas ou tokens.
+
     def cadastrar_e_entrar(self, tipo):
         email = uuid4().hex + "@example.org"
         senha = secrets.token_urlsafe(16)
@@ -86,14 +130,14 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual(login.json()["token_type"], "bearer")
         return resposta.json(), email, senha, login.json()["access_token"]
 
-    # Prepara uma coleta sem informar qualquer campo de identificação do morador.
+
     def agendar(self, cabecalho=None, **campos):
         dados = {"endereco": "Rua de teste, número 42", "dia": "2026-10-07", "materiais_informados": ["papel", "plástico"]}
         resposta = self.cliente.post("/coletas", json={**dados, **campos}, headers=cabecalho or self.cabecalho)
         self.assertEqual(resposta.status_code, 201)
         return resposta.json()
 
-    # O hash muda com o sal e permite reconhecer somente a senha correta.
+
     def test_hash_argon2(self):
         primeiro = gerar_hash_senha(self.senha)
         segundo = gerar_hash_senha(self.senha)
@@ -104,12 +148,12 @@ class TesteBanco(unittest.TestCase):
         self.assertFalse(verificar_senha(self.senha, None))
         self.assertFalse(verificar_senha(self.senha, "hash-invalido"))
 
-    # O e-mail identifica uma única pessoa, inclusive quando muda apenas a capitalização.
+
     def test_email_duplicado(self):
         resposta = self.cliente.post("/usuarios", json={"nome": "Outra conta", "email": self.email.upper(), "senha": self.senha, "tipo": "morador"})
         self.assertEqual(resposta.status_code, 409)
 
-    # Um erro em outro campo não pode incluir a senha recebida no contexto da resposta.
+
     def test_validacao_nao_expoe_senha(self):
         resposta = self.cliente.post("/usuarios", json={"email": self.email, "senha": self.senha, "tipo": "morador"})
         self.assertEqual(resposta.status_code, 422)
@@ -118,22 +162,14 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual(resposta.status_code, 422)
         self.assertNotIn('"input":"curta"', resposta.text)
 
-    # A API dá a mesma resposta a senha incorreta e e-mail inexistente.
+
     def test_login_invalido(self):
         for email, senha in [(self.email, self.senha + "x"), (uuid4().hex + "@example.org", self.senha)]:
             resposta = self.cliente.post("/login", data={"username": email, "password": senha})
             self.assertEqual(resposta.status_code, 401)
             self.assertEqual(resposta.json()["detail"], "E-mail ou senha incorretos.")
 
-    # A migration mantém os usuários antigos sem lhes atribuir uma senha de demonstração.
-    def test_migracao_preserva_usuario_antigo(self):
-        with self.engine.connect() as conexao:
-            antigo = conexao.execute(text("SELECT nome, tipo, email, senha_hash FROM usuarios WHERE id = 1")).one()
-            versao = conexao.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        self.assertEqual(tuple(antigo), ("Usuário anterior", "morador", None, None))
-        self.assertEqual(versao, "0003_limites_cartilha")
 
-    # O token identifica o próprio perfil e cada rota da cartilha exige autenticação.
     def test_usuario_atual_e_rotas_sem_token(self):
         resposta = self.cliente.get("/usuarios/eu", headers=self.cabecalho)
         self.assertEqual(resposta.json(), self.morador)
@@ -142,7 +178,7 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual(self.cliente.post("/coletas", json={}).status_code, 401)
         self.assertEqual(self.cliente.post("/coletas/1/pesagens", json={}).status_code, 401)
 
-    # Token vencido, algoritmo diferente, assinatura alterada e dados ausentes são recusados.
+
     def test_tokens_invalidos(self):
         validade = datetime.now(timezone.utc) + timedelta(hours=1)
         dados = {"sub": str(self.morador["id"]), "exp": validade}
@@ -161,14 +197,14 @@ class TesteBanco(unittest.TestCase):
             resposta = self.cliente.get("/usuarios/eu", headers={"Authorization": "Bearer " + token})
             self.assertEqual(resposta.status_code, 401)
 
-    # O número enviado pelo cliente nunca substitui o dono identificado pelo token.
+
     def test_dono_vem_do_token(self):
         coleta = self.agendar(morador_id=self.outro["id"])
         self.assertEqual(coleta["morador_id"], self.morador["id"])
         esquema = app.openapi()["components"]["schemas"]["ColetaEntrada"]
         self.assertNotIn("morador_id", esquema["properties"])
 
-    # Lista, detalhe e histórico impedem que um morador consulte o outro.
+
     def test_isolamento_entre_moradores(self):
         coleta = self.agendar()
         outra = self.agendar(self.cabecalho_outro)
@@ -178,7 +214,7 @@ class TesteBanco(unittest.TestCase):
             self.assertEqual(self.cliente.get(caminho, headers=self.cabecalho).status_code, 403)
         self.assertEqual(self.cliente.get("/coletas", params={"morador_id": self.outro["id"]}, headers=self.cabecalho).status_code, 403)
 
-    # O perfil errado não pode gravar e a cooperativa mantém os filtros da rota.
+
     def test_perfis_e_filtros(self):
         coleta = self.agendar()
         self.assertEqual(self.cliente.post("/coletas", json={"endereco": "Rua de teste, 42", "dia": "2026-10-07", "materiais_informados": ["papel"]}, headers=self.cabecalho_cooperativa).status_code, 403)
@@ -189,7 +225,7 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual([item["id"] for item in filtradas], [coleta["id"]])
         self.assertEqual(self.cliente.get("/coletas", params={"dia": "2026-10-08"}, headers=self.cabecalho).json(), [])
 
-    # Os quatro multiplicadores e a mudança de situação permanecem iguais à cartilha.
+
     def test_pontuacao_e_validacoes(self):
         coleta = self.agendar()
         caminho = f"/coletas/{coleta['id']}/pesagens"
@@ -206,7 +242,7 @@ class TesteBanco(unittest.TestCase):
         for peso in [0, -1]:
             self.assertEqual(self.cliente.post(caminho, json={"material": "papel", "quilos": peso}, headers=self.cabecalho_cooperativa).status_code, 422)
 
-    # Exercita a nova migration e os pesos antes recusados, sem mudar a pontuação.
+
     def test_pesos_sem_teto_ou_precisao_inventada(self):
         coleta = self.agendar(materiais_informados=["papel"] * 7)
         self.assertEqual(coleta["situacao"], "agendada")
@@ -222,7 +258,7 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual(atual["situacao"], "coletada")
         self.assertAlmostEqual(atual["pontos"], total)
 
-    # Recusa valores não representáveis sem salvar pesagens parciais ou contaminar o total.
+
     def test_valores_numericos_invalidos(self):
         coleta = self.agendar()
         caminho = f"/coletas/{coleta['id']}/pesagens"
@@ -239,7 +275,7 @@ class TesteBanco(unittest.TestCase):
         atual = self.cliente.get(f"/coletas/{coleta['id']}", headers=self.cabecalho).json()
         self.assertEqual(atual["pontos"], 1e308)
 
-    # Uma falha na atualização da coleta deve desfazer também a pesagem inserida.
+
     def test_transacao_desfaz_gravacao_incompleta(self):
         coleta = self.agendar()
         with self.Sessao() as sessao:
@@ -249,7 +285,7 @@ class TesteBanco(unittest.TestCase):
         self.assertEqual(self.cliente.get(f"/coletas/{coleta['id']}/pesagens", headers=self.cabecalho).json(), [])
         self.assertEqual(self.cliente.get(f"/coletas/{coleta['id']}", headers=self.cabecalho).json()["pontos"], 0)
 
-    # Cada requisição simultânea usa uma sessão diferente e não pode perder pontos.
+
     def test_pesagens_simultaneas(self):
         coleta = self.agendar()
         caminho = f"/coletas/{coleta['id']}/pesagens"
@@ -264,25 +300,12 @@ class TesteBanco(unittest.TestCase):
         self.assertTrue(all(resposta.status_code == 201 for resposta in respostas))
         self.assertEqual(self.cliente.get(f"/coletas/{coleta['id']}", headers=self.cabecalho).json()["pontos"], 16)
 
-    # Outro processo lê o registro pelo repositório, provando que ele não ficou em memória.
-    def test_persistencia_em_outro_processo(self):
-        coleta = self.agendar()
-        programa = (
-            "import configuracao; "
-            f"configuracao.mysql_banco = {self.nome_banco!r}; "
-            "from banco import Sessao; from repositorios import coleta; "
-            f"sessao=Sessao(); print(coleta.buscar_por_id(sessao,{coleta['id']}).morador_id); sessao.close()"
-        )
-        resultado = subprocess.run([sys.executable, "-c", programa], capture_output=True, text=True, check=True)
-        self.assertEqual(int(resultado.stdout.strip()), self.morador["id"])
 
-    # Caminhos inexistentes continuam retornando 404 para usuários autorizados.
     def test_ausencias(self):
         for caminho in ["/coletas/2147483647", "/coletas/2147483647/pesagens"]:
             self.assertEqual(self.cliente.get(caminho, headers=self.cabecalho).status_code, 404)
         self.assertEqual(self.cliente.post("/coletas/2147483647/pesagens", json={"material": "papel", "quilos": 1}, headers=self.cabecalho_cooperativa).status_code, 404)
 
 
-# Executa a verificação também quando o arquivo é aberto diretamente pelo Python.
 if __name__ == "__main__":
     unittest.main()

@@ -63,3 +63,17 @@ Data: 21/10/2026, com validação dos acessos separados em 22/10/2026. Este regi
 - O módulo de IA não está implementado; seus testes de integração ficam no roadmap.
 - A leitura/revisão pessoal para apresentação e a entrega final pertencem ao aluno.
 - Nenhum commit foi feito no repositório principal. As alterações previamente preparadas no briefing foram preservadas.
+
+## Migração Supabase — 28/10/2026
+
+Solicitada pelo aluno para o projeto da conexão Docs, referência plhfkhxzmxzyfygjyzbk. Dados copiados e comparados integralmente: 4 usuários, 0 coletas e 0 pesagens, preservando IDs e hashes. MySQL original e configuração JWT preservados; backup local fora do Git. DATABASE_URL ativa aponta para PostgreSQL via pooler de sessão com TLS.
+
+Validação executada: 17 testes no MySQL e os mesmos 17 contratos no PostgreSQL (login, perfis, isolamento, pontos, limites numéricos, persistência em outro processo, rollback e concorrência). Schema temporário removido. A API com a configuração final leu os 4 usuários migrados, respondeu 401 sem token e não expôs hashes. Comparação Alembic/SQLAlchemy encontrou zero diferenças estruturais no destino. Auditor Supabase de segurança sem apontamentos; desempenho apenas indicou índices ainda não usados em tabelas vazias, preservados para os filtros previstos.
+
+Nenhum servidor local estava em execução, portanto a validação HTTP usou TestClient. A rotina de login foi testada com contas descartáveis; as senhas reais não foram solicitadas. Operação e retorno em backend/supabase/README.md.
+
+## Backend exclusivo PostgreSQL — 28/10/2026
+
+A pedido do aluno, removido o fallback MySQL da conexão e da configuração ativa. Modelos usam tipos SQLAlchemy/PostgreSQL e CHECKs compatíveis; tratamento de unicidade usa SQLSTATE 23505. banco.sql contém o baseline PostgreSQL e criar_tabelas.py recusa schema existente. Scripts e revisões antigos foram arquivados em backend/legado/mysql/, sem reescrever as migrations aplicadas.
+
+psycopg[binary] 3.2.13 confirmado no venv; mysql-connector-python removido e pip check sem conflitos. A suíte agora está unificada em teste_banco.py e seus 17 testes passaram no PostgreSQL em 156,393 segundos. Schema descartável removido depois. Conexão TLS validada, metadata sem divergências, configuração vazia/MySQL recusada e tentativa de recriar o banco existente bloqueada. Os dados reais permaneceram em 4 usuários, 0 coletas e 0 pesagens.

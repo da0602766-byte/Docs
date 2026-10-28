@@ -1,7 +1,7 @@
-# Dependências do backend da aula 8: persistência, migrations, hash e token.
+# Backend PostgreSQL: API, driver psycopg, ORM, inspeção de schema, hash e token.
 fastapi[standard]>=0.115,<1
 python-dotenv>=1,<2
-mysql-connector-python>=9,<10
+psycopg[binary]==3.2.13
 SQLAlchemy>=2.0,<2.1
 alembic>=1.13,<2
 pwdlib[argon2]>=0.2,<1

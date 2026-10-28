@@ -1,20 +1,20 @@
-# Prepara somente um banco vazio pelos modelos; bancos existentes usam migrations.
+# Infraestrutura PostgreSQL: prepara somente public vazio com o SQL revisado.
 from pathlib import Path
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
-from banco import Base, engine
-from modelos import coleta, pesagem, usuario
+from banco import engine
 
 
-# Não apaga nem recria tabelas existentes e não insere qualquer usuário.
+# Exige conexão administrativa e o papel restrito do backend previamente provisionado.
 def criar_tabelas():
-    if inspect(engine).get_table_names():
-        raise RuntimeError("O banco já tem tabelas. Use alembic upgrade head para aplicar migrations.")
-    Base.metadata.create_all(bind=engine)
-    configuracao_alembic = Config(str(Path(__file__).with_name("alembic.ini")))
-    command.stamp(configuracao_alembic, "head")
+    with engine.begin() as conexao:
+        if inspect(conexao).get_table_names(schema="public"):
+            raise RuntimeError("O schema public já contém tabelas. Aplique uma nova migration SQL; não recrie a estrutura.")
+        papel = conexao.execute(text("SELECT 1 FROM pg_roles WHERE rolname = 'ciclo_certo_backend'")).scalar()
+        if not papel:
+            raise RuntimeError("Provisione o papel ciclo_certo_backend antes de criar as tabelas.")
+        sql = (Path(__file__).parent / "supabase" / "estrutura.sql").read_text(encoding="utf-8")
+        conexao.exec_driver_sql(sql)
 
 
 # A execução manual prepara a estrutura antes de iniciar o servidor.

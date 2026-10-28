@@ -3,6 +3,10 @@ from alembic import context
 from banco import Base, engine
 from modelos import coleta, pesagem, usuario
 
+# Este histórico pertence ao MySQL; Supabase usa backend/supabase/estrutura.sql.
+if engine.dialect.name != "mysql":
+    raise RuntimeError("Histórico Alembic exclusivo do MySQL. No Supabase, use as migrations SQL registradas no projeto.")
+
 # A importação dos modelos registra as três tabelas na metadata para autogenerate.
 metadata_alvo = Base.metadata
 

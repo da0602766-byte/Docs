@@ -28,7 +28,8 @@ def salvar(sessao, dados_usuario: dict):
         sessao.commit()
     except IntegrityError as erro:
         sessao.rollback()
-        if getattr(erro.orig, "errno", None) == 1062:
+        # SQLSTATE 23505 identifica a violação de unicidade no PostgreSQL.
+        if getattr(erro.orig, "sqlstate", None) == "23505":
             return None
         raise
     return usuario

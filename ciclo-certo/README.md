@@ -1,27 +1,35 @@
 # Ciclo Certo
 
-**Execução em localhost.** Por decisão do aluno, o GitHub é usado para versionar o código; não há publicação pelo GitHub Pages. Neste ambiente, abra `http://127.0.0.1:5175`, com API em `http://127.0.0.1:8000` e MySQL local.
+**Frontend e API em localhost; banco no Supabase.** Por solicitação do aluno em 28/10/2026, a persistência foi migrada para PostgreSQL no projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. O GitHub continua usado para versionar o código, sem publicação pelo GitHub Pages. Frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
 
 Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de cada pesagem, substituindo o acompanhamento por telefone e planilha.
 
 - **Morador (Joana, celular):** agenda, acompanha suas coletas e consulta pesagens/pontos.
 - **Cooperativa (Osmar, computador):** consulta coletas por dia e registra pesagens.
-- **Implementado:** React/Vite, FastAPI, MySQL/SQLAlchemy, Alembic, Argon2, JWT e perfis.
+- **Implementado:** React/Vite, FastAPI, PostgreSQL/Supabase com SQLAlchemy, Argon2, JWT e perfis; driver psycopg no ambiente virtual; histórico MySQL arquivado para consulta.
 - **Planejado:** um agente OpenAI para explicar os pontos, conforme [plano de IA](.docs/ia.md). Nenhuma chamada ao provedor está implementada.
 
 Fontes: [cartilha](docs/CARTILHA.md), [briefing](docs/BRIEFING.md), [DER](docs/DER.md), [marca e styleguide](docs/styleguide/README.md). Continuidade em [.docs/](.docs/README.md); regras de trabalho em [REGRAS.md](REGRAS.md).
 
 Visual adaptado de `volta-projeto.zip`: página inicial, acesso e quatro telas responsivas. A página pública leva ao login; contas, coletas e pesagens continuam ligadas à API real. Veja a [análise e adaptação](.docs/visual-volta.md).
 
+## Conexão atual: Supabase
+
+Instale `backend/requirements.txt` no ambiente virtual e configure `DATABASE_URL` em `backend/.env`, usando o driver `postgresql+psycopg`, o pooler de sessão (porta 5432) e `sslmode=require`. A credencial fica somente no backend e fora do Git; nenhuma chave Supabase é necessária no frontend. A autenticação continua sendo Argon2/JWT da aplicação.
+
+O projeto usa um usuário PostgreSQL próprio, `ciclo_certo_backend`, com permissões limitadas às três tabelas. As tabelas têm RLS e bloqueiam acesso por `anon`/`authenticated`; a API continua autorizando cada usuário por perfil e proprietário. O MySQL original foi preservado. Consulte [a operação de migração](backend/supabase/README.md) para validação, backup, sequences e retorno.
+
+Para conferir a conexão, a partir desta pasta:
+
+```powershell
+.\venv\Scripts\python.exe backend/supabase/verificar_conexao.py
+```
+
+A estrutura PostgreSQL está em `backend/supabase/estrutura.sql`, registrada no histórico de migrations do projeto; `backend/banco.sql` contém a mesma referência. Novas alterações devem ser migrations SQL incrementais. Os scripts e revisões MySQL foram arquivados em `backend/legado/mysql/` e não integram a execução atual.
+
 ## Preparação em uma instalação nova
 
-Requisitos: Python 3.13 (versão usada na validação), MySQL 8.0.16 ou superior e Node compatível com o Vite instalado (20.19+ na linha 20 ou 22.12+ nas linhas posteriores).
-
-Clone o repositório e entre na pasta que contém este README. Neste checkout ela é `ciclo-certo/`, dentro da raiz Git. Todos os comandos abaixo partem dessa pasta, salvo indicação contrária.
-
-### Backend e ambiente
-
-No PowerShell:
+Requisitos: Python 3.13, PostgreSQL no Supabase e Node compatível com o Vite instalado. Os comandos partem desta pasta (`ciclo-certo/`).
 
 ```powershell
 python -m venv venv
@@ -29,55 +37,20 @@ python -m venv venv
 if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.exemplo backend/.env }
 ```
 
-Preencha `backend/.env` localmente. Para uma instalação isolada de estudo, use por exemplo:
+Preencha `DATABASE_URL`, `ORIGEM_FRONTEND` e `CHAVE_DO_TOKEN` no `.env`. A URL usa `postgresql+psycopg://USUARIO:SENHA@HOST:5432/postgres?sslmode=require`; obtenha host e usuário no painel do seu projeto e codifique caracteres especiais da senha na URL. A chave JWT deve ter pelo menos 32 caracteres. Em uma instalação existente, preserve a chave JWT e as credenciais. `.env` e `venv` ficam fora do Git.
 
-```dotenv
-ORIGEM_FRONTEND=http://127.0.0.1:5173
-MYSQL_HOST=127.0.0.1
-MYSQL_PORTA=3306
-MYSQL_USUARIO=root
-MYSQL_SENHA=SUBSTITUA_PELA_SENHA_LOCAL_DO_MYSQL
-MYSQL_BANCO=ciclo_certo_estudo
-CHAVE_DO_TOKEN=SUBSTITUA_POR_UM_SEGREDO_ALEATORIO
-```
+`DATABASE_URL` é obrigatória: vazia ou apontando para outro tipo de banco faz a aplicação recusar a inicialização. O backend não depende mais de servidor ou driver MySQL.
 
-Gere o segredo com `python -c "import secrets; print(secrets.token_hex(32))"` e copie o resultado para CHAVE_DO_TOKEN. A aplicação exige pelo menos 32 caracteres. Não use a senha do MySQL como segredo JWT.
+### Banco novo
 
-.env e venv ficam fora do Git. Somente `configuracao.py` lê as variáveis. Em uma instalação existente, preserve seu .env e seu banco; não substitua credenciais para seguir os exemplos de estudo.
-
-### Banco do zero
-
-No MySQL Workbench ou cliente MySQL, conectado com um usuário que possa criar o banco, execute:
-
-```sql
-CREATE DATABASE ciclo_certo_estudo
-    CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
-```
-
-Esse nome deve corresponder a MYSQL_BANCO. Use um banco novo para a demonstração; não recrie um banco com registros existentes.
-
-Na pasta do backend:
-
-```powershell
-cd backend
-..\venv\Scripts\python.exe -m alembic upgrade head
-..\venv\Scripts\python.exe -m alembic current
-..\venv\Scripts\python.exe -m alembic check
-```
-
-Esperado: `0003_limites_cartilha (head)` e nenhuma operação de atualização pendente.
-
-**Alternativa somente para banco vazio:** `..\venv\Scripts\python.exe criar_tabelas.py`. O script cria pelos modelos e executa `alembic stamp head` internamente; não repita o stamp nem execute as duas formas de criação em sequência. Nenhuma delas cria contas.
-
-**Banco já gerenciado pelo Alembic:** execute apenas upgrade head. A revisão 0003 troca restrições sem apagar registros e não altera os multiplicadores.
-
-**Banco antigo sem Alembic:** somente após cópia de segurança e conferência da estrutura correspondente à revisão inicial, use stamp 0001_estrutura e upgrade head. Não use stamp para esconder diferenças de estrutura. Downgrade não faz parte da execução normal e pode remover credenciais nas revisões antigas; 0003 recusa a reversão quando existem dados aceitos apenas pela regra atual.
+O projeto Supabase atual já está preparado; não recrie suas tabelas. Em um novo projeto, um administrador provisiona o papel restrito `ciclo_certo_backend` e aplica `backend/supabase/estrutura.sql` pelo gerenciador de migrations. O script `criar_tabelas.py` é uma alternativa transacional para um schema `public` vazio, com conexão administrativa e o papel já provisionado; recusa tabelas existentes. A credencial administrativa não deve ficar na configuração normal da API.
 
 ### Iniciar a API
 
-Ainda em backend/:
+Entre na pasta `backend/`:
 
 ```powershell
+cd backend
 $env:PYTHONUTF8 = "1"
 ..\venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -169,14 +142,14 @@ O JWT contém sub (id em texto) e exp (validade), assinado com HS256 e segredo d
 
 ## Verificação e entrega
 
-Dentro de backend/, com o .env preenchido e MySQL disponível:
+Dentro de `backend/`, com `.env` apontando para PostgreSQL, execute os 17 testes somente em um schema descartável previamente criado por um administrador. Consulte [o preparo dos testes](backend/supabase/README.md#testes).
 
 ```powershell
+$env:SUPABASE_ESQUEMA_TESTE = 'ciclo_certo_teste_IDENTIFICADOR_HEXADECIMAL_DE_32_CARACTERES'
 ..\venv\Scripts\python.exe -m unittest teste_banco -v
-..\venv\Scripts\python.exe -m alembic check
 ```
 
-Os 17 testes cobrem hash, login, migrations, preservação de usuário antigo, validação, isolamento, perfis, filtros, persistência entre processos, concorrência, transação e os limites corrigidos. Criam e removem somente um banco chamado ciclo_certo_teste_ seguido de identificador aleatório; o usuário MySQL precisa das permissões correspondentes.
+A suíte recusa nome inválido, schema ausente ou que já contenha tabelas. Cobre hash, login, usuário sem credenciais, validação, isolamento, perfis, filtros, persistência entre processos, concorrência, transação e limites da cartilha. Não escreve dados de teste no schema `public`. O administrador remove o schema vazio depois.
 
 ### Interface responsiva
 

@@ -1,6 +1,8 @@
 # Arquitetura
 
-`React → HTTP → rota/esquema → serviço → repositório → modelo/MySQL`.
+`React → HTTP → rota/esquema → serviço → repositório → modelo/SQLAlchemy → PostgreSQL no Supabase`.
+
+Atualização de 28/10/2026: `DATABASE_URL` é obrigatória e usa PostgreSQL via psycopg e pooler de sessão com TLS. O backend não tem fallback ou dependência MySQL. O frontend e a API continuam locais. A migração não transfere a autenticação para Supabase Auth.
 
 | Parte | Responsabilidade |
 |---|---|
@@ -27,13 +29,14 @@ Rotas chamam serviços; serviços chamam repositórios. Repositórios não impor
 - `seguranca.py`: Argon2 e JWT HS256 com sub e exp.
 - `rotas/autenticacao.py`: /login e dependências compartilhadas, conforme aulas 8 e 9.
 - `main.py`: monta aplicação e routers, sem rotas de recursos.
-- `migracoes/`: histórico Alembic; 0003 remove tetos ausentes da cartilha.
-- `criar_tabelas.py`: alternativa para banco vazio; faz stamp internamente.
+- `legado/mysql/`: arquivos e histórico Alembic anteriores, arquivados para consulta e fora da execução atual.
+- `supabase/estrutura.sql`: baseline PostgreSQL registrado no histórico do projeto Supabase, com RLS e privilégios do backend.
+- `criar_tabelas.py`: alternativa transacional para PostgreSQL vazio, com conexão administrativa e papel do backend previamente provisionado; recusa tabelas existentes.
 - `teste_banco.py`: testes em banco descartável, sem contas na aplicação.
 
 ## Consistência
 
-Três tabelas InnoDB com chaves estrangeiras. O serviço define os pontos e a situação; o repositório bloqueia a coleta e grava pesagem e total numa transação, preservando pedidos simultâneos.
+Três tabelas PostgreSQL com chaves estrangeiras, índices, CHECKs e RLS. Somente o usuário restrito do backend recebe acesso; `anon` e `authenticated` não acessam as tabelas. O serviço define os pontos e a situação; o repositório bloqueia a coleta e grava pesagem e total numa transação, preservando pedidos simultâneos.
 
 Quilos/pontos usam DOUBLE/float. Não há arredondamento no cálculo. A interface usa formatação em português com até 15 algarismos significativos para legibilidade, mantendo pontos pequenos visíveis (por exemplo, 0,001); essa apresentação não altera os valores armazenados. Valores não finitos e estouro da representação numérica são recusados antes da gravação, sem teto fixo de negócio.
 

@@ -1,4 +1,6 @@
 .env
+.env.*.local
+backups/
 venv/
 __pycache__/
 node_modules/
