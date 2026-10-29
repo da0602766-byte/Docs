@@ -38,6 +38,7 @@ Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs d
 ## Tecnologias permitidas nesta fase
 
 - Atualização autorizada pelo aluno em 28/10/2026: backend exclusivamente PostgreSQL no Supabase, com psycopg no venv. O histórico MySQL fica arquivado em `backend/legado/mysql/` para consulta. A cartilha original permanece intacta.
+- Solicitação posterior: preparar frontend e API para Vercel. Na publicação, cadastro de cooperativa exige liberação administrativa; o cadastro livre dos dois perfis fica no exercício local. Configurações e limites em `docs/VERCEL.md`.
 - MySQL, SQLAlchemy, sessão por requisição, relacionamentos e Alembic.
 - Exceções próprias, try/except e status 200, 201, 401, 403, 404, 409 e 422.
 - Argon2 com pwdlib, JWT com PyJWT, OAuth2PasswordRequestForm e Depends.

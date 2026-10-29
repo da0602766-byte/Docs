@@ -12,6 +12,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
   const [senha, setSenha] = useState("");
   // O endereço define o cadastro; a API continua responsável pelas permissões.
   const cooperador = tipo === "cooperativa";
+  const podeCadastrar = !cooperador || import.meta.env.DEV;
   const [enviando, setEnviando] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
@@ -46,7 +47,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
       <button className="ws-btn ws-btn-block" disabled={enviando} type="submit">{enviando ? "Aguarde..." : cadastro ? "Criar conta e entrar" : "Entrar"}<Icone name="arrow" size={18} /></button>
     </form>
     {(mensagem || aviso) && <p className="aviso erro" role="alert">{mensagem || aviso}</p>}
-    <div className="alternar-acesso"><span>{cadastro ? "Já faz parte do Ciclo Certo?" : "Ainda não tem conta?"}</span><button disabled={enviando} type="button" onClick={alternar}>{cadastro ? "Entrar na minha conta" : "Criar minha conta"}</button></div>
+    {podeCadastrar ? <div className="alternar-acesso"><span>{cadastro ? "Já faz parte do Ciclo Certo?" : "Ainda não tem conta?"}</span><button disabled={enviando} type="button" onClick={alternar}>{cadastro ? "Entrar na minha conta" : "Criar minha conta"}</button></div> : <p className="ws-help">Para obter acesso à cooperativa, fale com a administração.</p>}
     <p className="ws-help"><a href={cooperador ? "/login" : "/cooperador"}>{cooperador ? "Sou morador · acessar minha conta" : "Sou cooperador · acessar a cooperativa"}</a></p>
   </section></main></div>;
 }

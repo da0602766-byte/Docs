@@ -1,6 +1,6 @@
 # Ciclo Certo
 
-**Frontend e API em localhost; banco no Supabase.** Por solicitação do aluno em 28/10/2026, a persistência foi migrada para PostgreSQL no projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. O GitHub continua usado para versionar o código, sem publicação pelo GitHub Pages. Frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
+**PostgreSQL no Supabase e configuração de publicação na Vercel.** A persistência usa o projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. Frontend e API têm configurações próprias para Vercel; veja [publicação, variáveis e validação](docs/VERCEL.md). A publicação na conta ainda depende de conectar a integração Vercel. A execução local continua disponível: frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
 
 Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de cada pesagem, substituindo o acompanhamento por telefone e planilha.
 
@@ -112,7 +112,7 @@ Essa senha serve apenas à demonstração local. No banco de uso normal, cadastr
 7. Peso zero/negativo ou material não previsto responde 422. Peso 1.001 kg de papel e peso 0,001 kg são aceitos: não existe teto de 1.000 kg ou precisão obrigatória de centésimos.
 8. Confira senha incorreta, F5, Sair e token vencido: o front não salva a senha e pede novo login quando recebe 401.
 
-O cadastro pela API continua aceitando os dois perfis, conforme o exercício; na interface, o perfil é definido pelo endereço de acesso. Em implantação pública, a concessão do perfil cooperativa precisa de uma decisão administrativa que não faz parte desta entrega.
+No exercício local, o cadastro pela API aceita os dois perfis e o endereço define o perfil na interface. Na Vercel, a API recusa cadastro público de cooperativa com 403; o build de produção mostra somente o login nesse acesso. Contas de cooperativa existentes continuam funcionando, e novas contas desse perfil precisam de liberação administrativa.
 
 ## Rotas e permissões
 

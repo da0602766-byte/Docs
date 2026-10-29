@@ -5,20 +5,22 @@ from banco import obter_sessao
 from esquemas.usuario import UsuarioCriar, UsuarioSaida
 from rotas.autenticacao import exigir_cooperativa, obter_usuario_atual
 from servicos import usuario as servico_usuario
-from servicos.excecoes import EmailEmUso
+from servicos.excecoes import EmailEmUso, AcessoNegado
 
 router = APIRouter(prefix="/usuarios", tags=["Usuários"])
 
 
 # O cadastro permanece público; cada pessoa informa os próprios dados, sem perfis precriados.
 @router.post("", status_code=201, response_model=UsuarioSaida,
-             responses={409: {"description": "E-mail já cadastrado."}},
+             responses={403: {"description": "Cadastro de cooperativa restrito na publicação."}, 409: {"description": "E-mail já cadastrado."}},
              description="Cadastro público do exercício. Guarda somente o hash Argon2 e não devolve senha nem hash.")
 def cadastrar_usuario(dados: UsuarioCriar, sessao=Depends(obter_sessao)):
     try:
         return servico_usuario.cadastrar(sessao, dados)
     except EmailEmUso as erro:
         raise HTTPException(status_code=409, detail=str(erro)) from erro
+    except AcessoNegado as erro:
+        raise HTTPException(status_code=403, detail=str(erro)) from erro
 
 
 # Devolve somente quem foi identificado pelo token desta requisição.

@@ -26,3 +26,9 @@ app.include_router(rotas_usuarios.router)
 app.include_router(rotas_autenticacao.router)
 app.include_router(rotas_coletas.router)
 app.include_router(rotas_pesagens.router)
+
+
+# Verificação de disponibilidade da aplicação, sem consultar dados ou expor configuração.
+@app.get("/saude", tags=["Infraestrutura"])
+def consultar_saude():
+    return {"status": "ok"}

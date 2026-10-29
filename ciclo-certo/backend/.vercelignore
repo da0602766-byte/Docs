@@ -1,0 +1,10 @@
+.env
+.env.*
+backups/
+legado/
+__pycache__/
+**/__pycache__/
+teste_*.py
+supabase/
+criar_tabelas.py
+banco.sql

@@ -1,5 +1,5 @@
 // Centraliza a comunicação e envia a identidade pelo token, nunca por um seletor de perfil.
-const enderecoApi = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const enderecoApi = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 
 // A API pode devolver validações em lista; a interface apresenta uma mensagem legível.
 function tratarResposta(resposta, protegida, tokenEnviado) {

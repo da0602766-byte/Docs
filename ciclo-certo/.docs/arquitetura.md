@@ -4,6 +4,8 @@
 
 Atualização de 28/10/2026: `DATABASE_URL` é obrigatória e usa PostgreSQL via psycopg e pooler de sessão com TLS. O backend não tem fallback ou dependência MySQL. O frontend e a API continuam locais. A migração não transfere a autenticação para Supabase Auth.
 
+Preparação Vercel: dois projetos, com raízes `frontend/` e `backend/`, apontando para o mesmo repositório. Na nuvem, `NullPool` evita reter conexões, usa-se o pooler de transações na porta 6543 e o CORS exige a origem HTTPS exata. `/saude` verifica a aplicação sem consultar dados. Cadastro público de cooperativa é bloqueado na Vercel. Guia e estado de publicação em `docs/VERCEL.md`.
+
 | Parte | Responsabilidade |
 |---|---|
 | `frontend/src/App.jsx` | Login, navegação por perfil e quatro telas. |

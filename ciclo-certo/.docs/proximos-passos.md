@@ -4,6 +4,8 @@ Atualizado em 28/10/2026; consulte `validacao.md` para o que foi efetivamente ex
 
 ## Entrega atual
 
+Solicitação posterior de 28/10/2026: preparar publicação na Vercel. Configurações, build e testes locais de publicação concluídos; falta conectar a conta Vercel, configurar as variáveis dos dois projetos e validar o deploy remoto. Siga `docs/VERCEL.md`. O pedido anterior de execução local não limita essa nova publicação autorizada.
+
 Decisão do aluno: manter frontend e API em localhost e migrar o banco para Supabase. O GitHub Pages foi desativado e seu workflow removido; não publicar novamente sem solicitação explícita. Frontend local em `http://127.0.0.1:5175`, API em `http://127.0.0.1:8000` e PostgreSQL no projeto Supabase `plhfkhxzmxzyfygjyzbk`. O `.env` já aponta para esse destino; o MySQL original foi preservado como snapshot, sem sincronização automática.
 
 Migração concluída em 28/10/2026: 4 usuários preservados, nenhuma coleta/pesagem existente; 17 testes passaram em cada banco. Ao iniciar a API pelo comando do README, ela usa Supabase. Não havia servidor local em execução durante a troca. Operação e backup em `backend/supabase/README.md`. O backend agora é exclusivamente PostgreSQL, sem fallback MySQL; scripts antigos em `backend/legado/mysql/`. Os testes atuais são executados por `python -m unittest teste_banco -v` no schema PostgreSQL descartável.

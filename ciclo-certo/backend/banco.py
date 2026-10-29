@@ -2,6 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.engine import make_url
+from sqlalchemy.pool import NullPool
 
 import configuracao as configuracao
 
@@ -14,7 +15,9 @@ if endereco_banco.drivername in ("postgres", "postgresql"):
 if endereco_banco.drivername != "postgresql+psycopg":
     raise ValueError("DATABASE_URL deve usar PostgreSQL com o driver postgresql+psycopg.")
 argumentos_conexao = {"sslmode": "require", "connect_timeout": 15, "prepare_threshold": None}
-engine = create_engine(endereco_banco, pool_pre_ping=True, connect_args=argumentos_conexao)
+# Funções sob demanda não retêm conexões; o pooler Supabase administra a reutilização.
+opcoes_pool = {"poolclass": NullPool} if configuracao.na_vercel or endereco_banco.port == 6543 else {}
+engine = create_engine(endereco_banco, pool_pre_ping=True, connect_args=argumentos_conexao, **opcoes_pool)
 Sessao = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 Base = declarative_base()
 

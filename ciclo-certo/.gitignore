@@ -1,8 +1,10 @@
 .env
-.env.*.local
+.env.*
+!.env.exemplo
 backups/
 venv/
 __pycache__/
 node_modules/
 dist/
 resultados-visuais/
+.vercel/

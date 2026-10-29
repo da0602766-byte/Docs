@@ -2,7 +2,8 @@
 from esquemas.usuario import UsuarioCriar
 from repositorios import usuario as repositorio_usuario
 from seguranca import gerar_hash_senha, verificar_senha, validar_token_acesso
-from servicos.excecoes import EmailEmUso
+from servicos.excecoes import EmailEmUso, AcessoNegado
+import configuracao
 
 
 # Mantém a consulta administrativa separada da rota que autoriza a cooperativa.
@@ -12,6 +13,8 @@ def listar_usuarios(sessao):
 
 # Normaliza o login, verifica duplicidade e substitui a senha pelo hash antes de salvar.
 def cadastrar(sessao, dados_entrada: UsuarioCriar):
+    if dados_entrada.tipo == "cooperativa" and not configuracao.permitir_cadastro_cooperativa:
+        raise AcessoNegado("Contas da cooperativa são liberadas pela administração. Use uma conta já autorizada.")
     email = str(dados_entrada.email).strip().casefold()
     if repositorio_usuario.buscar_por_email(sessao, email) is not None:
         raise EmailEmUso("Já existe um usuário com esse e-mail.")

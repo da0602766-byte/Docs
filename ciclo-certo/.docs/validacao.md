@@ -77,3 +77,9 @@ Nenhum servidor local estava em execução, portanto a validação HTTP usou Tes
 A pedido do aluno, removido o fallback MySQL da conexão e da configuração ativa. Modelos usam tipos SQLAlchemy/PostgreSQL e CHECKs compatíveis; tratamento de unicidade usa SQLSTATE 23505. banco.sql contém o baseline PostgreSQL e criar_tabelas.py recusa schema existente. Scripts e revisões antigos foram arquivados em backend/legado/mysql/, sem reescrever as migrations aplicadas.
 
 psycopg[binary] 3.2.13 confirmado no venv; mysql-connector-python removido e pip check sem conflitos. A suíte agora está unificada em teste_banco.py e seus 17 testes passaram no PostgreSQL em 156,393 segundos. Schema descartável removido depois. Conexão TLS validada, metadata sem divergências, configuração vazia/MySQL recusada e tentativa de recriar o banco existente bloqueada. Os dados reais permaneceram em 4 usuários, 0 coletas e 0 pesagens.
+
+## Preparação Vercel — 28/10/2026
+
+Dois projetos configurados por vercel.json: frontend Vite e backend FastAPI/Python 3.13. Rewrite SPA, exclusão de arquivos locais/legado, validação da URL pública da API, CORS HTTPS exato e NullPool na nuvem. Cadastro público de cooperativa bloqueado na Vercel; contas existentes continuam com login. Guia em docs/VERCEL.md.
+
+Validação: build Vite local e com variáveis Vercel aprovados; bundle de nuvem não contém fallback localhost. Um teste do frontend aprovado; três testes de backend aprovados, cobrindo saúde, CORS, configuração inválida, pool e perfil. Navegador headless abriu início, login, cooperador e recarregou as rotas sem erro JavaScript. Leitura de quatro usuários pelo pooler Supabase na porta 6543 com TLS aprovada. Nenhum dado real alterado. A publicação remota ainda depende de conectar a conta Vercel e cadastrar as variáveis dos dois projetos.
