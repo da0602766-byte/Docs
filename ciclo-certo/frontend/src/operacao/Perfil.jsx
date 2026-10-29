@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { enviar } from "../api";
+import { removerToken } from "../sessao";
 import { Cabecalho } from "./interface";
 
 export default function Perfil({ perfil, sair }) {
@@ -24,7 +25,7 @@ export default function Perfil({ perfil, sair }) {
         { email, senha_atual: senha, ...(nova ? { nova_senha: nova } : {}) },
         "PATCH",
       );
-      localStorage.removeItem("token");
+      removerToken();
       setSenha("");
       setNova("");
       setConfirmar("");

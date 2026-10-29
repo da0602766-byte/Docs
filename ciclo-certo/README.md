@@ -58,6 +58,10 @@ Abra [morador](http://127.0.0.1:5175/login), [cooperador](http://127.0.0.1:5175/
 
 Cadastro público de cooperativa continua limitado ao ambiente local. Na Vercel, novas contas de cooperativa exigem liberação administrativa. Moradores podem atualizar e-mail/senha no perfil, com confirmação da senha atual e encerramento dos tokens antigos.
 
+As sessões ficam em `sessionStorage`, separadas por aba e perfil. É possível abrir `/login` e `/cooperador` ao mesmo tempo, com uma conta diferente em cada aba. Recarregar preserva a sessão; sair ou expirar em uma aba não encerra a outra. A sessão compartilhada antiga em `localStorage` não é reutilizada: após esta atualização, entre novamente em cada perfil. Fechar a aba encerra sua sessão. A API continua verificando o tipo real da conta.
+
+Regressão de sessões simultâneas: `node --test testes/sessao.test.js testes/listagem.test.js testes/publicacao.test.js`, na pasta `frontend`. Sete testes passaram, incluindo isolamento entre perfis, recarga, saída, expiração e resposta 401 atrasada; build aprovado. Testes usam respostas simuladas, sem credenciais reais.
+
 ## Testes locais isolados
 
 A suíte usa PostgreSQL portátil de teste, nunca o Supabase de uso normal. A partir de `ciclo-certo/`:

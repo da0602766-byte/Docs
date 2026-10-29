@@ -44,7 +44,7 @@ Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs d
 - MySQL, SQLAlchemy, sessão por requisição, relacionamentos e Alembic.
 - Exceções próprias, try/except e status 200, 201, 401, 403, 404, 409 e 422.
 - Argon2 com pwdlib, JWT com PyJWT, OAuth2PasswordRequestForm e Depends.
-- Token no localStorage, Authorization: Bearer, consulta a /usuarios/eu e saída.
+- Token em sessionStorage por aba e perfil (correção de acesso simultâneo solicitada em 29/10/2026), Authorization: Bearer, consulta a /usuarios/eu e saída.
 - O cadastro permite escolher perfil no exercício; concessão administrativa em implantação pública exige decisão própria.
 - Aula 10: planejar o agente, construir e testar o prompt; implementar o módulo fica para depois.
 - Use def comum no Python, configuração simples e fetch no React. Não acrescente frameworks sem necessidade.

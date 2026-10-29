@@ -1,10 +1,11 @@
 // Centraliza a comunicação e envia a identidade pelo token, nunca por um seletor de perfil.
+import { obterToken, removerToken } from "./sessao";
 const enderecoApi = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 
 // A API pode devolver validações em lista; a interface apresenta uma mensagem legível.
 function tratarResposta(resposta, protegida, tokenEnviado) {
-  if (protegida && resposta.status === 401 && localStorage.getItem("token") === tokenEnviado) {
-    localStorage.removeItem("token");
+  if (protegida && resposta.status === 401 && obterToken() === tokenEnviado) {
+    removerToken();
     window.dispatchEvent(new Event("ciclo-certo-sessao-expirada"));
   }
   return resposta.json().then((dados) => {
@@ -20,7 +21,7 @@ function tratarResposta(resposta, protegida, tokenEnviado) {
 
 // Cada chamada usa o token atual e uma resposta antiga não encerra uma sessão mais recente.
 export function solicitar(caminho, opcoes = {}, protegida = true) {
-  const token = localStorage.getItem("token");
+  const token = obterToken();
   const headers = { ...opcoes.headers };
   if (protegida && token) headers.Authorization = "Bearer " + token;
   return fetch(enderecoApi + caminho, { ...opcoes, headers })

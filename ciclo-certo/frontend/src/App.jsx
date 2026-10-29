@@ -4,6 +4,7 @@ import PaginaInicial from "./PaginaInicial";
 import { Icone, Navegacao } from "./visual";
 import Operacao from "./Operacao";
 import { buscarUsuarioAtual, entrar, cadastrarUsuario } from "./api";
+import { obterToken, salvarToken, removerToken } from "./sessao";
 
 // A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
 function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
@@ -17,7 +18,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
   const [enviando, setEnviando] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
-  // O cadastro é confirmado antes do login; só o token fica no localStorage.
+  // O cadastro é confirmado antes do login; a sessão pertence à aba e ao perfil.
   function enviar(evento) {
     evento.preventDefault();
     setEnviando(true);
@@ -29,7 +30,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
     preparacao
       .then(() => entrar(email, senha))
       .then((dados) => {
-        localStorage.setItem("token", dados.access_token);
+        salvarToken(dados.access_token);
         setSenha("");
         aoEntrar(dados.access_token);
       })
@@ -211,7 +212,7 @@ export default function App() {
     window.location.pathname.replace(/\/+$/, "") === "/cooperador"
       ? "cooperativa"
       : "morador";
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [token, setToken] = useState(obterToken);
   const [perfil, setPerfil] = useState(null);
   const [tela, setTela] = useState("");
   const [paginaInicial, setPaginaInicial] = useState(
@@ -240,7 +241,7 @@ export default function App() {
         if (!ativa) return;
         // Uma conta do outro perfil deve usar seu próprio endereço de acesso.
         if (usuario.tipo !== tipoAcesso) {
-          localStorage.removeItem("token");
+          removerToken();
           setToken(null);
           setPerfil(null);
           setPaginaInicial(false);
@@ -281,7 +282,7 @@ export default function App() {
 
   // A saída remove somente o token; a senha nunca foi persistida.
   function sair() {
-    localStorage.removeItem("token");
+    removerToken();
     setPaginaInicial(false);
     setToken(null);
     setPerfil(null);
