@@ -2,9 +2,9 @@
 
 `React → HTTP → rota/esquema → serviço → repositório → modelo/SQLAlchemy → PostgreSQL no Supabase`.
 
-Atualização de 28/10/2026: `DATABASE_URL` é obrigatória e usa PostgreSQL via psycopg e pooler de sessão com TLS. O backend não tem fallback ou dependência MySQL. O frontend e a API continuam locais. A migração não transfere a autenticação para Supabase Auth.
+Atualização de 28/10/2026: `DATABASE_URL` é obrigatória e usa PostgreSQL via psycopg e pooler de sessão com TLS na execução local. O backend não tem fallback ou dependência MySQL. Frontend e API estão publicados na Vercel, mantendo a execução local disponível. A migração não transfere a autenticação para Supabase Auth.
 
-Preparação Vercel: dois projetos, com raízes `frontend/` e `backend/`, apontando para o mesmo repositório. Na nuvem, `NullPool` evita reter conexões, usa-se o pooler de transações na porta 6543 e o CORS exige a origem HTTPS exata. `/saude` verifica a aplicação sem consultar dados. Cadastro público de cooperativa é bloqueado na Vercel. Guia e estado de publicação em `docs/VERCEL.md`.
+Publicação Vercel concluída: dois projetos, com raízes `ciclo-certo/frontend` e `ciclo-certo/backend`, apontando para o mesmo repositório. Na nuvem, `NullPool` evita reter conexões, usa-se o pooler de transações na porta 6543 e o CORS exige a origem HTTPS exata. `/saude` verifica a aplicação sem consultar dados. Cadastro público de cooperativa é bloqueado na Vercel. Guia e endereços em `docs/VERCEL.md`.
 
 | Parte | Responsabilidade |
 |---|---|

@@ -1,6 +1,11 @@
 # Publicação na Vercel
 
-O repositório está preparado para dois projetos Vercel ligados a `da0602766-byte/Docs`, branch `main`. O banco continua no Supabase. Os arquivos de configuração e o build foram validados localmente; a criação dos projetos, as variáveis e a validação dos endereços públicos dependem da conexão com a conta Vercel.
+Publicação concluída em 28/10/2026: dois projetos Vercel na equipe `projetos-fd50`, ligados a `da0602766-byte/Docs`, branch de produção `main`. O banco continua no Supabase. Variáveis de Production configuradas e builds remotos aprovados.
+
+- Site: [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app).
+- Cooperativa: [ciclo-certo.vercel.app/cooperador](https://ciclo-certo.vercel.app/cooperador).
+- Saúde da API: [ciclo-certo-api.vercel.app/saude](https://ciclo-certo-api.vercel.app/saude).
+- Projetos: `ciclo-certo` (frontend) e `ciclo-certo-api` (backend).
 
 ## Projetos
 
@@ -53,7 +58,10 @@ O cadastro público de cooperativa é bloqueado pela API quando `VERCEL=1`. O bu
 - Navegador headless: início, login, cooperador e recarga funcionando no build; sem erros JavaScript.
 - Três testes do backend aprovados: saúde, CORS exato, recusa de origem inválida, `NullPool` e bloqueio de cadastro público de cooperativa. Sem gravar dados reais.
 - Pooler Supabase na porta 6543 validado com TLS e leitura dos quatro usuários existentes.
-- Deploy remoto ainda não executado: a integração Vercel precisa estar conectada.
+- Builds remotos dos dois projetos em READY; páginas públicas e recarga com HTTP 200.
+- Saúde 200, acesso sem token 401, preflight CORS permitido 200 e origem externa recusada 400.
+- Edge headless: os dois perfis consultaram a API e exibiram os dados do Supabase, sem erros JavaScript. Sessões temporárias somente em memória; nenhum registro alterado. Login por senha e gravações não foram exercitados em produção.
+- Detalhes em [validação](../.docs/validacao.md).
 
 Comandos de teste:
 

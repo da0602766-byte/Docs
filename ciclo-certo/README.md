@@ -1,6 +1,6 @@
 # Ciclo Certo
 
-**PostgreSQL no Supabase e configuração de publicação na Vercel.** A persistência usa o projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. Frontend e API têm configurações próprias para Vercel; veja [publicação, variáveis e validação](docs/VERCEL.md). A publicação na conta ainda depende de conectar a integração Vercel. A execução local continua disponível: frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
+**PostgreSQL no Supabase e publicação na Vercel.** A persistência usa o projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. Site publicado em [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app), com API em [ciclo-certo-api.vercel.app](https://ciclo-certo-api.vercel.app/saude); veja [publicação, variáveis e validação](docs/VERCEL.md). A execução local continua disponível: frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
 
 Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de cada pesagem, substituindo o acompanhamento por telefone e planilha.
 
