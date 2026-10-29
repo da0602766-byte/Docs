@@ -1,3 +1,7 @@
+> Atualização de 29/10/2026: versão `cb9cb24` publicada no frontend e na API da Vercel. Migração aplicada ao Supabase, preservando os 5 usuários, 1 coleta e 3 pesagens. Páginas públicas, catálogo, saúde, CORS e bloqueio sem token aprovados. Validação local: 20 testes backend, 3 frontend e build aprovados. Login em produção e câmera/assinatura em aparelho físico ainda pendentes. A revisão automática bloqueou o teste que criaria tokens para contas reais; ele não foi executado.
+>
+> A migração local `20261029023257_fluxo_coletas_recompensas.sql` foi registrada pelo MCP no histórico remoto como `20261029033020_fluxo_coletas_recompensas`: é a mesma migração, não reaplicar. As referências abaixo a entrega somente local ou produção antiga registram o estado anterior a esta publicação.
+
 # Migração para Supabase
 
 **Atualização do fluxo de coletas:** este documento registra a migração original. A evolução local exige agora `../../supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql`. Não reexecute `estrutura.sql` em banco existente. Suíte atual: `teste_operacao` + `teste_publicacao` em PostgreSQL portátil local; instruções no [README do projeto](../../README.md). A antiga `teste_banco.py` foi preservada em `legado/fluxo_v1/`.
