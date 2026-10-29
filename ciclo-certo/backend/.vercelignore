@@ -5,6 +5,7 @@ legado/
 __pycache__/
 **/__pycache__/
 teste_*.py
+preview_teste.py
 supabase/
 criar_tabelas.py
 banco.sql

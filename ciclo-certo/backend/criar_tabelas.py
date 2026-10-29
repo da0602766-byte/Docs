@@ -15,6 +15,9 @@ def criar_tabelas():
             raise RuntimeError("Provisione o papel ciclo_certo_backend antes de criar as tabelas.")
         sql = (Path(__file__).parent / "supabase" / "estrutura.sql").read_text(encoding="utf-8")
         conexao.exec_driver_sql(sql)
+        # Instala também evoluções incrementais em bancos novos; nunca recria tabelas existentes.
+        for migration in sorted((Path(__file__).parent.parent / "supabase" / "migrations").glob("*.sql")):
+            conexao.exec_driver_sql(migration.read_text(encoding="utf-8"))
 
 
 # A execução manual prepara a estrutura antes de iniciar o servidor.

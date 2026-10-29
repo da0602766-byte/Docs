@@ -32,10 +32,10 @@ def verificar_senha(senha: str, hash_senha: str) -> bool:
 
 
 # sub é o id em texto e exp limita a validade do acesso a uma hora.
-def criar_token_acesso(usuario_id: int) -> str:
+def criar_token_acesso(usuario_id: int, versao: int = 0) -> str:
     validade = datetime.now(timezone.utc) + timedelta(minutes=60)
     return jwt.encode(
-        {"sub": str(usuario_id), "exp": validade},
+        {"sub": str(usuario_id), "exp": validade, "ver": versao},
         configuracao.chave_do_token,
         algorithm=algoritmo_token,
     )
@@ -58,4 +58,12 @@ def validar_token_acesso(token: str) -> int | None:
         usuario_id = int(identificador)
         return usuario_id if 0 < usuario_id <= 2147483647 else None
     except (jwt.InvalidTokenError, ValueError, TypeError, OverflowError):
+        return None
+
+
+# Uma alteração de credenciais invalida inclusive tokens ainda não vencidos.
+def versao_token(token: str):
+    try:
+        return jwt.decode(token, configuracao.chave_do_token, algorithms=[algoritmo_token]).get("ver", 0)
+    except jwt.InvalidTokenError:
         return None

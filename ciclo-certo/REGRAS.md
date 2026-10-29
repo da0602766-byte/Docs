@@ -11,6 +11,8 @@ Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs d
 
 ## Regra de negócio
 
+**Ampliação autorizada pelo usuário em 28/10/2026:** a lista de melhorias substitui as restrições antigas sobre pontuação, cancelamento, edição de pesos, avaliação, perfil, avisos internos e resgate fictício. Regras vigentes e etapas em `.docs/melhorias-coletas.md`. Preservar a cartilha original como referência histórica. O fluxo novo exige responsabilidade, foto e assinatura antes de avaliar/liberar a recompensa. As regras antigas abaixo descrevem a primeira entrega, não o comportamento desta evolução.
+
 - Cartilha **2 · Ciclo Certo**: Joana agenda e consulta suas coletas; Osmar consulta as coletas por dia e registra pesagens.
 - A coleta nasce **agendada**, com **zero pontos**, e pertence ao morador identificado pelo token.
 - Pontos/kg: papel **1**, vidro **1**, plástico **2**, metal **4**.

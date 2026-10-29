@@ -1,7 +1,7 @@
 # O serviço decide o cadastro e a autenticação sem depender de HTTP ou de modelos.
 from esquemas.usuario import UsuarioCriar
 from repositorios import usuario as repositorio_usuario
-from seguranca import gerar_hash_senha, verificar_senha, validar_token_acesso
+from seguranca import gerar_hash_senha, verificar_senha, validar_token_acesso, versao_token
 from servicos.excecoes import EmailEmUso, AcessoNegado
 import configuracao
 
@@ -43,4 +43,5 @@ def usuario_do_token(sessao, token: str):
     usuario_id = validar_token_acesso(token)
     if usuario_id is None:
         return None
-    return repositorio_usuario.buscar_por_id(sessao, usuario_id)
+    usuario = repositorio_usuario.buscar_por_id(sessao, usuario_id)
+    return usuario if usuario is not None and usuario.versao_token == versao_token(token) else None

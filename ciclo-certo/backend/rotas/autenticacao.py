@@ -19,7 +19,7 @@ def login(formulario: OAuth2PasswordRequestForm = Depends(), sessao=Depends(obte
     usuario = servico_usuario.autenticar(sessao, formulario.username, formulario.password)
     if usuario is None:
         raise HTTPException(status_code=401, detail="E-mail ou senha incorretos.", headers={"WWW-Authenticate": "Bearer"})
-    return {"access_token": criar_token_acesso(usuario.id), "token_type": "bearer"}
+    return {"access_token": criar_token_acesso(usuario.id, usuario.versao_token), "token_type": "bearer"}
 
 
 # O serviço valida o token e procura o usuário, sem confiar no perfil informado pelo cliente.

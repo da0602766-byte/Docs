@@ -1,5 +1,9 @@
 # Validação da entrega
 
+## Evolução local concluída em 29/10/2026
+
+20 testes (`teste_operacao` + `teste_publicacao`) passaram em PostgreSQL local isolado; 1 teste de configuração do frontend passou; `npm run build` concluiu com sucesso. Calendário, agendamento, responsabilidade, edição de peso, notificação, avaliação e carteira foram exercitados no navegador. A extensão bloqueou upload de arquivos; confirmação com imagens foi testada via API, e câmera/desenho/envio em celular seguem como conferência manual. Etapas e evidências detalhadas em [melhorias-coletas.md](melhorias-coletas.md). Nenhuma alteração foi implantada em produção. O restante deste arquivo registra entregas anteriores.
+
 Data: 21/10/2026, com validação dos acessos separados em 22/10/2026. Este registro distingue testes executados de verificações pendentes.
 
 ## Acessos separados — 22/10/2026

@@ -1,5 +1,7 @@
 # Contexto do Ciclo Certo
 
+**Versão local atual:** veja [melhorias e etapas](melhorias-coletas.md). Agendamento com horários; cooperador responsável; pesos editáveis antes da foto/assinatura; avaliação libera pontos/saldo fictício; carteira e perfil. Banco PostgreSQL com migração incremental. A lista abaixo registra o contexto da primeira entrega e não substitui as regras novas.
+
 1. Cartilha 2: cooperativa de recicláveis; fonte em `docs/CARTILHA.md`.
 2. Joana agenda e consulta suas coletas; Osmar consulta o dia e registra pesagens.
 3. Coleta começa agendada com zero pontos; primeira pesagem muda para coletada.

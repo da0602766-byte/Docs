@@ -1,5 +1,7 @@
 # Migração para Supabase
 
+**Atualização do fluxo de coletas:** este documento registra a migração original. A evolução local exige agora `../../supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql`. Não reexecute `estrutura.sql` em banco existente. Suíte atual: `teste_operacao` + `teste_publicacao` em PostgreSQL portátil local; instruções no [README do projeto](../../README.md). A antiga `teste_banco.py` foi preservada em `legado/fluxo_v1/`.
+
 Destino autorizado em 28/10/2026: projeto `plhfkhxzmxzyfygjyzbk`, exibido como `da0602766@gmail.com's Project`, na conexão chamada “Docs”. Dashboard: <https://supabase.com/dashboard/project/plhfkhxzmxzyfygjyzbk>.
 
 ## Resultado desta execução

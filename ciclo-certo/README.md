@@ -1,35 +1,27 @@
-# Ciclo Certo
+﻿# Ciclo Certo
 
-**PostgreSQL no Supabase e publicação na Vercel.** A persistência usa o projeto da conexão Supabase “Docs”, referência `plhfkhxzmxzyfygjyzbk`. Site publicado em [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app), com API em [ciclo-certo-api.vercel.app](https://ciclo-certo-api.vercel.app/saude); veja [publicação, variáveis e validação](docs/VERCEL.md). A execução local continua disponível: frontend em `http://127.0.0.1:5175` e API em `http://127.0.0.1:8000`.
+Aplicação de agendamento e confirmação de coletas, com FastAPI, React/Vite e PostgreSQL. O repositório DOCs contém o projeto em `ciclo-certo/`.
 
-Uma cooperativa agenda coletas de recicláveis e mostra ao morador os pontos de cada pesagem, substituindo o acompanhamento por telefone e planilha.
+**Evolução local implementada:** calendários com horários, responsabilidade do cooperador, pesagens editáveis, foto e assinatura, cancelamento com aviso, avaliação, carteira fictícia e edição de perfil. [Etapas, regras e validação](.docs/melhorias-coletas.md).
 
-- **Morador (Joana, celular):** agenda, acompanha suas coletas e consulta pesagens/pontos.
-- **Cooperativa (Osmar, computador):** consulta coletas por dia e registra pesagens.
-- **Implementado:** React/Vite, FastAPI, PostgreSQL/Supabase com SQLAlchemy, Argon2, JWT e perfis; driver psycopg no ambiente virtual; histórico MySQL arquivado para consulta.
-- **Planejado:** um agente OpenAI para explicar os pontos, conforme [plano de IA](.docs/ia.md). Nenhuma chamada ao provedor está implementada.
+A publicação em [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app), com API em [ciclo-certo-api.vercel.app](https://ciclo-certo-api.vercel.app/saude), ainda corresponde à versão anterior. As melhorias desta entrega não foram enviadas ao GitHub nem implantadas. [Operação da publicação](docs/VERCEL.md).
 
-Fontes: [cartilha](docs/CARTILHA.md), [briefing](docs/BRIEFING.md), [DER](docs/DER.md), [marca e styleguide](docs/styleguide/README.md). Continuidade em [.docs/](.docs/README.md); regras de trabalho em [REGRAS.md](REGRAS.md).
+## Fluxo atual
 
-Visual adaptado de `volta-projeto.zip`: página inicial, acesso e quatro telas responsivas. A página pública leva ao login; contas, coletas e pesagens continuam ligadas à API real. Veja a [análise e adaptação](.docs/visual-volta.md).
+1. Morador escolhe um dia/horário disponível e informa endereço e materiais; sugestões de categorias e avisos de cuidado ajudam no preenchimento.
+2. Cooperador abre a coleta e confirma sua responsabilidade em um formulário compacto.
+3. O responsável registra, corrige ou remove pesos durante o atendimento.
+4. O solicitante confere os pesos e assina; foto e assinatura são obrigatórias para finalizar. Depois disso os pesos ficam bloqueados.
+5. A avaliação é solicitada automaticamente nas notificações do morador; o responsável pode reenviar o aviso.
+6. Qualquer nota libera a mesma recompensa. No modo padrão, os pontos são convertidos automaticamente em dinheiro fictício; também é possível acumular pontos e gerar um vale fictício.
 
-## Conexão atual: Supabase
+O responsável pode cancelar por ausência do morador ou outro impedimento, informando o motivo. O morador recebe o aviso na própria conta. Não há mensageria externa, pagamento ou saque real.
 
-Instale `backend/requirements.txt` no ambiente virtual e configure `DATABASE_URL` em `backend/.env`, usando o driver `postgresql+psycopg`, o pooler de sessão (porta 5432) e `sslmode=require`. A credencial fica somente no backend e fora do Git; nenhuma chave Supabase é necessária no frontend. A autenticação continua sendo Argon2/JWT da aplicação.
+A referência inicial divide o preço médio de cada faixa em 50% para o morador e 50% para a cooperativa, configurável. **100 pontos = R$ 1 fictício.** Valores detalhados e equivalências estão no catálogo da API e na [regra de conversão](.docs/melhorias-coletas.md). O preço não é uma cotação em tempo real. A cartilha original permanece em [docs/CARTILHA.md](docs/CARTILHA.md).
 
-O projeto usa um usuário PostgreSQL próprio, `ciclo_certo_backend`, com permissões limitadas às três tabelas. As tabelas têm RLS e bloqueiam acesso por `anon`/`authenticated`; a API continua autorizando cada usuário por perfil e proprietário. O MySQL original foi preservado. Consulte [a operação de migração](backend/supabase/README.md) para validação, backup, sequences e retorno.
+## Instalação e execução com banco configurado
 
-Para conferir a conexão, a partir desta pasta:
-
-```powershell
-.\venv\Scripts\python.exe backend/supabase/verificar_conexao.py
-```
-
-A estrutura PostgreSQL está em `backend/supabase/estrutura.sql`, registrada no histórico de migrations do projeto; `backend/banco.sql` contém a mesma referência. Novas alterações devem ser migrations SQL incrementais. Os scripts e revisões MySQL foram arquivados em `backend/legado/mysql/` e não integram a execução atual.
-
-## Preparação em uma instalação nova
-
-Requisitos: Python 3.13, PostgreSQL no Supabase e Node compatível com o Vite instalado. Os comandos partem desta pasta (`ciclo-certo/`).
+Use Python 3.13 ou superior e Node compatível com Vite 7. Comandos a partir de `ciclo-certo/`:
 
 ```powershell
 python -m venv venv
@@ -37,130 +29,88 @@ python -m venv venv
 if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.exemplo backend/.env }
 ```
 
-Preencha `DATABASE_URL`, `ORIGEM_FRONTEND` e `CHAVE_DO_TOKEN` no `.env`. A URL usa `postgresql+psycopg://USUARIO:SENHA@HOST:5432/postgres?sslmode=require`; obtenha host e usuário no painel do seu projeto e codifique caracteres especiais da senha na URL. A chave JWT deve ter pelo menos 32 caracteres. Em uma instalação existente, preserve a chave JWT e as credenciais. `.env` e `venv` ficam fora do Git.
+Configure `DATABASE_URL`, `CHAVE_DO_TOKEN` (ao menos 32 caracteres) e `ORIGEM_FRONTEND=http://127.0.0.1:5175` no `.env`. A conexão deve usar `postgresql+psycopg`, o pooler de sessão para execução local, e SSL. Preserve credenciais existentes; nunca copie segredos para o frontend.
 
-`DATABASE_URL` é obrigatória: vazia ou apontando para outro tipo de banco faz a aplicação recusar a inicialização. O backend não depende mais de servidor ou driver MySQL.
+O projeto de produção documentado usa Supabase `plhfkhxzmxzyfygjyzbk`, com papel restrito `ciclo_certo_backend`. Este clone não contém o `.env` de produção. Não recrie tabelas em um banco existente.
 
-### Banco novo
+**Migração obrigatória para esta versão:** aplique somente `supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql` sobre o baseline existente. O script `backend/criar_tabelas.py` prepara baseline + migrações apenas em um `public` vazio, exigindo os papéis previamente provisionados. Histórico MySQL em `backend/legado/mysql/`.
 
-O projeto Supabase atual já está preparado; não recrie suas tabelas. Em um novo projeto, um administrador provisiona o papel restrito `ciclo_certo_backend` e aplica `backend/supabase/estrutura.sql` pelo gerenciador de migrations. O script `criar_tabelas.py` é uma alternativa transacional para um schema `public` vazio, com conexão administrativa e o papel já provisionado; recusa tabelas existentes. A credencial administrativa não deve ficar na configuração normal da API.
-
-### Iniciar a API
-
-Entre na pasta `backend/`:
+Inicie a API:
 
 ```powershell
 cd backend
-$env:PYTHONUTF8 = "1"
 ..\venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Alternativa com o ambiente ativado: `fastapi dev main.py`.
-
-Abra <http://127.0.0.1:8000/docs>. Grupos: Autenticação, Usuários, Coletas e Pesagens; o botão Authorize usa o e-mail em username e a senha em password.
-
-### Iniciar o frontend
-
-Em outro terminal, partindo da pasta deste README:
+Em outro terminal, a partir de `ciclo-certo/`:
 
 ```powershell
 cd frontend
 npm ci
-npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+npm run dev -- --host 127.0.0.1 --port 5175 --strictPort
 ```
 
-Abra <http://127.0.0.1:5173>. O endereço deve coincidir exatamente com ORIGEM_FRONTEND. Se a porta estiver ocupada, escolha outra explicitamente e ajuste o .env antes de reiniciar o backend.
+Abra [morador](http://127.0.0.1:5175/login), [cooperador](http://127.0.0.1:5175/cooperador) ou [Swagger](http://127.0.0.1:8000/docs). Se mudar a porta, ajuste CORS. `VITE_API_URL` altera a URL da API; por padrão é `http://127.0.0.1:8000`.
 
-### Acessos por perfil
+Cadastro público de cooperativa continua limitado ao ambiente local. Na Vercel, novas contas de cooperativa exigem liberação administrativa. Moradores podem atualizar e-mail/senha no perfil, com confirmação da senha atual e encerramento dos tokens antigos.
 
-Na porta local 5175 usada neste ambiente:
+## Testes locais isolados
 
-- Morador: <http://127.0.0.1:5175/login>, acessível pelos links de agendamento na página inicial.
-- Cooperador: <http://127.0.0.1:5175/cooperador>, acessível pelos links da cooperativa.
-
-Cada endereço apresenta login e cadastro do próprio perfil, sem seletor. O cadastro envia `morador` em `/login` e `cooperativa` em `/cooperador`. Após o login, `/usuarios/eu` confirma o perfil: contas do outro perfil recebem uma mensagem e um link para o acesso correspondente. Atualizar, sair e entrar novamente conserva o endereço do acesso. Se usar outra porta, substitua 5175 nos links.
-
-A API padrão é http://127.0.0.1:8000. Para outra, configure VITE_API_URL no ambiente do frontend e reinicie/recompile; essa variável contém só endereço, nunca segredo.
-
-Para gerar e servir a versão compilada, dentro de frontend/:
+A suíte usa PostgreSQL portátil de teste, nunca o Supabase de uso normal. A partir de `ciclo-certo/`:
 
 ```powershell
+npm install --prefix .test-infra --save-exact embedded-postgres@18.4.0-beta.17
+node scripts/postgres-teste.mjs
+```
+
+O banco escuta somente em `127.0.0.1:55439`. Credencial aleatória e dados ficam em `.test-infra/`, ignorada pelo Git. Se o gerenciador bloquear scripts de instalação, revise e permita apenas o pacote de binários da plataforma; não desative proteções globalmente.
+
+Em outro terminal:
+
+```powershell
+cd backend
+..\venv\Scripts\python.exe -m unittest teste_operacao teste_publicacao -v
+```
+
+A suíte cria schemas descartáveis, aplica baseline e migração, verifica preservação e RLS e executa a API com o papel restrito. Remove apenas os schemas criados pelo próprio teste. **20 testes passaram**; inclui concorrência por vaga, responsável, avaliação e resgate, comprovação obrigatória, isolamento, precisão e revogação de sessões. A suíte da pontuação antiga está arquivada em `backend/legado/fluxo_v1/`.
+
+No frontend:
+
+```powershell
+node --test testes/publicacao.test.js
 npm run build
-npm run preview -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-## Contas e roteiro de teste
+Os scripts antigos de comparação visual com API simulada não cobrem o fluxo novo. A verificação manual e suas limitações estão em `.docs/melhorias-coletas.md`.
 
-**Somente no banco isolado de estudo**, crie uma conta por perfil em POST /usuarios, pelo Swagger. Os dados abaixo são fictícios e não são inseridos automaticamente:
+### Prévia de demonstração
 
-```json
-{"nome":"Moradora de teste","email":"moradora@example.org","senha":"TesteLocal2026!","tipo":"morador"}
-```
-
-```json
-{"nome":"Cooperativa de teste","email":"cooperativa@example.org","senha":"TesteLocal2026!","tipo":"cooperativa"}
-```
-
-Essa senha serve apenas à demonstração local. No banco de uso normal, cadastre seus próprios dados e senhas. A criação deve responder 201 sem senha/hash; repetir e-mail responde 409.
-
-1. Entre como moradora e agende uma coleta com endereço, dia e materiais informados. Deve começar agendada com zero pontos.
-2. Abra Minhas coletas: Aguardando pesagem e histórico inicialmente vazio.
-3. Saia e entre como cooperativa. Em A rota, filtre pelo dia e abra a coleta na balança.
-4. Registre 2,5 kg de papel: 2,5 pontos e situação coletada. Acrescente 1,25 kg de plástico: mais 2,5 e total 5.
-5. Volte como moradora: consulte suas pesagens e o total 5. Um segundo morador não pode ver essa coleta.
-6. No Swagger, sem Authorize, uma rota protegida responde 401; morador tentando registrar pesagem responde 403; coleta inexistente, com perfil permitido, responde 404.
-7. Peso zero/negativo ou material não previsto responde 422. Peso 1.001 kg de papel e peso 0,001 kg são aceitos: não existe teto de 1.000 kg ou precisão obrigatória de centésimos.
-8. Confira senha incorreta, F5, Sair e token vencido: o front não salva a senha e pede novo login quando recebe 401.
-
-No exercício local, o cadastro pela API aceita os dois perfis e o endereço define o perfil na interface. Na Vercel, a API recusa cadastro público de cooperativa com 403; o build de produção mostra somente o login nesse acesso. Contas de cooperativa existentes continuam funcionando, e novas contas desse perfil precisam de liberação administrativa.
-
-## Rotas e permissões
-
-| Método | Caminho | Quem pode / resultado | Recusas documentadas |
-|---|---|---|---|
-| POST | /usuarios | Público; cadastro 201. | 409 e-mail em uso; 422 entrada inválida. |
-| POST | /login | Público; formulário OAuth2, token 200. | 401 e-mail/senha incorretos; 422 formulário inválido. |
-| GET | /usuarios/eu | Qualquer usuário autenticado; 200. | 401 token ausente, inválido ou vencido. |
-| GET | /usuarios | Cooperativa; lista 200. | 401 sem autenticação; 403 morador. |
-| GET | /coletas | Morador: somente suas; cooperativa: todas; 200. Filtros dia/morador_id. | 401 sem autenticação; 403 morador filtrando outro; 422 filtro inválido. |
-| POST | /coletas | Morador; 201. Dono pelo token; sem morador_id no corpo. | 401 sem autenticação; 403 cooperativa; 422 entrada inválida. |
-| GET | /coletas/{coleta_id} | Dono ou cooperativa; 200. | 401 sem autenticação; 403 outro morador; 404 inexistente; 422 ID inválido. |
-| GET | /coletas/{coleta_id}/pesagens | Dono ou cooperativa; histórico 200. | 401 sem autenticação; 403 outro morador; 404 coleta inexistente; 422 ID inválido. |
-| POST | /coletas/{coleta_id}/pesagens | Cooperativa; 201. | 401 sem autenticação; 403 morador; 404 coleta inexistente; 422 material/peso/ID inválido ou estouro numérico. |
-
-Uma requisição pode ter mais de um problema; a primeira validação executada determina a resposta. Falha inesperada de infraestrutura pode produzir 500, sem representar uma regra da cartilha.
-
-## Regra, arquitetura e segurança
-
-A coleta começa agendada, com zero pontos. Papel/vidro valem 1 ponto/kg; plástico 2; metal 4. Cada pesagem soma pontos; a primeira muda para coletada. Materiais informados não geram pontos. Troca de descontos, mapa, pagamentos e mensagens ficam fora do escopo.
-
-A rota recebe/valida HTTP, o serviço aplica regra e autorização e o repositório usa SQLAlchemy. Pesagem e total são confirmados juntos, com bloqueio da coleta para impedir perda de pontos em pedidos simultâneos. As três tabelas são usuarios, coletas e pesagens; quilos/pontos usam DOUBLE, sem arredondamento no cálculo. Valores não finitos ou que ultrapassam a representação numérica são recusados antes de gravar.
-
-**Por que hash, em vez de criptografia?** A criptografia permite recuperar a senha com uma chave; para autenticar só precisamos conferir se a senha informada é correta. O hash Argon2 permite essa verificação sem guardar uma senha recuperável. É lento de propósito e usa um sal aleatório: senhas iguais produzem hashes diferentes. Senha e hash não saem nos esquemas de resposta.
-
-O JWT contém sub (id em texto) e exp (validade), assinado com HS256 e segredo do .env. O conteúdo é legível e não contém senha. O perfil é consultado no banco; o cliente não concede permissões. Usuários antigos continuam com email/senha_hash NULL e não ganham credenciais inventadas.
-
-## Verificação e entrega
-
-Dentro de `backend/`, com `.env` apontando para PostgreSQL, execute os 17 testes somente em um schema descartável previamente criado por um administrador. Consulte [o preparo dos testes](backend/supabase/README.md#testes).
+Com o PostgreSQL portátil em execução, inicie a API de teste:
 
 ```powershell
-$env:SUPABASE_ESQUEMA_TESTE = 'ciclo_certo_teste_IDENTIFICADOR_HEXADECIMAL_DE_32_CARACTERES'
-..\venv\Scripts\python.exe -m unittest teste_banco -v
+cd backend
+..\venv\Scripts\python.exe -m uvicorn preview_teste:app --host 127.0.0.1 --port 8001
 ```
 
-A suíte recusa nome inválido, schema ausente ou que já contenha tabelas. Cobre hash, login, usuário sem credenciais, validação, isolamento, perfis, filtros, persistência entre processos, concorrência, transação e limites da cartilha. Não escreve dados de teste no schema `public`. O administrador remove o schema vazio depois.
-
-### Interface responsiva
-
-Com Edge instalado e frontend em `http://127.0.0.1:5175`, execute na pasta `frontend`:
+Em outro terminal, na pasta `frontend/`:
 
 ```powershell
-npm run test:visual
+$env:VITE_API_URL = 'http://127.0.0.1:8001'
+npm run dev -- --host 127.0.0.1 --port 5175 --strictPort
 ```
 
-Playwright com API simulada, sem escrever no banco real. Exercita os fluxos em 1440, 390 e 320 px e salva capturas em `resultados-visuais/` (ignorado pelo Git). Para outra porta, configure `$env:URL_VISUAL = 'http://127.0.0.1:5173'`. Fotos, fontes e licenças em `public/`, sem carregamento de terceiros durante o uso.
+Esse módulo usa exclusivamente `ciclo_certo_teste_local`, cria `morador@example.org` e `cooperador@example.org` com senha `TesteLocal123!` e não deve ser implantado. Os dados são fictícios. `main:app` continua sendo a entrada de produção.
 
-Valide também o README em um clone limpo, sem copiar venv, node_modules ou .env: instale dependências, configure um banco vazio e execute o roteiro acima. Resultados e limites da validação desta entrega em [.docs/validacao.md](.docs/validacao.md).
+## API e arquitetura
 
-O professor/aluno pode retomar o trabalho por [.docs/proximos-passos.md](.docs/proximos-passos.md). A IA permanece planejada; seu MVP está no [roadmap](.docs/roadmap.md).
+- Público: `POST /usuarios`, `POST /login`, `GET /catalogo`, `GET /saude`.
+- Autenticado: `GET/PATCH /usuarios/eu`, `GET /agenda`, `GET /coletas`, `GET /coletas/{id}`, `GET /coletas/{id}/pesagens`.
+- Morador: `POST /coletas`, `POST /coletas/{id}/avaliar`, `GET /carteira`, `PUT /carteira/preferencia`, `POST /carteira/resgatar`.
+- Cooperador: `PUT /agenda`, `POST /coletas/{id}/assumir`; somente o responsável usa `POST/PUT/DELETE .../pesagens`, `POST .../finalizar`, `POST .../cancelar` e `POST .../solicitar-avaliacao`.
+- Privado: `GET /coletas/{id}/comprovante` (morador dono ou responsável), `GET /notificacoes`, `PUT /notificacoes/{id}/lida` (dono).
+
+Rotas chamam serviços; serviços aplicam autorização e transações; repositórios concentram SQLAlchemy. `operacao.py` reúne o novo fluxo em cada camada. Frontend separado em componentes de agenda, listagem, detalhe, carteira e perfil. [Modelo de dados](docs/DER.md).
+
+JWT HS256 com `sub`, `exp` e versão de sessão, senha Argon2, CORS de origem exata, dados privados protegidos por API e RLS. Créditos/resgates são transacionais e idempotentes. Imagens não possuem URL pública. `.env`, ambientes, dependências, testes locais e builds ficam fora do Git.
+
+Regras de trabalho em [REGRAS.md](REGRAS.md); continuidade em [.docs/proximos-passos.md](.docs/proximos-passos.md). O agente de IA permanece planejado, sem chamadas a provedores.

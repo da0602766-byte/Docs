@@ -19,12 +19,17 @@ function tratarResposta(resposta, protegida, tokenEnviado) {
 }
 
 // Cada chamada usa o token atual e uma resposta antiga não encerra uma sessão mais recente.
-function solicitar(caminho, opcoes = {}, protegida = true) {
+export function solicitar(caminho, opcoes = {}, protegida = true) {
   const token = localStorage.getItem("token");
   const headers = { ...opcoes.headers };
   if (protegida && token) headers.Authorization = "Bearer " + token;
   return fetch(enderecoApi + caminho, { ...opcoes, headers })
     .then((resposta) => tratarResposta(resposta, protegida, token));
+}
+
+// As mutações compartilham autenticação e mensagens de erro da API.
+export function enviar(caminho, dados = {}, method = "POST") {
+  return solicitar(caminho, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
 }
 
 // O login OAuth2 recebe formulário; a senha não fica salva no navegador.

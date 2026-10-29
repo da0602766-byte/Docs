@@ -1,5 +1,7 @@
 # Publicação na Vercel
 
+**Evolução local posterior:** a lista de melhorias ainda não foi implantada. Antes do próximo deploy, aplicar `supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql` e coordenar a troca da API e do frontend. O backend antigo não entende os novos estados. Regras, testes e pendências em [melhorias-coletas](../.docs/melhorias-coletas.md). `main:app` continua sendo a entrada de produção; nunca publicar `preview_teste:app`.
+
 Publicação concluída em 28/10/2026: dois projetos Vercel na equipe `projetos-fd50`, ligados a `da0602766-byte/Docs`, branch de produção `main`. O banco continua no Supabase. Variáveis de Production configuradas e builds remotos aprovados.
 
 - Site: [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app).

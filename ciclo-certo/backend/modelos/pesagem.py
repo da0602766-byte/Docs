@@ -1,6 +1,6 @@
 # O modelo liga cada leitura da balança à coleta correspondente.
 from sqlalchemy import CheckConstraint, Column, Enum, ForeignKey, Index, Integer
-from sqlalchemy import Double
+from sqlalchemy import Double, Numeric, String
 from banco import Base
 
 
@@ -15,6 +15,7 @@ class Pesagem(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     coleta_id = Column(Integer, ForeignKey("coletas.id", name="pesagem_pertence_coleta"), nullable=False)
-    material = Column(Enum("papel", "vidro", "plástico", "metal", native_enum=False, create_constraint=True, name="conferir_material_pesagem"), nullable=False)
+    material = Column(String(40), nullable=False)
     quilos = Column(Double(asdecimal=False), nullable=False)
     pontos = Column(Double(asdecimal=False), nullable=False)
+    valor_kg = Column(Numeric(12, 4), nullable=True)

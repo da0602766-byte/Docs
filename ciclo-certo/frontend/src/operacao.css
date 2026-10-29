@@ -1,0 +1,521 @@
+/* Extensões da identidade existente: superfícies compactas e controles acessíveis. */
+.cc-duas-colunas {
+  display: grid;
+  grid-template-columns: minmax(290px, 0.85fr) minmax(0, 1.35fr);
+  gap: 24px;
+  align-items: start;
+}
+.cc-form,
+.cc-calendario,
+.cc-resumo,
+.cc-tabela {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.cc-form h2,
+.cc-resumo h2 {
+  margin: 0 0 16px;
+}
+.cc-form p,
+.cc-resumo p {
+  line-height: 1.6;
+}
+.cc-form form,
+.cc-modal form {
+  display: grid;
+  gap: 16px;
+}
+.cc-form .ws-field,
+.cc-modal .ws-field {
+  margin-bottom: 16px;
+}
+.cc-form fieldset,
+.cc-modal fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  min-width: 0;
+}
+.cc-form legend {
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.cc-form textarea,
+.cc-modal textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+.cc-form select,
+.cc-modal select,
+.cc-modal input:not([type="checkbox"]),
+.cc-modal textarea {
+  font: inherit;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d9d1;
+  border-radius: 10px;
+  background: #fff;
+  color: #192f24;
+  box-sizing: border-box;
+}
+.cc-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cc-calendario h2 {
+  font-size: 17px;
+  text-transform: capitalize;
+  margin: 0;
+}
+.cc-dias-semana,
+.cc-cal-grade {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.cc-dias-semana {
+  margin: 18px 0 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #657467;
+}
+.cc-cal-grade button {
+  font: inherit;
+  min-height: 58px;
+  border: 1px solid #dfe8de;
+  border-radius: 9px;
+  background: #f0f7eb;
+  color: #24492d;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 1px;
+}
+.cc-cal-grade button small {
+  font-size: 9px;
+}
+.cc-cal-grade button.indisponivel {
+  background: #f0f1ee;
+  color: #788076;
+  border-color: #e8eae5;
+}
+.cc-cal-grade button:disabled {
+  cursor: not-allowed;
+}
+.cc-cal-grade button.selecionado {
+  background: #285d3a;
+  color: #fff;
+  border-color: #285d3a;
+  box-shadow: 0 0 0 2px #b8d1b7;
+}
+.cc-calendario button:focus-visible,
+.cc-chip:focus-visible,
+.cc-modal button:focus-visible {
+  outline: 3px solid #df913c;
+  outline-offset: 2px;
+}
+.cc-horarios,
+.cc-acoes,
+.cc-sugestoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cc-horarios button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 78px;
+}
+.cc-horarios small {
+  font-size: 10px;
+}
+.cc-chip {
+  border: 1px solid #cbd9c8;
+  background: #f6faf3;
+  color: #2d5337;
+  border-radius: 20px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cc-selecionados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+}
+.cc-selecionados li {
+  background: #edf4e7;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.cc-selecionados button {
+  border: 0;
+  background: none;
+  font-size: 20px;
+  margin-left: 8px;
+  cursor: pointer;
+  color: #294e31;
+}
+.cc-cuidado {
+  background: #fff4dc;
+  border-left: 3px solid #c38a20;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #5d461e;
+}
+.cc-tabela summary,
+.cc-form summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+.cc-tabela p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.cc-scroll {
+  overflow: auto;
+}
+.cc-scroll table {
+  min-width: 540px;
+}
+.cc-lista {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.cc-coleta {
+  padding: 20px;
+}
+.cc-coleta h3 {
+  margin: 12px 0 6px;
+  font-size: 17px;
+}
+.cc-coleta p {
+  margin: 6px 0 12px;
+}
+.cc-coleta .cc-linha > span:first-child {
+  font-size: 13px;
+}
+.cc-avisos {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.cc-avisos:empty {
+  display: none;
+}
+.cc-aviso {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  background: #eef4e6;
+  border: 1px solid #d5e3c9;
+  border-radius: 12px;
+  padding: 12px 18px;
+}
+.cc-aviso p {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.cc-pesos {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+.cc-pesos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid #e3e9df;
+  padding: 14px 0;
+}
+.cc-pesos li p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.cc-peso-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 0.55fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 18px 0;
+}
+.cc-peso-form .ws-field {
+  margin: 0;
+}
+.cc-peso-form > .ws-btn {
+  margin-bottom: 0;
+  min-height: 44px;
+}
+.cc-modal {
+  border: 1px solid #d7e1d0;
+  border-radius: 18px;
+  padding: 24px;
+  width: min(580px, calc(100vw - 32px));
+  max-height: 90dvh;
+  overflow: auto;
+  box-sizing: border-box;
+  font-family: inherit;
+  color: #253c2b;
+  box-shadow: 0 20px 80px #152b2633;
+}
+.cc-modal::backdrop {
+  background: #142c2588;
+}
+.cc-modal h2 {
+  font-size: 21px;
+}
+.cc-modal .ws-field {
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+}
+.cc-modal p {
+  line-height: 1.6;
+}
+.cc-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.cc-checkbox input {
+  margin-top: 6px;
+  min-width: 16px;
+  min-height: 16px;
+}
+.cc-assinatura {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px dashed #718671;
+  background: #fff;
+  border-radius: 8px;
+  touch-action: none;
+}
+.cc-previa {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.cc-comprovante {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.cc-comprovante img {
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.cc-estrelas {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cc-estrelas label {
+  cursor: pointer;
+}
+.cc-estrelas input {
+  position: absolute;
+  opacity: 0;
+}
+.cc-estrelas span {
+  display: block;
+  border: 1px solid #d5dfcc;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: #776323;
+}
+.cc-estrelas input:checked + span {
+  background: #f8e3a4;
+  border-color: #af8729;
+  color: #3c3017;
+}
+.cc-estrelas input:focus-visible + span {
+  outline: 3px solid #497c51;
+}
+.cc-celebracao {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 10px;
+  text-align: center;
+}
+.cc-celebracao > strong {
+  font-size: 36px;
+  color: #2d6336;
+}
+.cc-chuva {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cc-chuva span {
+  position: absolute;
+  top: -25px;
+  font-size: 25px;
+  color: #e5b94a;
+  animation: cc-cair 2.5s ease-in 2 both;
+}
+.cc-celebracao p,
+.cc-celebracao button,
+.cc-celebracao > strong {
+  position: relative;
+  z-index: 1;
+}
+@keyframes cc-cair {
+  0% {
+    transform: translateY(-30px) rotate(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(360px) rotate(300deg);
+    opacity: 0;
+  }
+}
+.cc-saldos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.cc-saldos strong {
+  font-size: 34px;
+  color: #2c5a35;
+}
+.cc-saldos small {
+  display: block;
+  margin-top: 12px;
+  color: #687561;
+}
+.cc-perfil {
+  max-width: 600px;
+}
+.cc-codigo {
+  overflow-wrap: anywhere;
+  display: block;
+  max-width: 450px;
+}
+.ws-tag {
+  white-space: normal;
+}
+.ws-tag-cancelada {
+  background: #fbe9e4;
+  color: #8d3826;
+}
+.ws-tag-aguardando_avaliacao {
+  background: #fff1c9;
+  color: #735b1f;
+}
+.ws-tag-em_coleta {
+  background: #e1edf5;
+  color: #315c76;
+}
+.ws .ws-bottom-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.ws .ws-bottom-nav:has(button:nth-child(2):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .cc-duas-colunas {
+    grid-template-columns: 1fr;
+  }
+  .cc-calendario {
+    max-width: 540px;
+  }
+  .cc-peso-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cc-peso-form > .ws-btn {
+    grid-column: 1/-1;
+  }
+  .ws-tabs {
+    flex-wrap: wrap;
+  }
+  .cc-cal-grade button {
+    min-height: 58px;
+  }
+}
+@media (max-width: 500px) {
+  .cc-form,
+  .cc-calendario,
+  .cc-resumo,
+  .cc-tabela {
+    padding: 16px;
+  }
+  .cc-coleta {
+    padding: 16px;
+  }
+  .cc-saldos {
+    gap: 10px;
+  }
+  .cc-saldos strong {
+    font-size: 24px;
+  }
+  .cc-saldos small {
+    font-size: 11px;
+  }
+  .cc-pesos li,
+  .cc-aviso {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .cc-modal {
+    padding: 18px;
+  }
+  .cc-estrelas span {
+    padding: 10px;
+  }
+  .cc-cal-grade button small {
+    font-size: 8px;
+  }
+  .cc-peso-form {
+    grid-template-columns: 1fr;
+  }
+  .cc-calendario h2 {
+    font-size: 14px;
+  }
+  .ws-bottom-nav {
+    overflow-x: auto;
+  }
+  .ws-bottom-nav button {
+    min-width: 70px;
+    font-size: 10px;
+  }
+  .cc-linha > .ws-btn {
+    white-space: normal;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-chuva {
+    display: none;
+  }
+  .cc-celebracao * {
+    animation: none !important;
+  }
+}

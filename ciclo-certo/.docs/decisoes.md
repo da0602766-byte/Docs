@@ -1,5 +1,9 @@
 # Decisões
 
+## Ampliação solicitada em 28/10/2026
+
+O usuário pediu calendários, responsabilidade individual, foto/assinatura, cancelamento com aviso, avaliação, perfil e recompensa fictícia. A implementação ativa e suas hipóteses configuráveis estão em [melhorias-coletas.md](melhorias-coletas.md). A participação inicial de 50% não representa estudo de viabilidade. Os registros a seguir preservam decisões históricas anteriores à ampliação.
+
 Base: cartilha, código e escolhas do aluno em 21/10/2026. Registros para estudo; não afirmam revisão pelo professor.
 
 ## MySQL e três entidades

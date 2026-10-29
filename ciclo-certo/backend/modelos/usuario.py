@@ -16,3 +16,5 @@ class Usuario(Base):
     tipo = Column(Enum("morador", "cooperativa", native_enum=False, create_constraint=True, name="conferir_tipo_usuario"), nullable=False)
     email = Column(String(100), nullable=True)
     senha_hash = Column(String(255), nullable=True)
+    versao_token = Column(Integer, nullable=False, server_default="0")
+    recompensa = Column(String(12), nullable=False, server_default="dinheiro")

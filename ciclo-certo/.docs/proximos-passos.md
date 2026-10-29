@@ -1,5 +1,9 @@
 # Próximos passos
 
+## Evolução local após a lista de melhorias
+
+As funcionalidades solicitadas estão implementadas localmente; etapas, regras, 20 testes e limites em [melhorias-coletas.md](melhorias-coletas.md). A produção descrita abaixo ainda é a versão anterior. Próximo passo de implantação: migração incremental + API + frontend, com teste manual de câmera/assinatura. Não executar novamente a estrutura inicial sobre o banco existente. Suíte vigente: `teste_operacao` e `teste_publicacao`; a suíte antiga está em `backend/legado/fluxo_v1/`.
+
 Atualizado em 28/10/2026; consulte `validacao.md` para o que foi efetivamente executado.
 
 ## Entrega atual

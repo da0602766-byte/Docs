@@ -1,6 +1,6 @@
 # O modelo conserva a relação com o morador e os campos utilizados nas quatro telas.
 from sqlalchemy import CheckConstraint, Column, Date, Enum, ForeignKey, Index, Integer, JSON, String
-from sqlalchemy import Double
+from sqlalchemy import Double, DateTime, Text
 from banco import Base
 
 
@@ -21,5 +21,15 @@ class Coleta(Base):
     endereco = Column(String(160), nullable=False)
     dia = Column(Date, nullable=False)
     materiais_informados = Column(JSON, nullable=False)
-    situacao = Column(Enum("agendada", "coletada", native_enum=False, create_constraint=True, name="conferir_situacao_coleta"), nullable=False, server_default="agendada")
+    situacao = Column(Enum("agendada", "em_coleta", "aguardando_avaliacao", "coletada", "cancelada", native_enum=False, create_constraint=True, name="conferir_situacao_coleta"), nullable=False, server_default="agendada")
     pontos = Column(Double(asdecimal=False), nullable=False, server_default="0")
+    hora = Column(String(5), nullable=True)
+    cooperador_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    responsabilidade = Column(String(300), nullable=True)
+    motivo_cancelamento = Column(String(500), nullable=True)
+    versao = Column(Integer, nullable=False, server_default="0")
+    finalizada_em = Column(DateTime(timezone=True), nullable=True)
+    nota = Column(Integer, nullable=True)
+    comentario = Column(String(500), nullable=True)
+    avaliada_em = Column(DateTime(timezone=True), nullable=True)
+    pontos_previstos = Column(Integer, nullable=False, server_default="0")
