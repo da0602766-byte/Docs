@@ -4,9 +4,9 @@
 
 Implementada e integrada às fontes da produção recuperadas pela CLI autenticada da Vercel. Mercado, Gestão, recuperação de senha, catálogo e refinamentos visuais foram restaurados da publicação existente; os metadados Git dessa publicação ainda apontavam para `6f16815`, mas seus arquivos-fonte continham alterações posteriores. Fontes: API `dpl_gy9CQ22n5MGNCeQjBoPQDtc8FrQr` e frontend `dpl_4WrFftx5LZinLiJSFApSrmHJn4CC`. Arquivos recuperados conferidos por SHA-1 antes da integração.
 
-As migrações `20261029231401_mercado_gestao_local.sql` e `20261029231407_refinamento_interface_recuperacao.sql` foram recuperadas do histórico Supabase para reprodução local. **Já estão aplicadas em produção; não reaplicar.** Somente `20261104184651_comunidade.sql` será aplicada nesta entrega. Build e testes integrados aprovados; publicação em andamento.
+As migrações `20261029231401_mercado_gestao_local.sql` e `20261029231407_refinamento_interface_recuperacao.sql` foram recuperadas do histórico Supabase para reprodução local. **Já estão aplicadas em produção; não reaplicar.** Somente `20261104184651_comunidade.sql` foi aplicada nesta entrega, registrada remotamente como `20261104191136_comunidade`. É a mesma migração: não reaplicar. Publicação concluída em 04/11/2026.
 
-Conta indicada pelo usuário para moderação: `da0602766@gmail.com`, existente no banco, perfil cooperativa. A concessão será feita na implantação; nunca criar conta nem modificar senha para testar.
+Conta indicada pelo usuário para moderação: `da0602766@gmail.com`, existente no banco, perfil cooperativa. A moderação foi concedida à conta existente na implantação. Nenhuma conta ou senha foi criada/alterada para testar.
 
 ## Produto e regras
 
@@ -92,3 +92,15 @@ npm run dev -- --host 127.0.0.1 --port 5175 --strictPort
 ```
 
 Em outro terminal, na mesma pasta: `node testes/comunidade.interface.cjs`. O servidor de teste prepara schema novo e o remove ao encerrar; reinicie-o antes de repetir o roteiro. `preview_comunidade.py` não deve ser publicado; a entrada continua `main:app`.
+
+## Publicação concluída
+
+- Frontend: https://ciclo-certo.vercel.app — Vite, produção READY. Build `dpl_B6N9nP4Sz1asMz1dqHTeeJzn1PE8`.
+- API: https://ciclo-certo-api.vercel.app — FastAPI, produção READY. Build `dpl_41H2AqCgKCxgXA5569J5aFqtmbS8`.
+- Código integrado: `4f43361`. Builds feitos a partir de arquivos versionados, preparados sem atribuir domínios e depois promovidos. Nenhum `.env`, token ou módulo de teste enviado.
+- As 30 rotas anteriores permanecem presentes; nove caminhos da Comunidade adicionados. API de saúde 200; Comunidade sem token 401; preflight da origem autorizada 200 e origem externa 400.
+- Páginas públicas, login e cooperador verificados no navegador; recuperação aberta pelo botão do login. Bundle publicado contém Comunidade e a URL correta da API. Sem erros JavaScript nessas verificações.
+- Autenticação e operações completas verificadas no PostgreSQL local descartável. Não foram criados tokens para contas reais nem conteúdo de teste em produção; o login autenticado de produção fica para o uso normal da conta do usuário.
+- Contagens e resumos de integridade antes/depois idênticos: 5 usuários, 5 coletas, 14 pesagens, 5 movimentos, 8 produtos e 2 pedidos de recompensa.
+- Seis tabelas novas com RLS e sem acesso direto de `anon`/`authenticated`; papel da API com permissões conferidas. Advisor de segurança sem alertas. Consulta aos logs da nova API, níveis error/fatal nos últimos 30 minutos, retornou zero registros após a publicação.
+- Moderação concedida a `da0602766@gmail.com`. Entrar pelo acesso do cooperador e abrir Comunidade → Aprovações/Denúncias.
