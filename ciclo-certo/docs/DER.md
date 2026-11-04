@@ -91,3 +91,6 @@ erDiagram
 - Índices por dia/morador nas coletas e por coleta nas pesagens. Chaves estrangeiras sem exclusão em cascata.
 
 O módulo de IA planejado não exige tabela nova no MVP.
+# Comunidade — ampliação aditiva de 04/11/2026
+
+As tabelas da Comunidade são independentes dos movimentos das coletas. `usuarios` possui publicações, comentários, denúncias e créditos de participação. Uma publicação possui vários comentários/denúncias e no máximo um crédito. O crédito registra valor, dia, semana e data do estorno; exclusão não remove o registro. `comunidade_moderadores` concede acesso por conta; `comunidade_regras` guarda os limites ajustáveis. [Regras e estado da implementação](../.docs/comunidade.md).

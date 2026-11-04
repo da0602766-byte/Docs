@@ -1,5 +1,6 @@
 """Integração HTTP e concorrência em PostgreSQL local, nunca no banco de produção."""
 import os
+import re
 import json
 import secrets
 from pathlib import Path
@@ -44,10 +45,10 @@ class TesteOperacao(unittest.TestCase):
             assert c.scalar(text("select current_database()")) == "ciclo_certo_teste_local"
             c.execute(text(f"CREATE SCHEMA {cls.esquema}"))
             baseline = (RAIZ / "backend/supabase/estrutura.sql").read_text(encoding="utf-8")
-            c.exec_driver_sql(baseline.replace("public", cls.esquema))
+            c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, baseline), execution_options={"no_parameters": True})
             c.exec_driver_sql("INSERT INTO usuarios(nome,tipo) VALUES ('Conta histórica','morador'); INSERT INTO coletas(morador_id,endereco,dia,materiais_informados,situacao,pontos) VALUES (1,'Rua histórica, 123','2020-01-01','[\"papel\"]','coletada',42)")
             for arquivo in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
-                c.exec_driver_sql(arquivo.read_text(encoding="utf-8").replace("public", cls.esquema))
+                c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, arquivo.read_text(encoding="utf-8")), execution_options={"no_parameters": True})
         cls.engine = create_engine(os.environ["DATABASE_URL"], pool_size=8)
 
         @event.listens_for(cls.engine, "connect")
@@ -276,7 +277,7 @@ class TesteOperacao(unittest.TestCase):
             historico = c.execute(text(f"SELECT situacao,pontos FROM {self.esquema}.coletas WHERE id=1")).one()
             self.assertEqual(tuple(historico), ("coletada", 42))
             tabelas = c.execute(text("SELECT relname, relrowsecurity FROM pg_class JOIN pg_namespace ON relnamespace=pg_namespace.oid WHERE nspname=:s AND relkind='r'"), {"s": self.esquema}).all()
-            self.assertEqual(len(tabelas), 7)
+            self.assertEqual(len(tabelas), 13)  # Sete tabelas originais e seis da comunidade.
             self.assertTrue(all(linha[1] for linha in tabelas))
             for tabela in ("horarios", "comprovantes", "notificacoes", "movimentos"):
                 self.assertFalse(c.scalar(text("SELECT has_table_privilege('anon', :t, 'SELECT')"), {"t": f"{self.esquema}.{tabela}"}))

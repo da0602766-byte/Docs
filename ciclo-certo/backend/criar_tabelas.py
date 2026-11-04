@@ -17,7 +17,7 @@ def criar_tabelas():
         conexao.exec_driver_sql(sql)
         # Instala também evoluções incrementais em bancos novos; nunca recria tabelas existentes.
         for migration in sorted((Path(__file__).parent.parent / "supabase" / "migrations").glob("*.sql")):
-            conexao.exec_driver_sql(migration.read_text(encoding="utf-8"))
+            conexao.exec_driver_sql(migration.read_text(encoding="utf-8"), execution_options={"no_parameters": True})
 
 
 # A execução manual prepara a estrutura antes de iniciar o servidor.

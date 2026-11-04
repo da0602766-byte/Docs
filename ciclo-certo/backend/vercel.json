@@ -4,7 +4,7 @@
   "functions": {
     "main.py": {
       "maxDuration": 30,
-      "excludeFiles": "{legado/**,backups/**,supabase/**,teste_*.py,criar_tabelas.py,banco.sql,.env,.env.*,__pycache__/**,**/__pycache__/**}"
+      "excludeFiles": "{legado/**,backups/**,supabase/**,teste_*.py,preview_*.py,criar_tabelas.py,banco.sql,.env,.env.*,__pycache__/**,**/__pycache__/**}"
     }
   }
 }

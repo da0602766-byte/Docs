@@ -6,6 +6,7 @@ import configuracao as configuracao
 from rotas import usuarios as rotas_usuarios
 from rotas import autenticacao as rotas_autenticacao
 from rotas.operacao import router as rotas_operacao
+from rotas.comunidade import router as rotas_comunidade
 from servicos.operacao import Recusa
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -27,6 +28,7 @@ app.add_middleware(
 app.include_router(rotas_usuarios.router)
 app.include_router(rotas_autenticacao.router)
 app.include_router(rotas_operacao)
+app.include_router(rotas_comunidade)
 
 
 # Infraestrutura traduz erros sem devolver senhas, imagens ou corpos enviados.

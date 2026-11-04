@@ -5,6 +5,7 @@ import Listagem from "./operacao/Listagem";
 import Detalhe from "./operacao/Detalhe";
 import Carteira from "./operacao/Carteira";
 import Perfil from "./operacao/Perfil";
+import Comunidade from "./operacao/Comunidade";
 
 // A tela principal mantém o detalhe selecionado sem transformar o perfil em autorização.
 export default function Operacao({ perfil, tela, mudarTela, sair }) {
@@ -14,6 +15,7 @@ export default function Operacao({ perfil, tela, mudarTela, sair }) {
   useEffect(() => {
     setSelecionada(null);
   }, [tela]);
+  if (tela === "comunidade") return <Comunidade perfil={perfil} />;
   if (!catalogo.dados) return <Estado recurso={catalogo} />;
   if (tela === "perfil") return <Perfil perfil={perfil} sair={sair} />;
   if (tela === "carteira" && perfil.tipo === "morador")

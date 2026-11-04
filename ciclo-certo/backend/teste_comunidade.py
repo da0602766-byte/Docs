@@ -1,0 +1,182 @@
+"""Regras, autorização e corridas reais em schema PostgreSQL descartável."""
+import unittest
+from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
+from concurrent.futures import ThreadPoolExecutor
+from uuid import uuid4
+from sqlalchemy import text
+import teste_operacao as infraestrutura
+
+
+class TesteComunidade(unittest.TestCase):
+    setUpClass = classmethod(infraestrutura.TesteOperacao.setUpClass.__func__)
+    tearDownClass = classmethod(infraestrutura.TesteOperacao.tearDownClass.__func__)
+    conta = infraestrutura.TesteOperacao.conta
+
+    def setUp(self):
+        self.morador, self.m = self.conta('morador')
+        self.coop, self.c = self.conta('cooperativa')
+        self.outro, self.o = self.conta('morador')
+        with self.admin.begin() as conexao:
+            conexao.execute(text(f'INSERT INTO {self.esquema}.comunidade_moderadores VALUES (:id)'), {'id': self.coop['id']})
+        self.instante = datetime(2026, 11, 2, 15, tzinfo=timezone.utc)
+        self.relogio = patch('servicos.comunidade.agora', side_effect=lambda: self.instante)
+        self.relogio.start()
+        self.addCleanup(self.relogio.stop)
+
+    def criar(self, headers=None, conteudo=None, categoria='Plantio'):
+        self.instante += timedelta(seconds=61)
+        resposta = self.cliente.post('/comunidade/publicacoes', json=dict(categoria=categoria, conteudo=conteudo or f'Experiência na comunidade: {uuid4().hex}'), headers=headers or self.m)
+        self.assertEqual(resposta.status_code, 201, resposta.text)
+        return resposta.json()['id']
+
+    def aprovar(self, identificador, headers=None):
+        resposta = self.cliente.post(f'/comunidade/publicacoes/{identificador}/moderar', json={'aprovar': True}, headers=headers or self.c)
+        self.assertEqual(resposta.status_code, 200, resposta.text)
+        return resposta
+
+    def resumo(self, headers=None):
+        return self.cliente.get('/comunidade/resumo', headers=headers or self.m).json()
+
+    def test_aprovacao_identidade_e_isolamento_das_coletas(self):
+        antes = self.cliente.get('/carteira', headers=self.m).json()
+        identificador = self.criar(conteudo='Minha horta cresce com composto preparado em casa.')
+        self.assertEqual(self.resumo()['saldo'], 0)
+        feed = self.cliente.get('/comunidade/publicacoes', headers=self.m).json()
+        self.assertNotIn(identificador, [p['id'] for p in feed['itens']])
+        self.aprovar(identificador)
+        self.aprovar(identificador)
+        self.assertEqual(self.resumo()['saldo'], 10)
+        item = self.cliente.get('/comunidade/publicacoes', headers=self.m).json()['itens'][0]
+        self.assertEqual(item['autor'], {'nome': 'Pessoa Teste', 'perfil': 'morador'})
+        self.assertNotIn('email', str(item))
+        self.assertEqual(self.cliente.get('/carteira', headers=self.m).json(), antes)
+
+    def test_limite_diario_estorno_sem_reabrir_cota(self):
+        ids = [self.criar() for _ in range(4)]
+        for identificador in ids[:3]:
+            self.aprovar(identificador)
+        self.assertEqual(self.resumo()['saldo'], 20)
+        self.assertEqual(self.resumo()['usadas_dia'], 2)
+        for _ in range(2):
+            self.assertEqual(self.cliente.delete(f'/comunidade/publicacoes/{ids[0]}', headers=self.m).status_code, 200)
+        self.aprovar(ids[3])
+        self.assertEqual(self.resumo()['saldo'], 10)
+        self.assertEqual(self.resumo()['usadas_dia'], 2)
+        itens = self.cliente.get('/comunidade/publicacoes?modo=minhas', headers=self.m).json()['itens']
+        self.assertEqual(next(p for p in itens if p['id'] == ids[3])['pontos'], 0)
+
+    def test_limite_semanal_e_virada_brasilia(self):
+        for dia in range(3):
+            self.instante = datetime(2026, 11, 2 + dia, 15, tzinfo=timezone.utc)
+            for _ in range(2):
+                self.aprovar(self.criar())
+        self.instante = datetime(2026, 11, 9, 2, 55, tzinfo=timezone.utc)  # Domingo em Brasília.
+        self.aprovar(self.criar())
+        self.assertEqual(self.resumo()['saldo'], 60)
+        self.assertEqual(self.resumo()['usadas_semana'], 6)
+        self.instante = datetime(2026, 11, 9, 3, tzinfo=timezone.utc)
+        self.aprovar(self.criar())
+        self.assertEqual(self.resumo()['saldo'], 70)
+        self.assertEqual(self.resumo()['usadas_semana'], 1)
+        self.assertEqual(self.resumo()['semana'], '2026-11-09')
+
+    def test_mesma_regra_cooperador_e_configuravel(self):
+        self.aprovar(self.criar(self.c))
+        self.assertEqual(self.resumo(self.c)['saldo'], 10)
+        with self.admin.begin() as conexao:
+            conexao.execute(text(f'UPDATE {self.esquema}.comunidade_regras SET pontos=15 WHERE id=1'))
+        try:
+            self.aprovar(self.criar(self.c))
+            self.assertEqual(self.resumo(self.c)['saldo'], 25)
+        finally:
+            with self.admin.begin() as conexao:
+                conexao.execute(text(f'UPDATE {self.esquema}.comunidade_regras SET pontos=10 WHERE id=1'))
+
+    def test_autorizacao_categoria_e_campos_forjados(self):
+        identificador = self.criar()
+        self.assertEqual(self.cliente.get('/comunidade/publicacoes').status_code, 401)
+        for caminho in ['/comunidade/publicacoes?modo=moderacao', '/comunidade/denuncias']:
+            self.assertEqual(self.cliente.get(caminho, headers=self.m).status_code, 403)
+        self.assertEqual(self.cliente.post(f'/comunidade/publicacoes/{identificador}/moderar', json={'aprovar': True}, headers=self.o).status_code, 403)
+        self.assertEqual(self.cliente.delete(f'/comunidade/publicacoes/{identificador}', headers=self.o).status_code, 403)
+        for dados in [{'conteudo': 'Um conteúdo sem categoria.'}, {'categoria': 'Outra', 'conteudo': 'Um conteúdo inválido.'}, {'categoria': 'Plantio', 'conteudo': 'Um conteúdo válido.', 'autor_id': self.coop['id']}, {'categoria': 'Plantio', 'conteudo': 'Um conteúdo válido.', 'pontos': 100}]:
+            self.assertEqual(self.cliente.post('/comunidade/publicacoes', json=dados, headers=self.m).status_code, 422)
+        self.assertEqual(self.cliente.get('/comunidade/publicacoes?limite=500', headers=self.m).status_code, 422)
+
+    def test_repeticao_normalizada_e_limite_antispam(self):
+        identificador = self.criar(conteudo='Separe as folhas secas para preparar o composto do jardim.')
+        self.cliente.delete(f'/comunidade/publicacoes/{identificador}', headers=self.m)
+        for conteudo in ['SEPARE AS FOLHAS SECAS PARA PREPARAR O COMPOSTO DO JARDIM!!!', 'Separe as folhas secas para preparar o composto do jardim hoje.']:
+            r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': conteudo}, headers=self.m)
+            self.assertEqual(r.status_code, 409, r.text)
+        r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': 'Separe as folhas secas para preparar o composto do jardim.'}, headers=self.o)
+        self.assertEqual(r.status_code, 409)
+        r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': 'Garrafas podem virar vasos diferentes e coloridos.'}, headers=self.m)
+        self.assertEqual(r.status_code, 429)
+
+    def test_concorrencia_aprovacoes_e_exclusao(self):
+        ids = [self.criar() for _ in range(4)]
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            respostas = list(executor.map(lambda i: self.cliente.post(f'/comunidade/publicacoes/{i}/moderar', json={'aprovar': True}, headers=self.c), ids + ids[:2]))
+        self.assertTrue(all(r.status_code == 200 for r in respostas), [r.text for r in respostas])
+        self.assertEqual(self.resumo()['saldo'], 20)
+        self.assertEqual(self.resumo()['usadas_dia'], 2)
+        ultimo = self.criar()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            a = executor.submit(self.cliente.post, f'/comunidade/publicacoes/{ultimo}/moderar', json={'aprovar': True}, headers=self.c)
+            b = executor.submit(self.cliente.delete, f'/comunidade/publicacoes/{ultimo}', headers=self.m)
+            self.assertIn(a.result().status_code, [200, 409])
+            self.assertEqual(b.result().status_code, 200)
+        self.assertNotIn(ultimo, [p['id'] for p in self.cliente.get('/comunidade/publicacoes?modo=minhas', headers=self.m).json()['itens']])
+
+    def test_comentarios_denuncias_e_moderacao(self):
+        identificador = self.criar()
+        rota = f'/comunidade/publicacoes/{identificador}'
+        self.assertEqual(self.cliente.post(rota + '/comentarios', json={'conteudo': 'Ainda pendente.'}, headers=self.o).status_code, 404)
+        self.aprovar(identificador)
+        r = self.cliente.post(rota + '/comentarios', json={'conteudo': 'Gostei da experiência compartilhada!'}, headers=self.o)
+        self.assertEqual(r.status_code, 201, r.text)
+        comentario = r.json()['id']
+        self.assertEqual(self.resumo(self.o)['saldo'], 0)
+        self.assertEqual(self.cliente.post(rota + '/comentarios', json={'conteudo': 'Gostei da experiência compartilhada!'}, headers=self.o).status_code, 409)
+        for _ in range(2):
+            self.assertEqual(self.cliente.post(rota + '/denuncias', json={'motivo': 'Precisa de análise da moderação.', 'comentario_id': comentario}, headers=self.m).status_code, 200)
+        denuncias = self.cliente.get('/comunidade/denuncias', headers=self.c).json()['itens']
+        denuncia = next(d for d in denuncias if d['comentario_id'] == comentario)
+        self.assertEqual(len([d for d in denuncias if d['comentario_id'] == comentario]), 1)
+        self.assertNotIn('autor_id', denuncia)
+        self.assertEqual(self.cliente.delete(f'/comunidade/comentarios/{comentario}', headers=self.m).status_code, 403)
+        self.assertEqual(self.cliente.delete(f'/comunidade/comentarios/{comentario}', headers=self.c).status_code, 200)
+        self.assertEqual(self.cliente.get(rota + '/comentarios', headers=self.m).json()['itens'], [])
+        self.assertEqual(self.cliente.post(f"/comunidade/denuncias/{denuncia['id']}/resolver", json={}, headers=self.c).status_code, 200)
+
+    def test_rejeicao_e_paginacao_filtros(self):
+        ids = [self.criar(categoria='Reutilização') for _ in range(3)]
+        for identificador in ids:
+            self.aprovar(identificador)
+        rota = '/comunidade/publicacoes?modo=minhas&categoria=Reutiliza%C3%A7%C3%A3o&perfil=morador&limite=2'
+        primeira = self.cliente.get(rota, headers=self.m).json()
+        self.assertEqual([p['id'] for p in primeira['itens']], ids[::-1][:2])
+        segunda = self.cliente.get(rota + f"&antes={primeira['proximo']}", headers=self.m).json()
+        self.assertEqual([p['id'] for p in segunda['itens']], ids[:1])
+        self.assertIsNone(segunda['proximo'])
+        pendente = self.criar()
+        r = self.cliente.post(f'/comunidade/publicacoes/{pendente}/moderar', json={'aprovar': False, 'motivo': 'Conteúdo fora do tema da comunidade.'}, headers=self.c)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.resumo()['saldo'], 20)
+
+    def test_rls_e_privilegios_administrativos(self):
+        with self.admin.connect() as conexao:
+            tabelas = conexao.execute(text("SELECT relname, relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=:schema AND c.relkind='r' AND c.relname LIKE 'comunidade_%'"), {'schema': self.esquema}).all()
+            self.assertEqual(len(tabelas), 6)
+            self.assertTrue(all(t[1] for t in tabelas))
+            for tabela, _ in tabelas:
+                for papel in ['anon', 'authenticated']:
+                    self.assertFalse(conexao.scalar(text("SELECT has_table_privilege(:papel, :tabela, 'SELECT,INSERT,UPDATE,DELETE')"), {'papel': papel, 'tabela': f'{self.esquema}.{tabela}'}))
+            for tabela in ['comunidade_moderadores', 'comunidade_regras']:
+                self.assertFalse(conexao.scalar(text("SELECT has_table_privilege('ciclo_certo_backend', :tabela, 'INSERT,UPDATE,DELETE')"), {'tabela': f'{self.esquema}.{tabela}'}))
+
+
+if __name__ == '__main__':
+    unittest.main()

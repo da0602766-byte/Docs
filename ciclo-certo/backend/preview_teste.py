@@ -23,7 +23,7 @@ with engine_admin.begin() as conexao:
     if not inspect(conexao).has_table("usuarios", schema="public"):
         conexao.exec_driver_sql((RAIZ / "backend/supabase/estrutura.sql").read_text(encoding="utf-8"))
         for migration in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
-            conexao.exec_driver_sql(migration.read_text(encoding="utf-8"))
+            conexao.exec_driver_sql(migration.read_text(encoding="utf-8"), execution_options={"no_parameters": True})
     for nome, tipo, email in [("Morador de Teste", "morador", "morador@example.org"), ("Cooperador de Teste", "cooperativa", "cooperador@example.org")]:
         if not conexao.scalar(text("SELECT id FROM usuarios WHERE email=:email"), {"email": email}):
             conexao.execute(text("INSERT INTO usuarios(nome,tipo,email,senha_hash) VALUES (:nome,:tipo,:email,:senha)"), dict(nome=nome,tipo=tipo,email=email,senha=gerar_hash_senha("TesteLocal123!")))

@@ -3,6 +3,7 @@ import React from "react";
 // Ícones locais do ZIP; não carregam bibliotecas ou serviços externos.
 export function Icone({ name, size = 20, className = "" }) {
   const paths = {
+    community: <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0ZM7 10h8M7 14h5" />,
     leaf: (
       <>
         <path d="M19.5 4.5C13 4.6 6.8 6.2 5.2 11.4c-1 3.2 1.2 6.2 4.4 6.1 5.8-.2 8-6.7 9.9-13Z" />
@@ -87,10 +88,12 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair }) {
           ["minhas", "Coletas", "box"],
           ["agendar", "Agendar", "calendar"],
           ["carteira", "Carteira", "leaf"],
+          ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
         ]
       : [
           ["rota", "Calendário", "truck"],
+          ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
         ];
   const iniciais = perfil.nome
