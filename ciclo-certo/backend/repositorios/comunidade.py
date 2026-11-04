@@ -1,7 +1,7 @@
 """Consultas paginadas e bloqueios; decisões de negócio permanecem no serviço."""
 from sqlalchemy import select, func
 from modelos.usuario import Usuario
-from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia, Moderador, Regras
+from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia, Moderador, Regras, NotificacaoComunidade
 
 
 def moderador(sessao, usuario_id):
@@ -49,6 +49,17 @@ def atividade(sessao, modelo, autor_id, inicio):
 
 def repetida(sessao, resumo):
     return sessao.scalar(select(Publicacao.id).where(Publicacao.resumo == resumo)) is not None
+
+
+def video_repetido(sessao, autor_id, youtube_id):
+    return sessao.scalar(select(Publicacao.id).where(Publicacao.autor_id == autor_id, Publicacao.youtube_id == youtube_id)) is not None
+
+
+def notificacoes(sessao, usuario_id):
+    """Consulta pequena e indexada; a leitura remove o aviso da próxima rodada sem perder decisões offline."""
+    return list(sessao.scalars(select(NotificacaoComunidade).where(
+        NotificacaoComunidade.usuario_id == usuario_id, NotificacaoComunidade.lida.is_(False)
+    ).order_by(NotificacaoComunidade.id).limit(20)))
 
 
 def recentes(sessao, autor_id):

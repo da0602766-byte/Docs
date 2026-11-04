@@ -1,15 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { enviar } from "../api";
 import { Icone } from "../visual";
 import { useDados, Estado, Modal } from "./interface";
 import { useFeedComunidade } from "./comunidadeFeed";
-import { prepararSom, tocarPublicacao } from "./comunidadeSom";
-import {
-  Inspiracao,
-  temInspiracao,
-  FimDoFeed,
-  AvisoComunidade,
-} from "./ComunidadeExtras";
+import { useAvisosComunidade } from "./AvisosComunidade";
+import VideoComunidade from "./VideoComunidade";
+import { identificarVideo } from "./youtube";
+import { Inspiracao, temInspiracao, FimDoFeed } from "./ComunidadeExtras";
 
 const base = "/comunidade";
 const nomePerfil = (tipo) => (tipo === "morador" ? "Morador" : "Cooperador");
@@ -193,6 +190,9 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
         )}
       </div>
       <p className="com-texto">{item.conteudo}</p>
+      {item.youtube_id && (
+        <VideoComunidade key={item.youtube_id} id={item.youtube_id} />
+      )}
       {item.motivo && <p className="com-motivo">Moderação: {item.motivo}</p>}
       <div className="com-acoes">
         {item.estado === "aprovada" && (
@@ -361,6 +361,7 @@ function Confirmacao({ acao, fechar, concluir }) {
 // A página consulta contas e recompensas reais; exemplos editoriais ficam explicitamente separados.
 export default function Comunidade({ perfil }) {
   const [revisao, setRevisao] = useState(0);
+  const [revisaoResumo, setRevisaoResumo] = useState(0);
   const [modo, setModo] = useState("feed");
   const [categoria, setCategoria] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState("");
@@ -369,20 +370,24 @@ export default function Comunidade({ perfil }) {
   const [compondo, setCompondo] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
-  const [aviso, setAviso] = useState(null);
+  const {
+    notificar: setAviso,
+    som,
+    alternarSom,
+    prepararAudio,
+  } = useAvisosComunidade();
+  const [video, setVideo] = useState("");
+  const [anexarVideo, setAnexarVideo] = useState(false);
+  const videoId = identificarVideo(video);
+  const videoInvalido = Boolean(video.trim() && !videoId);
   const [acao, setAcao] = useState(null);
   const [verRegras, setVerRegras] = useState(false);
-  const [som, setSom] = useState(() => {
-    try {
-      return localStorage.getItem("ciclo-certo-comunidade-som-v1") !== "nao";
-    } catch {
-      return true;
-    }
-  });
-  const audio = useRef(null);
   const envioEmCurso = useRef(false);
   const inicioFeed = useRef(null);
-  const resumo = useDados(`${base}/resumo`, `${revisao}:${modo}`);
+  const resumo = useDados(
+    `${base}/resumo`,
+    `${revisao}:${modo}:${revisaoResumo}`,
+  );
   const consulta = new URLSearchParams({ modo, limite: "12" });
   if (categoria) consulta.set("categoria", categoria);
   if (filtroPerfil) consulta.set("perfil", filtroPerfil);
@@ -393,43 +398,44 @@ export default function Comunidade({ perfil }) {
   const feed = useFeedComunidade(caminho, revisao);
   const regras = resumo.dados;
   const atualizar = () => setRevisao((n) => n + 1);
-  const fecharAviso = useCallback(() => setAviso(null), []);
-  useEffect(
-    () => () => {
-      audio.current?.close().catch(() => {});
-    },
-    [],
-  );
+  useEffect(() => {
+    const recarregar = () => {
+      setRevisaoResumo((n) => n + 1);
+      // Um aviso não pode apagar o comentário que a pessoa ainda está escrevendo.
+      const rascunho = [
+        ...document.querySelectorAll(".com-comentarios textarea"),
+      ].some((campo) => campo.value.trim());
+      if (!rascunho) setRevisao((n) => n + 1);
+    };
+    window.addEventListener("ciclo-certo-comunidade-atualizada", recarregar);
+    return () =>
+      window.removeEventListener(
+        "ciclo-certo-comunidade-atualizada",
+        recarregar,
+      );
+  }, []);
 
   // O rascunho permanece em memória ao fechar; nunca é enviado ou publicado sem ação explícita.
   function abrirCompositor(sugestao = "") {
     if (sugestao && !texto) setNovaCategoria(sugestao);
     setCompondo(true);
   }
-  function alternarSom() {
-    setSom(!som);
-    try {
-      localStorage.setItem(
-        "ciclo-certo-comunidade-som-v1",
-        som ? "nao" : "sim",
-      );
-    } catch {
-      /* Preferência funciona também sem armazenamento. */
-    }
-  }
   async function publicar(evento) {
     evento.preventDefault();
-    if (envioEmCurso.current) return;
+    if (envioEmCurso.current || videoInvalido) return;
     envioEmCurso.current = true;
     setEnviando(true);
     setErro("");
-    if (som) audio.current = prepararSom(audio.current);
+    prepararAudio();
     try {
       await enviar(`${base}/publicacoes`, {
         categoria: novaCategoria,
         conteudo: texto,
+        youtube_url: video.trim() || null,
       });
       setTexto("");
+      setVideo("");
+      setAnexarVideo(false);
       setNovaCategoria("");
       setCompondo(false);
       setModo("minhas");
@@ -437,10 +443,10 @@ export default function Comunidade({ perfil }) {
       setFiltroPerfil("");
       setAviso({
         publicacao: true,
+        sonoro: true,
         texto:
           "Publicação enviada para análise. Acompanhe em Minhas publicações.",
       });
-      if (som) tocarPublicacao(audio.current);
       atualizar();
     } catch (e) {
       setErro(e.message);
@@ -491,8 +497,12 @@ export default function Comunidade({ perfil }) {
           className="com-som"
           onClick={alternarSom}
           aria-pressed={som}
-          aria-label="Som ao publicar"
-          title={som ? "Desativar som ao publicar" : "Ativar som ao publicar"}
+          aria-label="Som da comunidade"
+          title={
+            som
+              ? "Desativar som de publicações e avisos"
+              : "Ativar som de publicações e avisos"
+          }
         >
           <svg
             viewBox="0 0 24 24"
@@ -790,6 +800,58 @@ export default function Comunidade({ perfil }) {
                 ))}
               </select>
             </label>
+            <div className="com-anexo">
+              {!anexarVideo ? (
+                <button
+                  type="button"
+                  className="com-inspirar"
+                  onClick={() => setAnexarVideo(true)}
+                >
+                  + Adicionar vídeo do YouTube
+                </button>
+              ) : (
+                <>
+                  <label className="ws-field">
+                    <span className="ws-label">Link do YouTube (opcional)</span>
+                    <input
+                      aria-label="Link do YouTube (opcional)"
+                      type="text"
+                      inputMode="url"
+                      autoComplete="off"
+                      maxLength={500}
+                      disabled={enviando}
+                      value={video}
+                      onChange={(e) => setVideo(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=…"
+                      aria-invalid={videoInvalido}
+                      aria-describedby="com-video-orientacao"
+                    />
+                  </label>
+                  <p
+                    id="com-video-orientacao"
+                    className={
+                      videoInvalido ? "com-video-erro" : "com-video-ajuda"
+                    }
+                  >
+                    {videoInvalido
+                      ? "Cole um link válido de vídeo do YouTube, Shorts ou youtu.be."
+                      : "O vídeo fica hospedado no YouTube e aparece na publicação após a aprovação."}
+                  </p>
+                  {videoId && <VideoComunidade key={videoId} id={videoId} />}
+                  <button
+                    type="button"
+                    className="com-inspirar"
+                    disabled={enviando}
+                    onClick={() => {
+                      setVideo("");
+                      setAnexarVideo(false);
+                    }}
+                  >
+                    Remover vídeo
+                  </button>
+                </>
+              )}
+            </div>
             <p className="com-compositor-info">
               <Icone name="leaf" size={17} /> Sua publicação passa por análise
               antes de aparecer no feed. Os pontos chegam após a aprovação,
@@ -820,7 +882,8 @@ export default function Comunidade({ perfil }) {
                   enviando ||
                   !regras ||
                   texto.trim().length < 10 ||
-                  !novaCategoria
+                  !novaCategoria ||
+                  videoInvalido
                 }
               >
                 {enviando ? "Enviando…" : "Publicar"}
@@ -890,7 +953,6 @@ export default function Comunidade({ perfil }) {
           }}
         />
       )}
-      {aviso && <AvisoComunidade aviso={aviso} fechar={fecharAviso} />}
     </div>
   );
 }

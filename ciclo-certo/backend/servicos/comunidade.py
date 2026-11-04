@@ -6,7 +6,8 @@ from difflib import SequenceMatcher
 import re
 import unicodedata
 from sqlalchemy.exc import IntegrityError
-from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia
+from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia, NotificacaoComunidade
+from validacao_youtube import identificar_video
 from repositorios import comunidade as repo
 from servicos.operacao import Recusa
 
@@ -63,6 +64,9 @@ def resumo(sessao, usuario):
 def criar(sessao, usuario, dados):
     repo.bloquear_autor(sessao, usuario.id)
     instante = agora()
+    youtube_id = identificar_video(dados.youtube_url)
+    if youtube_id and repo.video_repetido(sessao, usuario.id, youtube_id):
+        raise Recusa('Você já compartilhou este vídeo. Escolha outro conteúdo para a comunidade.')
     normalizado, resumo_texto = identidade(dados.conteudo)
     if len(normalizado) < 10:
         raise Recusa('Escreva pelo menos 10 letras ou números na publicação.', 422)
@@ -71,7 +75,7 @@ def criar(sessao, usuario, dados):
     limitar(sessao, Publicacao, usuario.id, instante, 60, 20)
     try:
         registro = repo.gravar(sessao, Publicacao(autor_id=usuario.id, categoria=dados.categoria,
-            conteudo=dados.conteudo, normalizado=normalizado, resumo=resumo_texto, criado_em=instante))
+            conteudo=dados.conteudo, youtube_id=youtube_id, normalizado=normalizado, resumo=resumo_texto, criado_em=instante))
         sessao.commit()
     except IntegrityError:
         sessao.rollback()
@@ -92,7 +96,7 @@ def listar(sessao, usuario, modo, categoria, perfil, antes, limite):
 
     def apresentar(linha):
         p, nome, tipo, pontos, estornado = linha
-        return dict(id=p.id, conteudo=p.conteudo, categoria=p.categoria, estado=p.estado, criado_em=p.criado_em,
+        return dict(id=p.id, conteudo=p.conteudo, youtube_id=p.youtube_id, categoria=p.categoria, estado=p.estado, criado_em=p.criado_em,
                     autor=dict(nome=nome, perfil=tipo), minha=p.autor_id == usuario.id,
                     pode_excluir=moderador or p.autor_id == usuario.id, comentarios=contagens.get(p.id, 0),
                     pontos=0 if estornado else (pontos or 0), motivo=p.motivo if modo != 'feed' else None)
@@ -121,15 +125,36 @@ def moderar(sessao, usuario, identificador, dados):
     registro.estado = 'aprovada' if dados.aprovar else 'rejeitada'
     registro.moderado_em, registro.moderador_id = instante, usuario.id
     registro.motivo = dados.motivo or None
+    pontos = 0
     if dados.aprovar:
         dia, semana = periodos(instante)
         regras = repo.regras(sessao)
         diaria, semanal, _ = repo.cotas(sessao, registro.autor_id, dia, semana)
         if diaria < regras.limite_dia and semanal < regras.limite_semana:
+            pontos = regras.pontos
             repo.gravar(sessao, Credito(publicacao_id=registro.id, usuario_id=registro.autor_id,
                 pontos=regras.pontos, dia=dia, semana=semana, criado_em=instante))
+    # Aviso e crédito confirmam juntos: retries da decisão não duplicam nenhum dos dois.
+    mensagem = (f'Sua publicação em {registro.categoria} foi aprovada. '
+                + (f'Você recebeu {pontos} pontos na comunidade.' if pontos else 'Ela aparece no feed, sem pontos porque sua cota foi atingida.')) if dados.aprovar else f'Sua publicação em {registro.categoria} não foi aprovada. Motivo: {dados.motivo.strip()}'
+    repo.gravar(sessao, NotificacaoComunidade(usuario_id=registro.autor_id, publicacao_id=registro.id,
+        estado=registro.estado, mensagem=mensagem, criado_em=instante))
     sessao.commit()
     return dict(estado=registro.estado)
+
+
+def listar_notificacoes(sessao, usuario):
+    return dict(itens=[dict(id=n.id, publicacao_id=n.publicacao_id, estado=n.estado, mensagem=n.mensagem,
+                           criado_em=n.criado_em) for n in repo.notificacoes(sessao, usuario.id)])
+
+
+def ler_notificacao(sessao, usuario, identificador):
+    aviso = repo.obter(sessao, NotificacaoComunidade, identificador, True)
+    if aviso is None or aviso.usuario_id != usuario.id:
+        raise Recusa('Notificação não encontrada.', 404)
+    aviso.lida = True
+    sessao.commit()
+    return dict(lida=True)
 
 
 def excluir(sessao, usuario, identificador):

@@ -738,12 +738,16 @@
 }
 .com-folhas > span {
   position: absolute;
-  left: calc(8% + var(--folha) * 13%);
+  left: var(--origem);
   bottom: 65%;
   color: #a0b873;
   opacity: 0;
-  animation: com-folha 1.7s ease-out both;
-  animation-delay: calc(var(--folha) * 70ms);
+  animation: com-folha var(--duracao) ease-in-out both;
+  animation-delay: var(--atraso);
+}
+.com-folhas > span > svg {
+  width: var(--tamanho);
+  height: var(--tamanho);
 }
 .com-celebracao .com-notificacao-icone {
   animation: com-brotar 0.6s ease-out;
@@ -769,15 +773,18 @@
 }
 @keyframes com-folha {
   0% {
-    transform: translate(0, 10px) rotate(-30deg) scale(0.3);
+    transform: translate(0, -160px) rotate(var(--angulo));
     opacity: 0;
   }
   20% {
     opacity: 1;
   }
+  50% {
+    transform: translate(var(--balanco), -70px) rotate(var(--giro));
+    opacity: 0.9;
+  }
   100% {
-    transform: translate(calc((var(--folha) - 3) * 15px), -145px)
-      rotate(calc(var(--folha) * 40deg)) scale(0.8);
+    transform: translate(var(--deriva), 30px) rotate(calc(var(--giro) + 80deg));
     opacity: 0;
   }
 }
@@ -958,9 +965,163 @@
   }
   .comunidade *,
   .comunidade *::before,
-  .comunidade *::after {
+  .comunidade *::after,
+  .com-notificacao,
+  .com-notificacao * {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+/* Cartões separados deixam cada conversa respirar, inclusive nos exemplos. */
+.ws .com-feed {
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+.com-abas {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+}
+.com-filtro-topo,
+.com-categorias {
+  background: var(--paper);
+  border-inline: 1px solid var(--line);
+}
+.com-categorias {
+  border-radius: 0 0 12px 12px;
+}
+.com-feed .com-publicacao,
+.com-feed .com-publicacao:last-child {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-block: 14px;
+}
+.com-inspiracao-cabecalho {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 14px;
+}
+.com-vazio {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 14px;
+}
+.com-notificacao-atencao {
+  background: #59472c;
+  border-color: #a08b63;
+}
+.com-notificacao-atencao p {
+  color: #f5eddf;
+}
+.com-notificacao :focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.com-video {
+  margin-top: 14px;
+}
+.com-video-quadro {
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--green);
+  aspect-ratio: 16 / 9;
+  min-height: 200px;
+}
+.com-video-quadro iframe {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  border: 0;
+}
+.com-video-capa {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  isolation: isolate;
+  gap: 5px;
+}
+.com-video-capa::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #14251bd4;
+  z-index: -1;
+}
+.com-video-capa img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  inset: 0;
+  z-index: -2;
+}
+.com-video-play {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--green);
+  font-size: 21px;
+  padding-left: 3px;
+  margin-bottom: 6px;
+}
+.com-video-capa strong {
+  font-size: 15px;
+}
+.com-video-capa small {
+  font-size: 11px;
+}
+.com-video-capa:hover .com-video-play {
+  background: white;
+}
+.com-video-rodape {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.com-video-rodape a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--green);
+  font-weight: 650;
+}
+.ws .com-video-ajuda {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.ws .com-video-erro {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #9b352c;
+  margin-top: 5px;
+}
+.ws .com-anexo input {
+  font-size: 16px;
+}
+.com-anexo .com-video {
+  margin-top: 10px;
 }

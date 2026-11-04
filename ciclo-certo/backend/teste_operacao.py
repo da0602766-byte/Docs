@@ -283,7 +283,7 @@ class TesteOperacao(unittest.TestCase):
             historico = c.execute(text(f"SELECT situacao,pontos FROM {self.esquema}.coletas WHERE id=1")).one()
             self.assertEqual(tuple(historico), ("coletada", 42))
             tabelas = c.execute(text("SELECT relname, relrowsecurity FROM pg_class JOIN pg_namespace ON relnamespace=pg_namespace.oid WHERE nspname=:s AND relkind='r'"), {"s": self.esquema}).all()
-            self.assertEqual(len(tabelas), 16)  # Dez tabelas publicadas e seis da comunidade.
+            self.assertEqual(len(tabelas), 17)  # Dez tabelas publicadas e sete da comunidade, incluindo avisos.
             self.assertTrue(all(linha[1] for linha in tabelas))
             for tabela in ("horarios", "comprovantes", "notificacoes", "movimentos"):
                 self.assertFalse(c.scalar(text("SELECT has_table_privilege('anon', :t, 'SELECT')"), {"t": f"{self.esquema}.{tabela}"}))

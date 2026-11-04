@@ -1,5 +1,22 @@
 # Comunidade — atualização de 04/11/2026
 
+## Avisos de moderação e vídeos do YouTube
+
+- Aprovar ou recusar cria um aviso durável apenas para o autor, junto da decisão e do eventual crédito na mesma transação. A chave única por publicação evita duplicidade em retries/concorrência. O aviso informa os pontos efetivamente concedidos ou o motivo da recusa. A leitura exige o token do destinatário; moderadores não leem avisos de outras contas.
+- A central da Comunidade acompanha os dois perfis em todas as telas autenticadas. Consulta até 20 avisos pendentes a cada 15 segundos, pausa em abas ocultas e reconecta ao voltar. Não consome notificações atrás de um diálogo. Exibe uma de cada vez, confirma a leitura e evita repetição após recarga. Falhas na consulta/leitura são repetidas sem perder os registros. Avisos recebidos com o site fechado aparecem no próximo acesso; não são push do sistema operacional.
+- Publicação e aprovação têm folhas com posição, tamanho, trajetória, rotação, atraso e duração sorteados por evento. Recusa usa confirmação de atenção com o motivo. Todos esses eventos usam o mesmo som curto e a preferência “Som da comunidade”. Respeita silêncio e movimento reduzido; o navegador pode exigir interação antes de liberar áudio. Rascunhos de comentários não são apagados pela atualização de saldo.
+- Cartões reais e exemplos têm 14 px de separação, preservando a identidade visual e a rolagem por lotes.
+- Em “Plante uma ideia”, usar **Adicionar vídeo do YouTube**, colar o link, preencher texto e categoria e publicar. Aceita watch, youtu.be, Shorts, live e embed; salva somente o ID validado. Um vídeo por publicação. Não há upload, hospedagem de mídia ou chave da API do YouTube. A categoria e o texto continuam obrigatórios; moderação e recompensas seguem as mesmas regras.
+- O player oficial em `youtube-nocookie.com` só é criado ao tocar na capa. Somente um player fica ativo; sair da região de leitura desmonta o player. Referer preservado, tela cheia e player com pelo menos 200×200 px; link “Abrir no YouTube” disponível se o autor restringir a incorporação ou o vídeo ficar indisponível. Hosts arbitrários, HTML, IDs inválidos e reenvio do mesmo vídeo pelo mesmo autor são recusados, inclusive após exclusão.
+
+Migração local `20261104201229_comunidade_avisos_youtube.sql`, aplicada no Supabase como `20261104202335_comunidade_avisos_youtube`: **mesma migração, não reaplicar**. Adiciona coluna opcional à publicação, índice único por autor/vídeo e tabela privada `comunidade_notificacoes` com RLS. Hash do conteúdo anterior das duas publicações existentes idêntico antes/depois (`165b9b76afa662b83b34ef1bb2c43274`); nenhuma conta, publicação ou crédito artificial criado. Advisor de segurança sem alertas.
+
+Novas rotas autenticadas: `GET /comunidade/notificacoes` e `PUT /comunidade/notificacoes/{id}/lida`. `POST /comunidade/publicacoes` recebe `youtube_url` opcional; listagem devolve `youtube_id` opcional. Compatível com publicações e clientes anteriores.
+
+Validação: 36 testes backend e nove testes frontend aprovados. Navegador com API/PostgreSQL locais reais confirmou envio com vídeo, aprovação/aviso/som fora da Comunidade, recusa do cooperador com motivo/som, falha temporária e recuperação, leitura persistida, comentários, exclusão e estorno. Testes em `testes/comunidade.interface.cjs`, `testes/comunidade.avisos-video.cjs`, `testes/comunidade.rolagem.cjs` e `testes/youtube.test.js`. Player externo real respondeu 200, carregou o elemento de vídeo em reprodução e foi inspecionado em 320/390/768/1440 px sem overflow; mínimo de 200 px de altura. Testes de interface usam também resposta controlada para verificar URL/Referer sem depender da disponibilidade de vídeos de terceiros. Nenhum teste autenticado usa contas de produção.
+
+Referências consultadas: [incorporação e restrições do YouTube](https://support.google.com/youtube/answer/171780), [player e dimensões mínimas](https://developers.google.com/youtube/player_parameters) e [identificação por Referer](https://developers.google.com/youtube/iframe_api_reference).
+
 ## Redesenho solicitado após a primeira publicação
 
 Publicado em `https://ciclo-certo.vercel.app` em 04/11/2026. Código `f92bbeb`; build de produção `dpl_6MEHUchzFJJemKJv1TiGtyUSFzxG`, preparado sem domínio, conferido e promovido. Página inicial, login e cooperador responderam 200 com o novo bundle; saúde da API 200 e Comunidade sem token 401. A API não precisou de alterações nem de migração neste redesenho.

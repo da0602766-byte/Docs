@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Icone } from "../visual";
 
 // Conteúdo editorial ilustrativo, separado das contas, das interações e das recompensas reais.
@@ -197,31 +197,54 @@ export function FimDoFeed({ feed, continuar }) {
 
 // A confirmação não anuncia pontos antes da aprovação; animação decorativa respeita movimento reduzido no CSS.
 export function AvisoComunidade({ aviso, fechar }) {
+  // Cada evento sorteia posição, deriva, tamanho, rotação, duração e atraso; rerenders não reiniciam a queda.
+  const [folhas] = useState(() =>
+    Array.from({ length: 7 }, () => ({
+      "--origem": `${12 + Math.random() * 60}%`,
+      "--deriva": `${-25 + Math.random() * 50}px`,
+      "--balanco": `${-18 + Math.random() * 36}px`,
+      "--giro": `${-240 + Math.random() * 480}deg`,
+      "--angulo": `${-70 + Math.random() * 140}deg`,
+      "--tamanho": `${14 + Math.random() * 14}px`,
+      "--duracao": `${1.8 + Math.random() * 1.2}s`,
+      "--atraso": `${Math.random() * 450}ms`,
+    })),
+  );
   useEffect(() => {
     const temporizador = window.setTimeout(fechar, 9000);
     return () => window.clearTimeout(temporizador);
   }, [aviso, fechar]);
   return (
     <div
-      className={`com-notificacao ${aviso.publicacao ? "com-celebracao" : ""}`}
+      className={`com-notificacao ${aviso.publicacao ? "com-celebracao" : ""} ${aviso.decisao === "rejeitada" ? "com-notificacao-atencao" : ""}`}
     >
       {aviso.publicacao && (
         <div className="com-folhas" aria-hidden="true">
-          {Array.from({ length: 7 }, (_, i) => (
-            <span key={i} style={{ "--folha": i }}>
+          {folhas.map((estilo, i) => (
+            <span key={i} style={estilo}>
               <Icone name="leaf" size={22} />
             </span>
           ))}
         </div>
       )}
       <span className="com-notificacao-icone" aria-hidden="true">
-        <Icone name={aviso.publicacao ? "leaf" : "check"} size={24} />
+        <Icone
+          name={
+            aviso.publicacao
+              ? "leaf"
+              : aviso.decisao === "rejeitada"
+                ? "community"
+                : "check"
+          }
+          size={24}
+        />
       </span>
       <div role="status">
         <strong>
-          {aviso.publicacao
-            ? "Sua ideia ganhou raízes!"
-            : "Tudo certo por aqui"}
+          {aviso.titulo ||
+            (aviso.publicacao
+              ? "Sua ideia ganhou raízes!"
+              : "Tudo certo por aqui")}
         </strong>
         <p>{aviso.texto}</p>
       </div>

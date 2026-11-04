@@ -123,6 +123,8 @@ class TesteComunidade(unittest.TestCase):
         self.assertEqual(self.resumo()['saldo'], 20)
         self.assertEqual(self.resumo()['usadas_dia'], 2)
         ultimo = self.criar()
+        avisos = self.cliente.get('/comunidade/notificacoes', headers=self.m).json()['itens']
+        self.assertEqual(len(avisos), 4, 'Moderação concorrente gera um único aviso por publicação')
         with ThreadPoolExecutor(max_workers=2) as executor:
             a = executor.submit(self.cliente.post, f'/comunidade/publicacoes/{ultimo}/moderar', json={'aprovar': True}, headers=self.c)
             b = executor.submit(self.cliente.delete, f'/comunidade/publicacoes/{ultimo}', headers=self.m)
@@ -169,13 +171,69 @@ class TesteComunidade(unittest.TestCase):
     def test_rls_e_privilegios_administrativos(self):
         with self.admin.connect() as conexao:
             tabelas = conexao.execute(text("SELECT relname, relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=:schema AND c.relkind='r' AND c.relname LIKE 'comunidade_%'"), {'schema': self.esquema}).all()
-            self.assertEqual(len(tabelas), 6)
+            self.assertEqual(len(tabelas), 7)
             self.assertTrue(all(t[1] for t in tabelas))
             for tabela, _ in tabelas:
                 for papel in ['anon', 'authenticated']:
                     self.assertFalse(conexao.scalar(text("SELECT has_table_privilege(:papel, :tabela, 'SELECT,INSERT,UPDATE,DELETE')"), {'papel': papel, 'tabela': f'{self.esquema}.{tabela}'}))
             for tabela in ['comunidade_moderadores', 'comunidade_regras']:
                 self.assertFalse(conexao.scalar(text("SELECT has_table_privilege('ciclo_certo_backend', :tabela, 'INSERT,UPDATE,DELETE')"), {'tabela': f'{self.esquema}.{tabela}'}))
+
+
+    def test_avisos_persistentes_privados_credito_e_leitura(self):
+        ids = [self.criar() for _ in range(3)]
+        for identificador in ids:
+            self.aprovar(identificador)
+            self.aprovar(identificador)
+        rota = '/comunidade/notificacoes'
+        self.assertEqual(self.cliente.get(rota).status_code, 401)
+        self.assertEqual(self.cliente.get(rota, headers=self.o).json()['itens'], [])
+        avisos = self.cliente.get(rota, headers=self.m).json()['itens']
+        self.assertEqual(len(avisos), 3)
+        self.assertIn('10 pontos', avisos[0]['mensagem'])
+        self.assertIn('sem pontos', avisos[2]['mensagem'])
+        leitura = f"{rota}/{avisos[0]['id']}/lida"
+        self.assertEqual(self.cliente.put(leitura, headers=self.c).status_code, 404)
+        for _ in range(2):
+            self.assertEqual(self.cliente.put(leitura, headers=self.m).status_code, 200)
+        self.assertEqual(len(self.cliente.get(rota, headers=self.m).json()['itens']), 2)
+
+    def test_recusa_notifica_cooperador_sem_credito(self):
+        identificador = self.criar(self.c)
+        rota = f'/comunidade/publicacoes/{identificador}/moderar'
+        for _ in range(2):
+            r = self.cliente.post(rota, json={'aprovar': False, 'motivo': 'Explique melhor a relação do conteúdo com reciclagem.'}, headers=self.c)
+            self.assertEqual(r.status_code, 200)
+        avisos = self.cliente.get('/comunidade/notificacoes', headers=self.c).json()['itens']
+        self.assertEqual(len(avisos), 1)
+        self.assertEqual(avisos[0]['estado'], 'rejeitada')
+        self.assertIn('Explique melhor', avisos[0]['mensagem'])
+        self.assertEqual(self.resumo(self.c)['saldo'], 0)
+
+    def test_youtube_persistencia_moderacao_e_repeticao(self):
+        r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': 'Este vídeo apresenta o processo para preparar uma pequena horta.', 'youtube_url': 'https://youtu.be/M7lc1UVf-VE?si=compartilhar'}, headers=self.m)
+        self.assertEqual(r.status_code, 201, r.text)
+        identificador = r.json()['id']
+        minhas = self.cliente.get('/comunidade/publicacoes?modo=minhas', headers=self.m).json()['itens']
+        self.assertEqual(minhas[0]['youtube_id'], 'M7lc1UVf-VE')
+        self.assertNotIn(identificador, [p['id'] for p in self.cliente.get('/comunidade/publicacoes', headers=self.o).json()['itens']])
+        self.aprovar(identificador)
+        self.assertEqual(self.cliente.get('/comunidade/publicacoes', headers=self.o).json()['itens'][0]['youtube_id'], 'M7lc1UVf-VE')
+        self.cliente.delete(f'/comunidade/publicacoes/{identificador}', headers=self.m)
+        self.instante += timedelta(seconds=61)
+        r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': 'Um texto completamente diferente que tenta repetir o mesmo vídeo.', 'youtube_url': 'https://www.youtube.com/shorts/M7lc1UVf-VE'}, headers=self.m)
+        self.assertEqual(r.status_code, 409, r.text)
+        self.assertIn('vídeo', r.json()['detail'])
+
+    def test_youtube_validacao_sem_urls_arbitrarias(self):
+        from validacao_youtube import identificar_video
+        validos = ['https://youtu.be/M7lc1UVf-VE?t=15', 'www.youtube.com/watch?v=M7lc1UVf-VE&list=abc', 'https://m.youtube.com/shorts/M7lc1UVf-VE', 'https://youtube.com/live/M7lc1UVf-VE', 'https://www.youtube-nocookie.com/embed/M7lc1UVf-VE']
+        for link in validos:
+            self.assertEqual(identificar_video(link), 'M7lc1UVf-VE')
+        invalidos = ['javascript:alert(1)', 'https://youtube.com.evil.org/watch?v=M7lc1UVf-VE', 'https://youtube.com@evil.org/watch?v=M7lc1UVf-VE', 'https://127.0.0.1/M7lc1UVf-VE', 'https://youtube.com/playlist?list=abc', 'https://youtu.be/curto', 'https://youtube.com/watch?v=M7lc1UVf-VE&v=12345678901', '<iframe src="https://youtube.com/embed/M7lc1UVf-VE"></iframe>']
+        for link in invalidos:
+            r = self.cliente.post('/comunidade/publicacoes', json={'categoria': 'Plantio', 'conteudo': 'Conteúdo para validar o endereço fornecido.', 'youtube_url': link}, headers=self.m)
+            self.assertEqual(r.status_code, 422, link)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+import AvisosComunidade from "./operacao/AvisosComunidade";
 // O aplicativo autentica a pessoa antes de apresentar as quatro telas da cartilha.
 import React, { useEffect, useState } from "react";
 import PaginaInicial from "./PaginaInicial";
@@ -359,25 +360,27 @@ export default function App() {
     );
   return (
     <div className="ws">
-      <Navegacao
-        perfil={perfil}
-        tela={tela}
-        aoMudarTela={(destino) => {
-          setTela(destino);
-          window.scrollTo(0, 0);
-        }}
-        aoSair={sair}
-        abrirAviso={(id) => {
-          setTela("rota");
-          setPedidoAviso({ id, versao: Date.now() });
-        }}
-      />
-      <main id="conteudo" className="ws-container ws-main" key={perfil.id}>
-        {conteudoPrincipal()}
-      </main>
-      <footer className="rodape-app">
-        Ciclo Certo · Cada material tem um novo começo.
-      </footer>
+      <AvisosComunidade key={perfil.id} perfil={perfil}>
+        <Navegacao
+          perfil={perfil}
+          tela={tela}
+          aoMudarTela={(destino) => {
+            setTela(destino);
+            window.scrollTo(0, 0);
+          }}
+          aoSair={sair}
+          abrirAviso={(id) => {
+            setTela("rota");
+            setPedidoAviso({ id, versao: Date.now() });
+          }}
+        />
+        <main id="conteudo" className="ws-container ws-main" key={perfil.id}>
+          {conteudoPrincipal()}
+        </main>
+        <footer className="rodape-app">
+          Ciclo Certo · Cada material tem um novo começo.
+        </footer>
+      </AvisosComunidade>
     </div>
   );
 }

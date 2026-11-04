@@ -142,11 +142,11 @@ const { chromium } = require("playwright");
 
     // Sem som e sem movimento: sucesso continua acessível; clique repetido não cria dois envios.
     await pagina
-      .getByRole("button", { name: "Som ao publicar", exact: true })
+      .getByRole("button", { name: "Som da comunidade", exact: true })
       .click();
     assert.equal(
       await pagina
-        .getByRole("button", { name: "Som ao publicar", exact: true })
+        .getByRole("button", { name: "Som da comunidade", exact: true })
         .getAttribute("aria-pressed"),
       "false",
     );
@@ -157,7 +157,7 @@ const { chromium } = require("playwright");
       .click();
     assert.equal(
       await pagina
-        .getByRole("button", { name: "Som ao publicar", exact: true })
+        .getByRole("button", { name: "Som da comunidade", exact: true })
         .getAttribute("aria-pressed"),
       "false",
     );

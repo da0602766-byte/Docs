@@ -14,6 +14,16 @@ def resumo(sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
     return servico.resumo(sessao, usuario)
 
 
+@router.get('/notificacoes')
+def notificacoes(sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
+    return servico.listar_notificacoes(sessao, usuario)
+
+
+@router.put('/notificacoes/{identificador}/lida')
+def ler_notificacao(identificador: int, sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
+    return servico.ler_notificacao(sessao, usuario, identificador)
+
+
 @router.get('/publicacoes')
 def listar(modo: Literal['feed', 'minhas', 'moderacao'] = 'feed', categoria: Categoria | None = None,
            perfil: Perfil | None = None, antes: int | None = Query(None, gt=0), limite: int = Query(20, ge=1, le=50),

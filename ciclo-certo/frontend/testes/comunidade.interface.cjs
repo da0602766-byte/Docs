@@ -115,6 +115,26 @@ const caminho = require("node:path");
     await morador
       .getByLabel("Categoria obrigatória", { exact: true })
       .selectOption("Compostagem");
+    await morador
+      .getByRole("button", { name: "+ Adicionar vídeo do YouTube" })
+      .click();
+    await morador
+      .getByLabel("Link do YouTube (opcional)")
+      .fill("https://youtube.com.evil.org/watch?v=M7lc1UVf-VE");
+    assert.equal(
+      await morador
+        .getByRole("button", { name: "Publicar", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await morador
+      .getByLabel("Link do YouTube (opcional)")
+      .fill("https://youtu.be/M7lc1UVf-VE?si=teste");
+    assert.equal(
+      await morador.locator("iframe").count(),
+      0,
+      "Vídeo só carrega ao tocar",
+    );
     // Uma falha mantém rascunho e categoria, sem tocar o som de sucesso.
     await morador.route("**/comunidade/publicacoes", (rota) =>
       rota.fulfill({
@@ -149,11 +169,23 @@ const caminho = require("node:path");
       .waitFor();
     assert.equal(await morador.evaluate(() => window.notasPublicadas), 2);
     assert.equal(await morador.locator(".com-folhas > span").count(), 7);
+    const folhasPublicacao = await morador
+      .locator(".com-folhas > span")
+      .evaluateAll((itens) => itens.map((e) => e.getAttribute("style")));
+    assert.equal(
+      new Set(folhasPublicacao).size,
+      7,
+      "Cada folha tem trajetória própria",
+    );
     await morador.screenshot({
       path: caminho.join(pasta, "publicacao-confirmada.png"),
       fullPage: true,
     });
     await morador.getByRole("button", { name: "Fechar notificação" }).click();
+    await morador
+      .getByRole("button", { name: "Coletas", exact: true })
+      .filter({ visible: true })
+      .click();
     await moderador
       .getByRole("button", { name: "Aprovações", exact: true })
       .click();
@@ -166,10 +198,59 @@ const caminho = require("node:path");
     await moderador
       .getByText("Tudo em dia por aqui", { exact: true })
       .waitFor();
+    await morador.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await morador
+      .getByText("Sua publicação foi aprovada!", { exact: true })
+      .waitFor();
+    assert.equal(
+      await morador.evaluate(() => window.notasPublicadas),
+      4,
+      "Aprovação também toca som, fora da Comunidade",
+    );
+    assert.notDeepEqual(
+      await morador
+        .locator(".com-folhas > span")
+        .evaluateAll((itens) => itens.map((e) => e.getAttribute("style"))),
+      folhasPublicacao,
+    );
+    await morador.screenshot({
+      path: caminho.join(pasta, "aviso-aprovada.png"),
+    });
+    await morador.getByRole("button", { name: "Fechar notificação" }).click();
+    await morador
+      .getByRole("button", { name: "Comunidade", exact: true })
+      .filter({ visible: true })
+      .click();
     await morador
       .getByRole("button", { name: "Para a comunidade", exact: true })
       .click();
     await morador.getByText("+10 pontos", { exact: true }).waitFor();
+    // O player usa endereço construído a partir do ID validado e conserva um caminho alternativo.
+    await morador.route("https://www.youtube-nocookie.com/embed/**", (rota) =>
+      rota.fulfill({
+        contentType: "text/html",
+        body: "<html><body>Player controlado de teste</body></html>",
+      }),
+    );
+    await morador
+      .getByRole("button", { name: "Assistir vídeo aqui", exact: true })
+      .click();
+    const player = morador.locator("iframe");
+    assert.match(
+      await player.getAttribute("src"),
+      /^https:\/\/www.youtube-nocookie.com\/embed\/M7lc1UVf-VE\?/,
+    );
+    assert.equal(
+      await player.getAttribute("referrerpolicy"),
+      "strict-origin-when-cross-origin",
+    );
+    assert.equal(
+      await morador
+        .getByRole("link", { name: "Abrir no YouTube ↗" })
+        .getAttribute("href"),
+      "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+    );
+    await morador.screenshot({ path: caminho.join(pasta, "video-feed.png") });
     await morador
       .getByRole("button", { name: "0 comentários", exact: true })
       .click();
