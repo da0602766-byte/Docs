@@ -1,5 +1,7 @@
 # Comunidade — atualização de 04/11/2026
 
+Evolução vigente: [participação, links públicos, favoritos, respostas, ações do bairro e indicadores](participacao.md), publicada em 04/11/2026. O registro abaixo descreve a entrega anterior; a chave de notificação agora distingue revisão da publicação e resposta a comentário.
+
 ## Avisos de moderação e vídeos do YouTube
 
 Publicado nos domínios oficiais em 04/11/2026, código `117793a`. API `dpl_HziV4emhrbTPFQ2MrcpXRihxpLkn` e frontend `dpl_5EcTuDRJAtEtkUxqtDhBxnu5XrWJ`, preparados sem domínio e promovidos após conferência. API oficial com saúde 200, 41 caminhos preservando os 39 anteriores, novas rotas protegidas por 401 sem token e CORS da origem autorizada aprovado. Início, login e cooperador responderam 200 com o novo bundle, sem erros JavaScript no navegador. O player real foi validado no ambiente local; operações autenticadas de produção ficam no uso normal das contas existentes.

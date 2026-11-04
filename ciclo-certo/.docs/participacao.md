@@ -34,4 +34,10 @@ Teste de prévia real do WhatsApp e aparelho físico depende do uso normal após
 
 ## Implantação
 
-Aplicar somente esta migração incremental, publicar API e depois frontend. Publicação e verificações finais serão registradas após conferência dos domínios oficiais. Não reaplicar migrações anteriores cujo timestamp remoto difere do arquivo local.
+Publicado em 04/11/2026, código `54195d7`. API `dpl_GxCtEVBAm3GuDXjAhNbC2vJiRN4E` e frontend `dpl_4uiYy24AA44yMhcxZwcAs7KAFxap`, ambos READY, preparados sem domínio e promovidos nesta ordem após conferência. Bundle oficial `/assets/index-BS5WuJcw.js`.
+
+Migração local `20261104214055_comunidade_participacao.sql` registrada remotamente como `20261104220504_comunidade_participacao`: **é a mesma migração, não reaplicar**. Advisor de segurança sem alertas. Hashes antes/depois idênticos dos campos anteriores de usuários, publicações, coletas e pesagens. No momento da migração: cinco usuários, cinco coletas, 14 pesagens, três publicações, dois créditos e nenhum comentário; todas as publicações existentes continuam `publica=false`.
+
+API oficial: saúde e leituras públicas 200; avisos, indicadores e detalhe autenticado 401 sem token; 58 caminhos preservando os 41 anteriores; CORS da origem oficial aprovado. Link compartilhado de conteúdo privado retorna 404 pelo rewrite. Início, login, cooperador e comunidade pública conferidos em 320/390/1440 px, HTTP 200, sem erro JavaScript nem overflow. Visitas de validação interceptadas no navegador para não contaminar os indicadores. Logs error/fatal da API: zero registros após a promoção.
+
+Os fluxos autenticados foram validados com API real e PostgreSQL local descartável; não se criaram contas, tokens ou conteúdo artificial em produção. Novas perguntas, eventos e destaques dependem do cadastro de informações reais pela moderação em Mais → Ações do bairro.
