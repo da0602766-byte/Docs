@@ -1,5 +1,5 @@
 # O modelo representa os campos da tabela, sem autenticar nem aplicar regras de acesso.
-from sqlalchemy import CheckConstraint, Column, Enum, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, Enum, Integer, String, UniqueConstraint
 from banco import Base
 
 
@@ -17,4 +17,5 @@ class Usuario(Base):
     email = Column(String(100), nullable=True)
     senha_hash = Column(String(255), nullable=True)
     versao_token = Column(Integer, nullable=False, server_default="0")
-    recompensa = Column(String(12), nullable=False, server_default="dinheiro")
+    administrador = Column(Boolean, nullable=False, server_default="false")
+    recompensa = Column(String(12), nullable=False, server_default="pontos")

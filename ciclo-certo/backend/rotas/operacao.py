@@ -105,16 +105,6 @@ def carteira(usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao))
     return servico.carteira(sessao, usuario)
 
 
-@router.put("/carteira/preferencia")
-def preferencia(dados: entrada.Preferencia, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
-    return servico.preferencia(sessao, dados, usuario)
-
-
-@router.post("/carteira/resgatar")
-def resgatar(dados: entrada.Resgate, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
-    return servico.resgatar(sessao, dados, usuario)
-
-
 @router.patch("/usuarios/eu")
 def perfil(dados: entrada.Perfil, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
     return servico.alterar_perfil(sessao, dados, usuario)

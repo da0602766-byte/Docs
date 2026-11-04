@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useId } from "react";
 import { solicitar } from "../api";
 import "../operacao.css";
 
@@ -70,6 +70,7 @@ export function Cabecalho({ titulo, texto }) {
 
 // O diálogo nativo gerencia foco, Escape e isolamento dos controles de fundo.
 export function Modal({ titulo, fechar, children }) {
+  const tituloId = useId();
   const ref = useRef(null);
   useEffect(() => {
     const elemento = ref.current;
@@ -81,10 +82,10 @@ export function Modal({ titulo, fechar, children }) {
       className="cc-modal"
       ref={ref}
       onCancel={fechar}
-      aria-labelledby="titulo-modal"
+      aria-labelledby={tituloId}
     >
       <div className="cc-linha">
-        <h2 id="titulo-modal">{titulo}</h2>
+        <h2 id={tituloId}>{titulo}</h2>
         <button
           type="button"
           className="ws-btn ws-btn-ghost"
@@ -188,47 +189,22 @@ export function Calendario({ dia, escolher, revisao, cooperador = false }) {
 export function Tabela({ catalogo }) {
   return (
     <details className="ws-card cc-tabela">
-      <summary>Valores por categoria e como calculamos</summary>
+      <summary>Quantos pontos rende cada material?</summary>
       <p>
-        Referências fornecidas para esta simulação, sem cotação em tempo real. A
-        pesagem real determina o valor; quantidades por unidade são
-        aproximações.
+        Os pontos são calculados pelo peso conferido e liberados após sua
+        avaliação.
       </p>
-      <p>
-        Preço médio da faixa × {catalogo.percentual_morador}% para o morador; os
-        outros {100 - catalogo.percentual_morador}% ficam com a cooperativa. R$
-        1 fictício = 100 pontos. Arredondamos uma única vez, no total da coleta.
-      </p>
-      <div className="cc-scroll">
-        <table className="ws-table">
-          <thead>
-            <tr>
-              <th>Categoria</th>
-              <th>Faixa de referência/kg</th>
-              <th>Morador/kg</th>
-            </tr>
-          </thead>
-          <tbody>
-            {catalogo.itens.map((i) => (
-              <tr key={i.codigo}>
-                <td>
-                  <strong>{i.nome}</strong>
-                  <small className="ws-cell-sub">{i.referencia}</small>
-                </td>
-                <td>
-                  {i.minimo
-                    ? `${moeda(Number(i.minimo) * 100)} a ${moeda(Number(i.maximo) * 100)}`
-                    : "Sob orientação"}
-                </td>
-                <td>
-                  {i.valor_morador_kg
-                    ? `${Number(i.valor_morador_kg).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} R$ fictícios`
-                    : "Sem valor tabelado"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="cc-pontos-material">
+        {catalogo.itens.map((i) => (
+          <div key={i.codigo}>
+            <span>{i.nome}</span>
+            <strong>
+              {i.valor_morador_kg
+                ? numero(Number(i.valor_morador_kg) * 100) + " pts/kg"
+                : "Sob orientação"}
+            </strong>
+          </div>
+        ))}
       </div>
     </details>
   );

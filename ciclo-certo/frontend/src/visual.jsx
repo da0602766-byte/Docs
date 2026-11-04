@@ -1,4 +1,5 @@
 import React from "react";
+import NotificacoesCoordenador from "./NotificacoesCoordenador";
 
 // Ícones locais do ZIP; não carregam bibliotecas ou serviços externos.
 export function Icone({ name, size = 20, className = "" }) {
@@ -81,18 +82,23 @@ export function Situacao({ valor }) {
 }
 
 // A navegação depende exclusivamente do perfil confirmado pelo backend.
-export function Navegacao({ perfil, tela, aoMudarTela, aoSair }) {
+export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
   const itens =
     perfil.tipo === "morador"
       ? [
           ["minhas", "Coletas", "box"],
           ["agendar", "Agendar", "calendar"],
-          ["carteira", "Carteira", "leaf"],
+          ["carteira", "Loja", "leaf"],
           ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
         ]
       : [
-          ["rota", "Calendário", "truck"],
+          ["rota", "Pedidos", "truck"],
+          ["calendario", "Agenda", "calendar"],
+          ["usuarios", "Pessoas", "pin"],
+          ["mercado", "Mercado", "box"],
+          ["avaliacoes", "Avaliações", "leaf"],
+          ["historico", "Histórico", "box"],
           ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
         ];
@@ -132,6 +138,9 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair }) {
               </button>
             ))}
           </nav>
+          {perfil.tipo === "cooperativa" && (
+            <NotificacoesCoordenador perfil={perfil} abrir={abrirAviso} />
+          )}
           <div className="ws-user">
             <span
               className={`ws-avatar ${perfil.tipo === "cooperativa" ? "ws-avatar-dark" : ""}`}
@@ -151,7 +160,7 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair }) {
           </div>
         </div>
       </header>
-      <nav className="ws-bottom-nav" aria-label="Navegação no celular">
+      <nav className={`ws-bottom-nav ${perfil.tipo === "morador" ? "ws-bottom-morador" : ""}`} aria-label="Navegação no celular">
         {itens.map(([id, nome, icone]) => (
           <button
             key={id}

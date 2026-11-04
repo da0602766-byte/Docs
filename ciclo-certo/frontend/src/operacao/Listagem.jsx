@@ -167,7 +167,10 @@ export default function Listagem({ perfil, selecionar, revisao }) {
                       : b.id - a.id,
                   )
                   .map((c) => (
-                    <li className="ws-card cc-coleta" key={c.id}>
+                    <li
+                      className="ws-card cc-coleta cc-coleta-compacta"
+                      key={c.id}
+                    >
                       <div className="cc-linha">
                         <strong>
                           #{c.id} · {c.hora || "Horário não informado"}

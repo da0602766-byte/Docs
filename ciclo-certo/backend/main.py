@@ -29,6 +29,8 @@ app.include_router(rotas_usuarios.router)
 app.include_router(rotas_autenticacao.router)
 app.include_router(rotas_operacao)
 app.include_router(rotas_comunidade)
+from rotas.mercado import router as rotas_mercado
+app.include_router(rotas_mercado)
 
 
 # Infraestrutura traduz erros sem devolver senhas, imagens ou corpos enviados.
@@ -46,3 +48,6 @@ def tratar_validacao(requisicao, erro):
 @app.get("/saude", tags=["Infraestrutura"])
 def consultar_saude():
     return {"status": "ok"}
+
+from rotas.recuperacao import router as rotas_recuperacao
+app.include_router(rotas_recuperacao)

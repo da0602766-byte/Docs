@@ -2,7 +2,9 @@
 
 ## Estado da entrega
 
-Implementada e validada localmente. **Publicação ainda pendente:** a API em produção tem Mercado, Gestão e recuperação de senha, ausentes na branch `main` atual (`6f16815`). Integrar o código que gerou essa publicação antes de substituir API/frontend. O conector Vercel retorna metadados antigos, mas consultas com os IDs/equipe retornaram 403/404; a CLI solicitou login. Nenhuma migração desta atualização foi aplicada em produção neste estágio.
+Implementada e integrada às fontes da produção recuperadas pela CLI autenticada da Vercel. Mercado, Gestão, recuperação de senha, catálogo e refinamentos visuais foram restaurados da publicação existente; os metadados Git dessa publicação ainda apontavam para `6f16815`, mas seus arquivos-fonte continham alterações posteriores. Fontes: API `dpl_gy9CQ22n5MGNCeQjBoPQDtc8FrQr` e frontend `dpl_4WrFftx5LZinLiJSFApSrmHJn4CC`. Arquivos recuperados conferidos por SHA-1 antes da integração.
+
+As migrações `20261029231401_mercado_gestao_local.sql` e `20261029231407_refinamento_interface_recuperacao.sql` foram recuperadas do histórico Supabase para reprodução local. **Já estão aplicadas em produção; não reaplicar.** Somente `20261104184651_comunidade.sql` será aplicada nesta entrega. Build e testes integrados aprovados; publicação em andamento.
 
 Conta indicada pelo usuário para moderação: `da0602766@gmail.com`, existente no banco, perfil cooperativa. A concessão será feita na implantação; nunca criar conta nem modificar senha para testar.
 
@@ -69,9 +71,9 @@ Feed aceita `modo=feed|minhas|moderacao`, `categoria`, `perfil=morador|cooperati
 
 ## Validação executada
 
-- 30 testes backend aprovados: regressão das coletas/publicação e dez testes de integração da Comunidade, usando PostgreSQL real descartável e o papel restrito.
+- 32 testes backend aprovados: regressão das coletas/publicação e dez testes de integração da Comunidade, usando PostgreSQL real descartável e o papel restrito.
 - Incluem: concorrência, crédito único, exclusão concorrente, cotas/estorno, segunda-feira e horário de Brasília, mesma regra para os perfis, configuração, repetição, antispam, autorização, paginação, denúncias, RLS e ausência de alteração na carteira de coletas.
-- Sete testes frontend existentes aprovados; build Vite aprovado.
+- Sete testes frontend existentes aprovados; build Vite aprovado. Gestão, trocas no Mercado e recuperação de senha (transporte simulado, sem envio de e-mail) também verificados.
 - Playwright com login real na API local: publicação → aprovação → 10 pontos → comentário → denúncia → remoção pelo moderador → encerramento → exclusão da publicação → saldo zero com cota consumida. Falha temporária e Tentar novamente também verificados. Sem erros JavaScript; sem overflow nas larguras 320, 390, 768 e 1440 px. Capturas ignoradas pelo Git em `frontend/resultados-visuais/comunidade/`.
 - Contas e publicações de teste existem somente no banco local descartável. Nenhum conteúdo fictício inserido em produção.
 

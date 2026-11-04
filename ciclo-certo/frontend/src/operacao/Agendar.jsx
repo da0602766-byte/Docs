@@ -193,7 +193,7 @@ export default function Agendar({ catalogo, concluir }) {
           </button>
         </form>
       </div>
-      <Tabela catalogo={catalogo} />
+
     </>
   );
 }

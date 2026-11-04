@@ -6,6 +6,8 @@ import secrets
 from pathlib import Path
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
+from urllib.parse import urlsplit, parse_qs
 from datetime import timedelta
 from io import BytesIO
 import base64
@@ -131,7 +133,7 @@ class TesteOperacao(unittest.TestCase):
         self.assertTrue(r["creditada"])
         self.assertFalse(self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 5}, self.m)["creditada"])
         carteira = self.cliente.get("/carteira", headers=self.m).json()
-        self.assertEqual(carteira["centavos"], 3000)
+        self.assertEqual(carteira["pontos"], 3000)
         self.assertEqual(len(carteira["movimentos"]), 1)
 
     def test_peso_editavel_apenas_pelo_responsavel(self):
@@ -178,17 +180,21 @@ class TesteOperacao(unittest.TestCase):
         self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 5}, self.o, 403)
         self.assertEqual(self.cliente.get("/notificacoes", headers=self.o).json(), [])
 
-    def test_pontos_troca_e_conversao_sem_gasto_duplo(self):
-        self.assertEqual(self.cliente.put("/carteira/preferencia", json={"recompensa": "pontos"}, headers=self.m).status_code, 200)
+    def test_pontos_troca_no_mercado_sem_gasto_duplo(self):
+        # A versão publicada substituiu a conversão por produtos; preservamos esse contrato.
         coleta = self.finalizar()
         self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 5}, self.m)
-        dados = dict(pontos=1000, destino="troca", chave=uuid4().hex)
-        self.post("/carteira/resgatar", dados, self.m)
-        self.post("/carteira/resgatar", dados, self.m)
-        self.post("/carteira/resgatar", {**dados, "pontos": 2000}, self.m, 409)
-        r = self.post("/carteira/resgatar", dict(pontos=2000, destino="dinheiro", chave=uuid4().hex), self.m)
-        self.assertEqual((r["pontos"], r["centavos"]), (0, 2000))
-        self.post("/carteira/resgatar", dict(pontos=1, destino="dinheiro", chave=uuid4().hex), self.m, 409)
+        produtos = self.cliente.get('/mercado', headers=self.m).json()['produtos']
+        produto = next(p for p in produtos if p['pontos'] == 500)
+        outro = next(p for p in produtos if p['pontos'] == 2000)
+        dados = dict(produto_id=produto['id'], chave=uuid4().hex)
+        primeiro = self.post('/mercado/resgates', dados, self.m)
+        repetido = self.post('/mercado/resgates', dados, self.m)
+        self.assertEqual(primeiro['id'], repetido['id'])
+        self.post('/mercado/resgates', {**dados, 'produto_id': outro['id']}, self.m, 409)
+        self.post('/mercado/resgates', dict(produto_id=outro['id'], chave=uuid4().hex), self.m)
+        self.assertEqual(self.cliente.get('/carteira', headers=self.m).json()['pontos'], 500)
+        self.post('/mercado/resgates', dict(produto_id=outro['id'], chave=uuid4().hex), self.m, 409)
 
     def test_avaliacoes_concorrentes_creditam_uma_vez(self):
         coleta = self.finalizar()
@@ -204,11 +210,11 @@ class TesteOperacao(unittest.TestCase):
         self.assertEqual(sorted(r.status_code for r in respostas), [200, 409])
 
     def test_resgates_concorrentes_nao_negativam_saldo(self):
-        self.cliente.put("/carteira/preferencia", json={"recompensa": "pontos"}, headers=self.m)
         coleta = self.finalizar()
         self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 3}, self.m)
+        produto = next(p for p in self.cliente.get('/mercado', headers=self.m).json()['produtos'] if p['pontos'] == 2000)
         with ThreadPoolExecutor(max_workers=2) as pool:
-            respostas = list(pool.map(lambda _: self.cliente.post("/carteira/resgatar", json=dict(pontos=2000, destino="troca", chave=uuid4().hex), headers=self.m), range(2)))
+            respostas = list(pool.map(lambda _: self.cliente.post('/mercado/resgates', json=dict(produto_id=produto['id'], chave=uuid4().hex), headers=self.m), range(2)))
         self.assertEqual(sorted(r.status_code for r in respostas), [200, 409])
         self.assertEqual(self.cliente.get("/carteira", headers=self.m).json()["pontos"], 1000)
 
@@ -277,10 +283,32 @@ class TesteOperacao(unittest.TestCase):
             historico = c.execute(text(f"SELECT situacao,pontos FROM {self.esquema}.coletas WHERE id=1")).one()
             self.assertEqual(tuple(historico), ("coletada", 42))
             tabelas = c.execute(text("SELECT relname, relrowsecurity FROM pg_class JOIN pg_namespace ON relnamespace=pg_namespace.oid WHERE nspname=:s AND relkind='r'"), {"s": self.esquema}).all()
-            self.assertEqual(len(tabelas), 13)  # Sete tabelas originais e seis da comunidade.
+            self.assertEqual(len(tabelas), 16)  # Dez tabelas publicadas e seis da comunidade.
             self.assertTrue(all(linha[1] for linha in tabelas))
             for tabela in ("horarios", "comprovantes", "notificacoes", "movimentos"):
                 self.assertFalse(c.scalar(text("SELECT has_table_privilege('anon', :t, 'SELECT')"), {"t": f"{self.esquema}.{tabela}"}))
+
+    def test_gestao_mercado_e_acesso_preservados(self):
+        # A recuperação das fontes publicadas não pode remover rotas existentes.
+        for rota in ['/gestao/usuarios', '/gestao/avaliacoes', '/gestao/produtos']:
+            self.assertEqual(self.cliente.get(rota, headers=self.c).status_code, 200)
+            self.assertEqual(self.cliente.get(rota, headers=self.m).status_code, 403)
+        self.assertEqual(self.cliente.get('/mercado', headers=self.m).status_code, 200)
+        self.assertEqual(self.cliente.get('/depoimentos').status_code, 200)
+        self.assertFalse(self.morador['administrador'])
+
+    def test_recuperacao_preserva_uso_unico_e_revoga_sessao(self):
+        # O transporte é substituído por memória; nenhum e-mail é enviado.
+        with patch('configuracao.recuperacao_local', True), patch('servicos.recuperacao.entregar') as entregar:
+            resposta = self.cliente.post('/acesso/recuperar', json={'email': self.morador['email']})
+            self.assertEqual(resposta.status_code, 202, resposta.text)
+            link = entregar.call_args.args[1]
+        token = parse_qs(urlsplit(link).fragment)['token'][0]
+        dados = {'token': token, 'senha': 'NovaSenhaTeste123!'}
+        self.assertEqual(self.cliente.post('/acesso/redefinir', json=dados).status_code, 200)
+        self.assertEqual(self.cliente.post('/acesso/redefinir', json=dados).status_code, 422)
+        self.assertEqual(self.cliente.get('/usuarios/eu', headers=self.m).status_code, 401)
+        self.assertEqual(self.cliente.post('/login', data={'username': self.morador['email'], 'password': dados['senha']}).status_code, 200)
 
 
 if __name__ == "__main__":

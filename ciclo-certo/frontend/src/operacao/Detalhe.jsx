@@ -109,11 +109,7 @@ function Celebracao({ pontos, destino, fechar }) {
           ))}
         </div>
         <strong>+{numero(pontos)} pontos</strong>
-        <p>
-          {destino === "dinheiro"
-            ? `${moeda(pontos)} adicionados automaticamente ao saldo fictício.`
-            : "Pontos disponíveis na carteira para converter ou trocar."}
-        </p>
+        <p>Pontos disponíveis na loja para trocar por recompensas.</p>
         <p>Obrigado por avaliar. Sua nota não altera a recompensa.</p>
         <button className="ws-btn" onClick={fechar}>
           Continuar
@@ -123,7 +119,7 @@ function Celebracao({ pontos, destino, fechar }) {
   );
 }
 
-export default function Detalhe({ id, perfil, catalogo, voltar, atualizar }) {
+export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDialogo = false }) {
   const [revisao, setRevisao] = useState(0);
   const recurso = useDados(`/coletas/${id}`, revisao);
   const pesos = useDados(`/coletas/${id}/pesagens`, revisao);
@@ -141,6 +137,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar }) {
   const [nome, setNome] = useState("");
   const [aceite, setAceite] = useState(false);
   const [nota, setNota] = useState("");
+  const [autoriza, setAutoriza] = useState(false);
   const [comentario, setComentario] = useState("");
   const [celebracao, setCelebracao] = useState(null);
   const [comprovante, setComprovante] = useState(null);
@@ -184,7 +181,11 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar }) {
   }
   async function avaliar(e) {
     e.preventDefault();
-    const r = await acao("avaliar", { nota: Number(nota), comentario });
+    const r = await acao("avaliar", {
+      nota: Number(nota),
+      comentario,
+      autoriza_depoimento: autoriza,
+    });
     if (r?.creditada)
       setCelebracao({ pontos: r.coleta.pontos, destino: r.destino });
     else if (r)
@@ -203,37 +204,70 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar }) {
   }
   return (
     <>
-      <button className="ws-back" onClick={voltar}>
+      {!emDialogo && <button className="ws-back" onClick={voltar}>
         ← Voltar às coletas
-      </button>
+      </button>}
       <Estado recurso={recurso} />
       {coleta && (
         <>
-          <Cabecalho
+          {!emDialogo && <Cabecalho
             titulo={`Coleta nº ${id}`}
             texto={`${data(coleta.dia)} · ${coleta.hora || "Sem horário"} · ${coleta.nome_morador}`}
-          />
+          />}
           <div className="cc-resumo ws-card">
-            <Situacao valor={coleta.situacao} />
-            <p>{coleta.endereco}</p>
-            <p>{coleta.materiais_informados.join(" · ")}</p>
-            <p>
-              Responsável: {coleta.nome_cooperador || "Aguardando cooperador"}
-            </p>
-            <strong>
-              {numero(
-                coleta.situacao === "coletada"
-                  ? coleta.pontos
-                  : coleta.pontos_previstos,
-              )}{" "}
-              pontos{" "}
-              {coleta.situacao === "coletada" ? "liberados" : "previstos"}
-            </strong>
-            <p className="ws-help">
-              {coleta.situacao === "coletada"
-                ? "Recompensa já liberada; consulte o extrato da carteira."
-                : "Pontos liberados após confirmação e avaliação. Saldo em dinheiro é fictício."}
-            </p>
+            <div className="cc-resumo-topo">
+              <div>
+                <small>ATENDIMENTO</small>
+                <h2>{coleta.nome_morador}</h2>
+              </div>
+              <Situacao valor={coleta.situacao} />
+            </div>
+            <dl className="cc-dados-pedido">
+              <div>
+                <dt>Endereço de retirada</dt>
+                <dd>{coleta.endereco}</dd>
+              </div>
+              <div>
+                <dt>Dia e horário</dt>
+                <dd>
+                  {data(coleta.dia)} · {coleta.hora || "A combinar"}
+                </dd>
+              </div>
+              <div>
+                <dt>E-mail do solicitante</dt>
+                <dd>{coleta.email_morador || "Não informado"}</dd>
+              </div>
+              <div>
+                <dt>Cooperador responsável</dt>
+                <dd>{coleta.nome_cooperador || "Ainda não atribuído"}</dd>
+              </div>
+            </dl>
+            <div className="cc-materiais-pedido">
+              <small>MATERIAIS INFORMADOS</small>
+              <div>
+                {coleta.materiais_informados.map((m, i) => (
+                  <span key={i}>{m}</span>
+                ))}
+              </div>
+            </div>
+            <div className="cc-pontos-pedido">
+              <strong>
+                {numero(
+                  coleta.situacao === "coletada"
+                    ? coleta.pontos
+                    : coleta.pontos_previstos,
+                )}{" "}
+                <small>
+                  pontos{" "}
+                  {coleta.situacao === "coletada" ? "liberados" : "previstos"}
+                </small>
+              </strong>
+              <span>
+                {coleta.situacao === "coletada"
+                  ? "Disponíveis para recompensas na loja"
+                  : "Liberados após conferência e avaliação"}
+              </span>
+            </div>
             {coleta.motivo_cancelamento && (
               <p className="cc-cuidado">
                 Cancelamento: {coleta.motivo_cancelamento}
@@ -413,6 +447,15 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar }) {
                     value={comentario}
                     onChange={(e) => setComentario(e.target.value)}
                   />
+                </label>
+                <label className="cc-consentimento">
+                  <input
+                    type="checkbox"
+                    checked={autoriza}
+                    onChange={(e) => setAutoriza(e.target.checked)}
+                  />{" "}
+                  Autorizo publicar meu comentário na página pública, sem meu
+                  nome. Não inclua dados pessoais no comentário.
                 </label>
                 <button className="ws-btn" disabled={ocupado}>
                   Avaliar e liberar recompensa

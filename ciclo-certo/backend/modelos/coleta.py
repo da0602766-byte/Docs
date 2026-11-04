@@ -1,6 +1,6 @@
 # O modelo conserva a relação com o morador e os campos utilizados nas quatro telas.
 from sqlalchemy import CheckConstraint, Column, Date, Enum, ForeignKey, Index, Integer, JSON, String
-from sqlalchemy import Double, DateTime, Text
+from sqlalchemy import Double, DateTime, Text, Boolean
 from banco import Base
 
 
@@ -33,3 +33,6 @@ class Coleta(Base):
     comentario = Column(String(500), nullable=True)
     avaliada_em = Column(DateTime(timezone=True), nullable=True)
     pontos_previstos = Column(Integer, nullable=False, server_default="0")
+
+    autoriza_depoimento = Column(Boolean, nullable=False, server_default="false")
+    depoimento_publicado = Column(Boolean, nullable=False, server_default="false")

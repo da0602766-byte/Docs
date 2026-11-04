@@ -13,15 +13,15 @@ const FAQ = [
   },
   {
     q: "Como os pontos são calculados?",
-    a: "O peso real é multiplicado pelo preço médio de referência e pela participação do morador. Cada R$ 1 fictício equivale a 100 pontos. A tabela detalha as faixas e a divisão com a cooperativa.",
+    a: "O peso real é multiplicado pelo preço médio de referência e pela participação do morador. A referência de preço serve apenas para calcular pontos, utilizados exclusivamente na loja. A tabela detalha as faixas e a divisão com a cooperativa.",
   },
   {
     q: "Quando recebo os pontos de uma coleta?",
-    a: "Após conferir os pesos e assinar a retirada, você recebe uma solicitação de avaliação. Qualquer nota libera a mesma recompensa; no modo dinheiro ela é convertida automaticamente em saldo fictício.",
+    a: "Após conferir os pesos e assinar a retirada, você recebe uma solicitação de avaliação. Qualquer nota libera a mesma recompensa. Os pontos ficam disponíveis para usar na loja.",
   },
   {
     q: "Posso trocar meus pontos?",
-    a: "Sim, você pode acumular pontos, converter em saldo fictício ou gerar um vale de troca fictício na carteira. Não há pagamento, saque ou desconto real em estabelecimentos.",
+    a: "Sim, use seus pontos na loja interna para trocar por produtos e cupons fictícios. Consulte o estoque e confirme a troca usando seu saldo.",
   },
   {
     q: "Meus dados ficam salvos?",
@@ -104,6 +104,18 @@ function Logo() {
 }
 
 export default function PaginaInicial() {
+  const [depoimentos, setDepoimentos] = useState([]);
+  useEffect(() => {
+    let ativo = true;
+    solicitar("/depoimentos", {}, false)
+      .then((d) => {
+        if (ativo) setDepoimentos(d);
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
   const [catalogo, setCatalogo] = useState(null);
   const [erro, setErro] = useState(false);
   const [tentativa, setTentativa] = useState(0);
@@ -235,8 +247,8 @@ export default function PaginaInicial() {
               </table>
             </div>
             <figcaption>
-              Exemplo com participação de 50% e avaliação concluída. Saldo
-              fictício.
+              Exemplo com participação de 50% e avaliação concluída. Pontos para
+              usar na loja.
             </figcaption>
           </figure>
         </section>
@@ -321,8 +333,8 @@ export default function PaginaInicial() {
                 <div>
                   <strong>Avalie e receba</strong>
                   <p>
-                    Avalie o atendimento para liberar pontos ou saldo fictício
-                    na carteira.
+                    Avalie o atendimento para liberar seus pontos e escolher
+                    recompensas na loja.
                   </p>
                 </div>
               </li>
@@ -339,7 +351,7 @@ export default function PaginaInicial() {
                 <small className="exemplo">Exemplo ilustrativo</small>
               </span>
               <span className="lp-phone-balance">
-                <small>Saldo fictício</small>R$ 14,00
+                <small>Saldo em pontos</small>1.400 pts
               </span>
             </div>
             <div className="lp-phone-next">
@@ -482,11 +494,11 @@ export default function PaginaInicial() {
         </section>
 
         <section id="pontos" className="lp-wrap lp-section">
-          <p className="lp-kicker">Peso, pontos e saldo ficticio</p>
+          <p className="lp-kicker">Peso, pontos e recompensas</p>
           <h2>Quanto vale cada quilo.</h2>
           <p className="lp-body">
             Valores transparentes para moradores e cooperativa. Confira as
-            regras da simulacao.
+            regras da simulação.
           </p>
           <div className="ws">
             {catalogo ? (
@@ -577,6 +589,25 @@ export default function PaginaInicial() {
             </a>
           </div>
         </section>
+        {depoimentos.length > 0 && (
+          <section
+            className="lp-wrap lp-section"
+            aria-label="Depoimentos da comunidade"
+          >
+            <div className="lp-wrap">
+              <h2>Quem recicla conta sua experiência</h2>
+              <div className="cc-usuarios">
+                {depoimentos.map((d) => (
+                  <blockquote className="ws-card" key={d.id}>
+                    <strong>{d.nota}/5</strong>
+                    <p>{d.comentario}</p>
+                    <cite>{d.autor}</cite>
+                  </blockquote>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
       </main>
 
       <footer className="lp-wrap lp-footer">
@@ -594,8 +625,7 @@ export default function PaginaInicial() {
           <a href="#perguntas">Perguntas</a>
         </nav>
         <p className="lp-footer-note">
-          © {new Date().getFullYear()} Ciclo Certo · Cooperativa de
-          recicláveis.
+          © {new Date().getFullYear()} Ciclo Certo · Cooperativa de recicláveis.
         </p>
       </footer>
     </div>

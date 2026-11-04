@@ -37,3 +37,11 @@ if not 1 <= percentual_morador <= 99 or capacidade_horario < 1:
 import re
 if not horarios_coleta or len(set(horarios_coleta)) != len(horarios_coleta) or any(not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", h) for h in horarios_coleta):
     raise ValueError("HORARIOS_COLETA deve conter horários únicos no formato HH:MM.")
+
+# SMTP é opcional na demonstração; a caixa local só funciona no banco de teste local.
+recuperacao_local = os.getenv("RECUPERACAO_LOCAL") == "1" and not na_vercel and '@127.0.0.1:' in database_url and database_url.endswith('/ciclo_certo_teste_local')
+smtp_host = os.getenv('SMTP_HOST', '')
+smtp_porta = int(os.getenv('SMTP_PORTA', '587'))
+smtp_usuario = os.getenv('SMTP_USUARIO', '')
+smtp_senha = os.getenv('SMTP_SENHA', '')
+smtp_remetente = os.getenv('SMTP_REMETENTE', '')

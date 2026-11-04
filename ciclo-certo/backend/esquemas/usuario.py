@@ -22,6 +22,7 @@ class UsuarioCriar(BaseModel):
 class UsuarioSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    administrador: bool = False
     id: int = Field(gt=0)
     nome: str = Field(min_length=2, max_length=80)
     email: str | None

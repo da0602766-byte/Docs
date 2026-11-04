@@ -47,11 +47,13 @@ def obter_coleta(sessao, identificador, usuario, responsavel=False):
 
 def saida(sessao, registro, nomes=None):
     """Listas não carregam imagens; comprovantes exigem uma consulta autorizada separada."""
+    email_morador = None
     if nomes is None:
+        email_morador = repo_usuario.buscar_por_id(sessao, registro.morador_id).email
         nomes = repo.nomes(sessao, [registro.morador_id, registro.cooperador_id])
     campos = ("id", "morador_id", "endereco", "dia", "hora", "materiais_informados", "situacao", "pontos", "cooperador_id", "responsabilidade", "motivo_cancelamento", "versao", "finalizada_em", "nota", "comentario", "avaliada_em", "pontos_previstos")
     return {**{c: getattr(registro, c) for c in campos}, "nome_morador": nomes[registro.morador_id],
-            "nome_cooperador": nomes.get(registro.cooperador_id), "tem_comprovante": registro.finalizada_em is not None}
+            "email_morador": email_morador, "nome_cooperador": nomes.get(registro.cooperador_id), "tem_comprovante": registro.finalizada_em is not None}
 
 
 def listar(sessao, usuario, dia=None, morador_id=None):
@@ -270,8 +272,8 @@ def avaliar(sessao, identificador, dados, usuario):
     instante = agora()
     registro.nota, registro.comentario, registro.avaliada_em = dados.nota, dados.comentario, instante
     registro.situacao, registro.pontos = "coletada", registro.pontos_previstos
-    dinheiro = dono.recompensa == "dinheiro"
-    repo.movimento(sessao, dict(usuario_id=usuario.id, coleta_id=registro.id, chave=f"coleta-{registro.id}", tipo="credito_dinheiro" if dinheiro else "credito_pontos", pontos=0 if dinheiro else registro.pontos_previstos, centavos=registro.pontos_previstos if dinheiro else 0, criado_em=instante))
+    registro.autoriza_depoimento = dados.autoriza_depoimento
+    repo.movimento(sessao, dict(usuario_id=usuario.id, coleta_id=registro.id, chave=f"coleta-{registro.id}", tipo="credito_pontos", pontos=registro.pontos_previstos, centavos=0, criado_em=instante))
     for aviso in repo.notificacoes(sessao, usuario.id):
         if aviso.coleta_id == registro.id and aviso.tipo == "avaliacao":
             aviso.lida = True
@@ -282,32 +284,7 @@ def avaliar(sessao, identificador, dados, usuario):
 def carteira(sessao, usuario):
     exigir_perfil(usuario, "morador")
     movimentos = repo.movimentos(sessao, usuario.id)
-    return {"recompensa": usuario.recompensa, "ficticio": True, "pontos": sum(m.pontos for m in movimentos),
-            "centavos": sum(m.centavos for m in movimentos), "movimentos": [dict(id=m.id, coleta_id=m.coleta_id, tipo=m.tipo, pontos=m.pontos, centavos=m.centavos, criado_em=m.criado_em, comprovante=m.chave if m.tipo == "troca" else None) for m in movimentos]}
-
-
-def preferencia(sessao, dados, usuario):
-    exigir_perfil(usuario, "morador")
-    dono = repo.usuario(sessao, usuario.id)
-    dono.recompensa = dados.recompensa
-    repo.confirmar(sessao)
-    return carteira(sessao, dono)
-
-
-def resgatar(sessao, dados, usuario):
-    exigir_perfil(usuario, "morador")
-    dono = repo.usuario(sessao, usuario.id)
-    movimentos = repo.movimentos(sessao, usuario.id)
-    anterior = next((m for m in movimentos if m.chave == dados.chave), None)
-    if anterior:
-        if anterior.pontos != -dados.pontos or anterior.tipo != dados.destino:
-            raise Recusa("Esta chave já identifica outro resgate.")
-        return carteira(sessao, dono)
-    if sum(m.pontos for m in movimentos) < dados.pontos:
-        raise Recusa("Saldo de pontos insuficiente.")
-    repo.movimento(sessao, dict(usuario_id=usuario.id, chave=dados.chave, tipo=dados.destino, pontos=-dados.pontos, centavos=dados.pontos if dados.destino == "dinheiro" else 0, criado_em=agora()))
-    repo.confirmar(sessao)
-    return carteira(sessao, dono)
+    return {"pontos": sum(m.pontos for m in movimentos), "movimentos": [dict(id=m.id, coleta_id=m.coleta_id, tipo=m.tipo, pontos=m.pontos, criado_em=m.criado_em) for m in movimentos]}
 
 
 def alterar_perfil(sessao, dados, usuario):

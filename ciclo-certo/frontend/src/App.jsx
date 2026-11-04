@@ -3,11 +3,13 @@ import React, { useEffect, useState } from "react";
 import PaginaInicial from "./PaginaInicial";
 import { Icone, Navegacao } from "./visual";
 import Operacao from "./Operacao";
+import Recuperar from "./Recuperar";
 import { buscarUsuarioAtual, entrar, cadastrarUsuario } from "./api";
 import { obterToken, salvarToken, removerToken } from "./sessao";
 
 // A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
 function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
+  const [recuperar, setRecuperar] = useState(false);
   const [cadastro, setCadastro] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -46,6 +48,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
     aoLimparAviso();
   }
 
+  if (recuperar) return <Recuperar voltar={() => setRecuperar(false)} />;
   return (
     <div className="ws acesso">
       <header className="ws-header">
@@ -177,6 +180,11 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
               {mensagem || aviso}
             </p>
           )}
+          {!cadastro && (
+            <button className="cc-esqueci" onClick={() => setRecuperar(true)}>
+              Esqueci minha senha
+            </button>
+          )}
           {podeCadastrar ? (
             <div className="alternar-acesso">
               <span>
@@ -215,6 +223,7 @@ export default function App() {
   const [token, setToken] = useState(obterToken);
   const [perfil, setPerfil] = useState(null);
   const [tela, setTela] = useState("");
+  const [pedidoAviso, setPedidoAviso] = useState(null);
   const [paginaInicial, setPaginaInicial] = useState(
     !token && window.location.pathname === "/",
   );
@@ -302,10 +311,18 @@ export default function App() {
   // A operacao integra agenda, coleta, carteira e perfil.
   function conteudoPrincipal() {
     return (
-      <Operacao perfil={perfil} tela={tela} mudarTela={setTela} sair={sair} />
+      <Operacao
+        perfil={perfil}
+        tela={tela}
+        mudarTela={setTela}
+        sair={sair}
+        pedidoAviso={pedidoAviso}
+      />
     );
   }
 
+  if (window.location.pathname === "/redefinir")
+    return <Recuperar voltar={() => window.location.assign("/login")} />;
   if (!token && paginaInicial) return <PaginaInicial />;
   if (!token)
     return (
@@ -350,6 +367,10 @@ export default function App() {
           window.scrollTo(0, 0);
         }}
         aoSair={sair}
+        abrirAviso={(id) => {
+          setTela("rota");
+          setPedidoAviso({ id, versao: Date.now() });
+        }}
       />
       <main id="conteudo" className="ws-container ws-main" key={perfil.id}>
         {conteudoPrincipal()}

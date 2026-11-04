@@ -3,12 +3,20 @@ import { useDados, Estado } from "./operacao/interface";
 import Agendar from "./operacao/Agendar";
 import Listagem from "./operacao/Listagem";
 import Detalhe from "./operacao/Detalhe";
-import Carteira from "./operacao/Carteira";
+import Carteira from "./operacao/Loja";
+import Gestao from "./operacao/Gestao";
+import "./gestao.css";
 import Perfil from "./operacao/Perfil";
 import Comunidade from "./operacao/Comunidade";
 
 // A tela principal mantém o detalhe selecionado sem transformar o perfil em autorização.
-export default function Operacao({ perfil, tela, mudarTela, sair }) {
+export default function Operacao({
+  perfil,
+  tela,
+  mudarTela,
+  sair,
+  pedidoAviso,
+}) {
   const catalogo = useDados("/catalogo");
   const [selecionada, setSelecionada] = useState(null);
   const [revisao, setRevisao] = useState(0);
@@ -17,6 +25,16 @@ export default function Operacao({ perfil, tela, mudarTela, sair }) {
   }, [tela]);
   if (tela === "comunidade") return <Comunidade perfil={perfil} />;
   if (!catalogo.dados) return <Estado recurso={catalogo} />;
+  if (perfil.tipo === "cooperativa")
+    return (
+      <Gestao
+        perfil={perfil}
+        tela={tela}
+        catalogo={catalogo.dados}
+        pedidoAviso={pedidoAviso}
+        sair={sair}
+      />
+    );
   if (tela === "perfil") return <Perfil perfil={perfil} sair={sair} />;
   if (tela === "carteira" && perfil.tipo === "morador")
     return <Carteira catalogo={catalogo.dados} />;

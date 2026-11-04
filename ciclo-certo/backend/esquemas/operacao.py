@@ -39,18 +39,9 @@ class Finalizacao(Entrada):
 
 
 class Avaliacao(Entrada):
+    autoriza_depoimento: bool = False
     nota: int = Field(ge=1, le=5)
     comentario: str = Field(default="", max_length=500)
-
-
-class Preferencia(Entrada):
-    recompensa: Literal["dinheiro", "pontos"]
-
-
-class Resgate(Entrada):
-    pontos: int = Field(gt=0, le=2000000000)
-    destino: Literal["dinheiro", "troca"]
-    chave: str = Field(min_length=16, max_length=64, pattern=r"^[a-zA-Z0-9-]+$")
 
 
 class Disponibilidade(Entrada):
