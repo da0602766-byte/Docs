@@ -65,6 +65,7 @@ const { chromium } = require("playwright");
       .click();
     await pagina.getByText("Alteração salva.", { exact: true }).waitFor();
     await pagina.getByRole("button", { name: "Fechar notificação" }).click();
+    await pagina.getByRole('button',{name:'Mais',exact:true}).filter({visible:true}).click();
     await pagina
       .getByRole("button", { name: "Perfil", exact: true })
       .filter({ visible: true })
@@ -93,7 +94,7 @@ const { chromium } = require("playwright");
       .getByRole("button", { name: "Comunidade", exact: true })
       .filter({ visible: true })
       .click();
-    await pagina.locator(".com-exemplo").first().waitFor();
+    await pagina.locator(".com-exemplo, .com-feed .com-publicacao").first().waitFor();
     await pagina.waitForTimeout(400);
     assert.equal(
       await pagina.locator(".com-notificacao").count(),
@@ -101,7 +102,7 @@ const { chromium } = require("playwright");
       "Aviso lido não reaparece na recarga",
     );
     const espacamento = await pagina
-      .locator(".com-exemplo")
+      .locator(".com-exemplo, .com-feed .com-publicacao")
       .first()
       .evaluate((e) => getComputedStyle(e).marginBottom);
     assert.equal(espacamento, "14px");

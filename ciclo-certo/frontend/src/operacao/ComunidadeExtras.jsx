@@ -247,6 +247,21 @@ export function AvisoComunidade({ aviso, fechar }) {
               : "Tudo certo por aqui")}
         </strong>
         <p>{aviso.texto}</p>
+        {aviso.publicacaoId && (
+          <button
+            className="com-inspirar"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("ciclo-certo-abrir-publicacao", {
+                  detail: aviso.publicacaoId,
+                }),
+              );
+              fechar();
+            }}
+          >
+            Abrir publicação →
+          </button>
+        )}
       </div>
       <button aria-label="Fechar notificação" onClick={fechar}>
         ×

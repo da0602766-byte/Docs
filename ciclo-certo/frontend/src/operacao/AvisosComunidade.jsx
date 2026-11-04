@@ -99,11 +99,14 @@ export default function AvisosComunidade({ perfil, children }) {
           conhecidos.current.add(item.id);
           notificar({
             id: item.id,
+            publicacaoId: item.publicacao_id,
             decisao: item.estado,
             titulo:
               item.estado === "aprovada"
                 ? "Sua publicação foi aprovada!"
-                : "Sua publicação precisa de atenção",
+                : item.estado === "resposta"
+                  ? "A conversa continua!"
+                  : "Sua publicação precisa de atenção",
             texto: item.mensagem,
             publicacao: item.estado === "aprovada",
             sonoro: true,

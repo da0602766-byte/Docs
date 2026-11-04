@@ -23,6 +23,8 @@ class Publicacao(Base):
     categoria = Column(String(20), nullable=False)
     conteudo = Column(String(1200), nullable=False)
     youtube_id = Column(String(11))
+    publica = Column(Boolean, nullable=False, default=False)
+    revisao = Column(Integer, nullable=False, default=1)
     resumo = Column(String(64), nullable=False)
     normalizado = Column(String(1200), nullable=False)
     estado = Column(String(12), nullable=False, default="pendente")
@@ -39,8 +41,9 @@ class NotificacaoComunidade(Base):
     __tablename__ = "comunidade_notificacoes"
     id = Column(Integer, primary_key=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    publicacao_id = Column(Integer, ForeignKey("comunidade_publicacoes.id"), nullable=False, unique=True)
+    publicacao_id = Column(Integer, ForeignKey("comunidade_publicacoes.id"), nullable=False)
     estado = Column(String(12), nullable=False)
+    chave = Column(String(90), nullable=True, unique=True)
     mensagem = Column(String(600), nullable=False)
     lida = Column(Boolean, nullable=False, default=False)
     criado_em = Column(DateTime(timezone=True), nullable=False)
@@ -61,6 +64,7 @@ class Comentario(Base):
     __tablename__ = "comunidade_comentarios"
     id = Column(Integer, primary_key=True)
     publicacao_id = Column(Integer, ForeignKey("comunidade_publicacoes.id"), nullable=False)
+    resposta_id = Column(Integer, ForeignKey("comunidade_comentarios.id"))
     autor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     conteudo = Column(String(500), nullable=False)
     resumo = Column(String(64), nullable=False)

@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { Modal, useDados } from "./operacao/interface";
 import NotificacoesCoordenador from "./NotificacoesCoordenador";
 
 // Ícones locais do ZIP; não carregam bibliotecas ou serviços externos.
 export function Icone({ name, size = 20, className = "" }) {
   const paths = {
-    community: <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0ZM7 10h8M7 14h5" />,
+    community: (
+      <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0ZM7 10h8M7 14h5" />
+    ),
     leaf: (
       <>
         <path d="M19.5 4.5C13 4.6 6.8 6.2 5.2 11.4c-1 3.2 1.2 6.2 4.4 6.1 5.8-.2 8-6.7 9.9-13Z" />
@@ -83,7 +86,9 @@ export function Situacao({ valor }) {
 
 // A navegação depende exclusivamente do perfil confirmado pelo backend.
 export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
-  const itens =
+  const [mais, setMais] = useState(false);
+  const regras = useDados("/comunidade/resumo");
+  const todos =
     perfil.tipo === "morador"
       ? [
           ["minhas", "Coletas", "box"],
@@ -102,6 +107,32 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
           ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
         ];
+  const principais =
+    perfil.tipo === "morador"
+      ? ["minhas", "agendar", "carteira", "comunidade"]
+      : ["rota", "calendario", "avaliacoes", "comunidade"];
+  const itens = [
+    ...todos.filter(([id]) => principais.includes(id)),
+    ["mais", "Mais", "plus"],
+  ];
+  const extras = [
+    ...todos.filter(([id]) => !principais.includes(id)),
+    ["avisos", "Notificações", "community"],
+    ["impacto", "Meu impacto", "leaf"],
+    ["acoes", "Ações do bairro", "calendar"],
+    ["convites", "Convidar e gerar QR code", "plus"],
+    ...(regras.dados?.moderador
+      ? [["metricas", "Indicadores da comunidade", "scale"]]
+      : []),
+  ];
+  const navegar = (id) => {
+    if (id === "mais") {
+      setMais(true);
+      return;
+    }
+    setMais(false);
+    aoMudarTela(id);
+  };
   const iniciais = perfil.nome
     .trim()
     .split(/\s+/)
@@ -131,7 +162,7 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
               <button
                 key={id}
                 aria-current={tela === id ? "page" : undefined}
-                onClick={() => aoMudarTela(id)}
+                onClick={() => navegar(id)}
               >
                 <Icone name={icone} size={18} />
                 {nome}
@@ -160,18 +191,38 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
           </div>
         </div>
       </header>
-      <nav className={`ws-bottom-nav ${perfil.tipo === "morador" ? "ws-bottom-morador" : ""}`} aria-label="Navegação no celular">
+      <nav
+        className="ws-bottom-nav ws-bottom-morador"
+        aria-label="Navegação no celular"
+      >
         {itens.map(([id, nome, icone]) => (
           <button
             key={id}
             aria-current={tela === id ? "page" : undefined}
-            onClick={() => aoMudarTela(id)}
+            onClick={() => navegar(id)}
           >
             <Icone name={icone} />
             {nome}
           </button>
         ))}
       </nav>
+      {mais && (
+        <Modal titulo="Mais do Ciclo Certo" fechar={() => setMais(false)}>
+          <nav className="com-menu-mais" aria-label="Mais opções">
+            {extras.map(([id, nome, icone]) => (
+              <button
+                key={id}
+                aria-current={tela === id ? "page" : undefined}
+                onClick={() => navegar(id)}
+              >
+                <Icone name={icone} />
+                {nome}
+                <Icone name="chevron" size={16} />
+              </button>
+            ))}
+          </nav>
+        </Modal>
+      )}
     </>
   );
 }

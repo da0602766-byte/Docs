@@ -163,7 +163,7 @@ const caminho = require("node:path");
     await morador
       .getByRole("button", { name: "Publicar", exact: true })
       .click();
-    await morador.getByText("Em análise", { exact: true }).waitFor();
+    await morador.getByText(/Em análise/).waitFor();
     await morador
       .getByText("Sua ideia ganhou raízes!", { exact: true })
       .waitFor();
@@ -333,6 +333,7 @@ const caminho = require("node:path");
     await moderador
       .getByText("Nenhuma denúncia pendente", { exact: true })
       .waitFor();
+    await morador.getByLabel('Mais ações da publicação').click();
     await morador.getByRole("button", { name: "Excluir", exact: true }).click();
     await morador
       .getByRole("button", { name: "Confirmar", exact: true })

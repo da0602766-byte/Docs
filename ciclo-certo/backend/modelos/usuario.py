@@ -1,5 +1,5 @@
 # O modelo representa os campos da tabela, sem autenticar nem aplicar regras de acesso.
-from sqlalchemy import Boolean, CheckConstraint, Column, Enum, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, Enum, Integer, String, UniqueConstraint, DateTime, func
 from banco import Base
 
 
@@ -12,6 +12,7 @@ class Usuario(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
     nome = Column(String(80), nullable=False)
     tipo = Column(Enum("morador", "cooperativa", native_enum=False, create_constraint=True, name="conferir_tipo_usuario"), nullable=False)
     email = Column(String(100), nullable=True)

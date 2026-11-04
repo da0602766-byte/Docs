@@ -4,5 +4,11 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/p/:id(\\d+)",
+      "destination": "https://ciclo-certo-api.vercel.app/comunidade/compartilhar/:id"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

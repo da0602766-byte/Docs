@@ -1,5 +1,5 @@
 """Consultas paginadas e bloqueios; decisões de negócio permanecem no serviço."""
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from modelos.usuario import Usuario
 from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia, Moderador, Regras, NotificacaoComunidade
 
@@ -48,11 +48,11 @@ def atividade(sessao, modelo, autor_id, inicio):
 
 
 def repetida(sessao, resumo):
-    return sessao.scalar(select(Publicacao.id).where(Publicacao.resumo == resumo)) is not None
+    return sessao.scalar(select(Publicacao.id).where(Publicacao.resumo == resumo)) is not None or bool(sessao.scalar(text('SELECT EXISTS(SELECT 1 FROM comunidade_revisoes WHERE resumo=:r)'),dict(r=resumo)))
 
 
 def video_repetido(sessao, autor_id, youtube_id):
-    return sessao.scalar(select(Publicacao.id).where(Publicacao.autor_id == autor_id, Publicacao.youtube_id == youtube_id)) is not None
+    return sessao.scalar(select(Publicacao.id).where(Publicacao.autor_id == autor_id, Publicacao.youtube_id == youtube_id)) is not None or bool(sessao.scalar(text('SELECT EXISTS(SELECT 1 FROM comunidade_revisoes r JOIN comunidade_publicacoes p ON p.id=r.publicacao_id WHERE p.autor_id=:a AND r.youtube_id=:y)'),dict(a=autor_id,y=youtube_id)))
 
 
 def notificacoes(sessao, usuario_id):
@@ -62,8 +62,8 @@ def notificacoes(sessao, usuario_id):
     ).order_by(NotificacaoComunidade.id).limit(20)))
 
 
-def recentes(sessao, autor_id):
-    return list(sessao.scalars(select(Publicacao.normalizado).where(Publicacao.autor_id == autor_id).order_by(Publicacao.id.desc()).limit(100)))
+def recentes(sessao, autor_id, exceto=0):
+    return list(sessao.scalars(select(Publicacao.normalizado).where(Publicacao.autor_id == autor_id,Publicacao.id!=exceto).order_by(Publicacao.id.desc()).limit(100)))
 
 
 def publicacoes(sessao, usuario_id, modo, categoria, perfil, antes, limite):
@@ -72,6 +72,8 @@ def publicacoes(sessao, usuario_id, modo, categoria, perfil, antes, limite):
         consulta = consulta.where(Publicacao.autor_id == usuario_id, Publicacao.estado != 'excluida')
     else:
         consulta = consulta.where(Publicacao.estado == ('pendente' if modo == 'moderacao' else 'aprovada'))
+    if modo == 'salvos':
+        consulta = consulta.where(Publicacao.id.in_(text('SELECT publicacao_id FROM comunidade_favoritos WHERE usuario_id=:favorito_usuario'))).params(favorito_usuario=usuario_id)
     if categoria:
         consulta = consulta.where(Publicacao.categoria == categoria)
     if perfil:

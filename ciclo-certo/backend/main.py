@@ -51,3 +51,6 @@ def consultar_saude():
 
 from rotas.recuperacao import router as rotas_recuperacao
 app.include_router(rotas_recuperacao)
+
+from rotas.participacao import router as rotas_participacao
+app.include_router(rotas_participacao)

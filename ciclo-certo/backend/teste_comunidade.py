@@ -171,7 +171,7 @@ class TesteComunidade(unittest.TestCase):
     def test_rls_e_privilegios_administrativos(self):
         with self.admin.connect() as conexao:
             tabelas = conexao.execute(text("SELECT relname, relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=:schema AND c.relkind='r' AND c.relname LIKE 'comunidade_%'"), {'schema': self.esquema}).all()
-            self.assertEqual(len(tabelas), 7)
+            self.assertEqual(len(tabelas), 13)
             self.assertTrue(all(t[1] for t in tabelas))
             for tabela, _ in tabelas:
                 for papel in ['anon', 'authenticated']:

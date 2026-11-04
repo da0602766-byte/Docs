@@ -14,6 +14,7 @@ class Entrada(BaseModel):
 class NovaPublicacao(Entrada):
     categoria: Categoria
     conteudo: str = Field(min_length=10, max_length=1200)
+    publica: bool = False
     youtube_url: str | None = Field(default=None, max_length=500)
 
     @field_validator('youtube_url')
@@ -24,6 +25,7 @@ class NovaPublicacao(Entrada):
 
 
 class NovoComentario(Entrada):
+    resposta_id: int | None = Field(default=None, gt=0)
     conteudo: str = Field(min_length=2, max_length=500)
 
 

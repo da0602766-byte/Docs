@@ -7,6 +7,14 @@ import { useAvisosComunidade } from "./AvisosComunidade";
 import VideoComunidade from "./VideoComunidade";
 import { identificarVideo } from "./youtube";
 import { Inspiracao, temInspiracao, FimDoFeed } from "./ComunidadeExtras";
+import {
+  TextoPublicacao,
+  Compartilhar,
+  Favorito,
+  Corrigir,
+  HistoricoPublicacao,
+} from "./Participacao";
+import AcoesBairro from "./AcoesBairro";
 
 const base = "/comunidade";
 const nomePerfil = (tipo) => (tipo === "morador" ? "Morador" : "Cooperador");
@@ -18,6 +26,21 @@ const dataHora = (valor) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(valor));
+const tempoRelativo = (valor) => {
+  const minutos = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(valor).getTime()) / 60000),
+  );
+  return minutos < 1
+    ? "agora"
+    : minutos < 60
+      ? `há ${minutos} min`
+      : minutos < 1440
+        ? `há ${Math.floor(minutos / 60)} h`
+        : minutos < 10080
+          ? `há ${Math.floor(minutos / 1440)} dias`
+          : dataHora(valor);
+};
 
 // Paginação por cursor mantém a navegação estável quando chegam novas publicações.
 function Paginacao({ paginas, proximo, mudar }) {
@@ -61,7 +84,13 @@ function Autor({ autor, criado }) {
         <strong>{autor.nome}</strong>
         <div className="com-meta">
           <span className="com-perfil">{nomePerfil(autor.perfil)}</span>
-          <time dateTime={criado}>{dataHora(criado)}</time>
+          <time
+            dateTime={criado}
+            title={dataHora(criado)}
+            aria-label={dataHora(criado)}
+          >
+            {tempoRelativo(criado)}
+          </time>
         </div>
       </div>
     </div>
@@ -70,6 +99,7 @@ function Autor({ autor, criado }) {
 
 // Comentários só são consultados quando a conversa está aberta, com paginação própria.
 function Comentarios({ publicacao, revisao, acao, atualizar }) {
+  const [resposta, setResposta] = useState(null);
   const [revisaoLocal, setRevisaoLocal] = useState(0);
   const [paginas, setPaginas] = useState([]);
   const [texto, setTexto] = useState("");
@@ -86,8 +116,10 @@ function Comentarios({ publicacao, revisao, acao, atualizar }) {
     try {
       await enviar(`${base}/publicacoes/${publicacao.id}/comentarios`, {
         conteudo: texto,
+        resposta_id: resposta?.id || null,
       });
       setTexto("");
+      setResposta(null);
       setPaginas([]);
       setRevisaoLocal((n) => n + 1);
       atualizar(publicacao.id);
@@ -100,6 +132,14 @@ function Comentarios({ publicacao, revisao, acao, atualizar }) {
   return (
     <section className="com-comentarios" aria-label="Conversa">
       <form onSubmit={comentar}>
+        {resposta && (
+          <p className="com-resposta">
+            Respondendo a {resposta.autor.nome}{" "}
+            <button type="button" onClick={() => setResposta(null)}>
+              Cancelar resposta
+            </button>
+          </p>
+        )}
         <label className="ws-field">
           <span className="ws-label">Seu comentário</span>
           <textarea
@@ -133,7 +173,22 @@ function Comentarios({ publicacao, revisao, acao, atualizar }) {
             <article key={c.id} className="com-comentario">
               <Autor autor={c.autor} criado={c.criado_em} />
               <p className="com-texto">{c.conteudo}</p>
+              {c.resposta_id && (
+                <small className="com-meta">
+                  ↩ Resposta a um comentário desta conversa
+                </small>
+              )}
               <div className="com-acoes">
+                <button
+                  onClick={() => {
+                    setResposta(c);
+                    document
+                      .querySelector(".com-comentarios textarea")
+                      ?.focus();
+                  }}
+                >
+                  Responder
+                </button>
                 <button
                   onClick={() =>
                     acao({
@@ -179,7 +234,9 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
         <span className="com-categoria">{item.categoria}</span>
         {item.estado !== "aprovada" ? (
           <span className="ws-tag">
-            {item.estado === "pendente" ? "Em análise" : "Não aprovada"}
+            {item.estado === "pendente"
+              ? "◷ Em análise"
+              : "! Precisa de ajustes"}
           </span>
         ) : (
           <span className="com-pontos">
@@ -189,11 +246,14 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
           </span>
         )}
       </div>
-      <p className="com-texto">{item.conteudo}</p>
+      <TextoPublicacao texto={item.conteudo} />
       {item.youtube_id && (
         <VideoComunidade key={item.youtube_id} id={item.youtube_id} />
       )}
       {item.motivo && <p className="com-motivo">Moderação: {item.motivo}</p>}
+      {item.revisao > 1 && (item.minha || modo === "moderacao") && (
+        <HistoricoPublicacao id={item.id} />
+      )}
       <div className="com-acoes">
         {item.estado === "aprovada" && (
           <>
@@ -205,17 +265,39 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
               {item.comentarios}{" "}
               {item.comentarios === 1 ? "comentário" : "comentários"}
             </button>
-            <button
-              onClick={() => acao({ tipo: "denunciar", publicacao: item.id })}
-            >
-              Denunciar
-            </button>
+            <Favorito item={item} />
           </>
         )}
-        {item.pode_excluir && (
-          <button onClick={() => acao({ tipo: "excluir", id: item.id })}>
-            Excluir
-          </button>
+        {(item.pode_excluir || item.estado === "aprovada") && (
+          <details className="com-mais-acoes">
+            <summary aria-label="Mais ações da publicação">•••</summary>
+            <div>
+              {item.estado === "aprovada" && (
+                <button
+                  onClick={() =>
+                    acao({ tipo: "denunciar", publicacao: item.id })
+                  }
+                >
+                  Denunciar
+                </button>
+              )}
+              {item.pode_excluir && (
+                <button onClick={() => acao({ tipo: "excluir", id: item.id })}>
+                  Excluir
+                </button>
+              )}
+            </div>
+          </details>
+        )}
+        {item.minha && item.estado === "rejeitada" && (
+          <Corrigir
+            item={item}
+            concluir={() =>
+              window.dispatchEvent(
+                new Event("ciclo-certo-comunidade-atualizada"),
+              )
+            }
+          />
         )}
         {modo === "moderacao" && (
           <>
@@ -232,6 +314,7 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
           </>
         )}
       </div>
+      {item.estado === "aprovada" && <Compartilhar item={item} />}
       {conversa && (
         <Comentarios
           publicacao={item}
@@ -359,7 +442,15 @@ function Confirmacao({ acao, fechar, concluir }) {
 }
 
 // A página consulta contas e recompensas reais; exemplos editoriais ficam explicitamente separados.
-export default function Comunidade({ perfil }) {
+export default function Comunidade({
+  perfil,
+  selecionada,
+  fecharSelecionada,
+  pergunta,
+  limparPergunta,
+}) {
+  const [publica, setPublica] = useState(false);
+  const [destaque, setDestaque] = useState(null);
   const [revisao, setRevisao] = useState(0);
   const [revisaoResumo, setRevisaoResumo] = useState(0);
   const [modo, setModo] = useState("feed");
@@ -399,6 +490,14 @@ export default function Comunidade({ perfil }) {
   const regras = resumo.dados;
   const atualizar = () => setRevisao((n) => n + 1);
   useEffect(() => {
+    if (pergunta) {
+      setTexto(pergunta + "\n\n");
+      setNovaCategoria("Sugestões");
+      setCompondo(true);
+      limparPergunta();
+    }
+  }, [pergunta, limparPergunta]);
+  useEffect(() => {
     const recarregar = () => {
       setRevisaoResumo((n) => n + 1);
       // Um aviso não pode apagar o comentário que a pessoa ainda está escrevendo.
@@ -432,8 +531,10 @@ export default function Comunidade({ perfil }) {
         categoria: novaCategoria,
         conteudo: texto,
         youtube_url: video.trim() || null,
+        publica,
       });
       setTexto("");
+      setPublica(false);
       setVideo("");
       setAnexarVideo(false);
       setNovaCategoria("");
@@ -532,6 +633,15 @@ export default function Comunidade({ perfil }) {
       )}
       <div className="com-grade">
         <div className="com-principal">
+          <AcoesBairro
+            compacto
+            abrir={setDestaque}
+            participarConversa={(titulo) => {
+              setTexto(titulo + "\n\n");
+              setNovaCategoria("Sugestões");
+              abrirCompositor();
+            }}
+          />
           <button
             className="ws-card com-convite"
             onClick={() => abrirCompositor()}
@@ -565,6 +675,7 @@ export default function Comunidade({ perfil }) {
               {[
                 ["feed", "Para a comunidade"],
                 ["minhas", "Minhas publicações"],
+                ["salvos", "Salvas"],
                 ...(regras?.moderador
                   ? [
                       ["moderacao", "Aprovações"],
@@ -590,7 +701,9 @@ export default function Comunidade({ perfil }) {
                       ? "Conversas que transformam"
                       : modo === "minhas"
                         ? "Suas ideias por aqui"
-                        : "Conteúdos para analisar"}
+                        : modo === "salvos"
+                          ? "Ideias para guardar"
+                          : "Conteúdos para analisar"}
                   </span>
                   <select
                     aria-label="Filtrar por perfil"
@@ -707,13 +820,17 @@ export default function Comunidade({ perfil }) {
                 inicioFeed.current?.focus({ preventScroll: true });
               }}
             />
-            {modo === "feed" && feed.pronto && !feed.erro && !feed.proximo && (
-              <Inspiracao
-                categoria={categoria}
-                perfil={filtroPerfil}
-                abrir={abrirCompositor}
-              />
-            )}
+            {modo === "feed" &&
+              feed.pronto &&
+              !feed.erro &&
+              !feed.proximo &&
+              !feed.itens.length && (
+                <Inspiracao
+                  categoria={categoria}
+                  perfil={filtroPerfil}
+                  abrir={abrirCompositor}
+                />
+              )}
           </section>
         </div>
         <aside className="com-lateral">
@@ -857,6 +974,19 @@ export default function Comunidade({ perfil }) {
               antes de aparecer no feed. Os pontos chegam após a aprovação,
               dentro da cota.
             </p>
+            <label className="com-consentimento">
+              <input
+                type="checkbox"
+                checked={publica}
+                disabled={enviando}
+                onChange={(e) => setPublica(e.target.checked)}
+              />
+              <span>
+                Permitir que meu nome e esta publicação apareçam para visitantes
+                e sejam compartilhados por link. Sem marcar, o conteúdo fica
+                apenas para contas autenticadas.
+              </span>
+            </label>
             {erro && (
               <p role="alert" className="aviso erro">
                 {erro}
@@ -953,6 +1083,41 @@ export default function Comunidade({ perfil }) {
           }}
         />
       )}
+      {(selecionada || destaque) && (
+        <Modal
+          titulo="Publicação da comunidade"
+          fechar={() => {
+            setDestaque(null);
+            fecharSelecionada?.();
+          }}
+        >
+          <DetalhePublicacao
+            id={selecionada || destaque}
+            revisao={revisao}
+            acao={setAcao}
+            atualizar={atualizar}
+          />
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function DetalhePublicacao({ id, revisao, acao, atualizar }) {
+  const r = useDados(`/comunidade/item/${id}`, revisao);
+  return (
+    <>
+      <Estado recurso={r} />
+      {r.dados && (
+        <Publicacao
+          key={r.dados.revisao}
+          item={r.dados}
+          modo="detalhe"
+          revisao={revisao}
+          acao={acao}
+          atualizar={atualizar}
+        />
+      )}
+    </>
   );
 }

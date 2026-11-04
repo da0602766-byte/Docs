@@ -1,11 +1,12 @@
 import AvisosComunidade from "./operacao/AvisosComunidade";
+import ComunidadePublica from "./operacao/ComunidadePublica";
 // O aplicativo autentica a pessoa antes de apresentar as quatro telas da cartilha.
 import React, { useEffect, useState } from "react";
 import PaginaInicial from "./PaginaInicial";
 import { Icone, Navegacao } from "./visual";
 import Operacao from "./Operacao";
 import Recuperar from "./Recuperar";
-import { buscarUsuarioAtual, entrar, cadastrarUsuario } from "./api";
+import { buscarUsuarioAtual, entrar, cadastrarUsuario, enviar } from "./api";
 import { obterToken, salvarToken, removerToken } from "./sessao";
 
 // A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
@@ -34,6 +35,15 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
       .then(() => entrar(email, senha))
       .then((dados) => {
         salvarToken(dados.access_token);
+        if (cadastro) {
+          try {
+            const sessao = sessionStorage.getItem("cc-visita");
+            if (sessao)
+              enviar("/comunidade/conversao", { sessao }).catch(() => {});
+          } catch {
+            /* Cadastro independe da medição. */
+          }
+        }
         setSenha("");
         aoEntrar(dados.access_token);
       })
@@ -216,7 +226,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
 }
 
 // O token identifica a sessão; a API confirma o perfil antes de liberar qualquer tela.
-export default function App() {
+function Aplicacao() {
   const tipoAcesso =
     window.location.pathname.replace(/\/+$/, "") === "/cooperador"
       ? "cooperativa"
@@ -263,7 +273,21 @@ export default function App() {
           return;
         }
         setPerfil(usuario);
-        setTela(usuario.tipo === "morador" ? "minhas" : "rota");
+        const parametros = new URLSearchParams(window.location.search);
+        const publicacao = Number(parametros.get("publicacao"));
+        setTela(
+          publicacao > 0
+            ? "comunidade"
+            : parametros.get("destino") === "acoes"
+              ? "acoes"
+              : usuario.tipo === "morador" &&
+                  parametros.get("destino") === "agendar"
+                ? "agendar"
+                : usuario.tipo === "morador"
+                  ? "minhas"
+                  : "rota",
+        );
+        enviar("/comunidade/acesso").catch(() => {});
       })
       .catch((falha) => {
         if (ativa) setErro(falha.message);
@@ -382,5 +406,13 @@ export default function App() {
         </footer>
       </AvisosComunidade>
     </div>
+  );
+}
+
+export default function App() {
+  return window.location.pathname.startsWith("/comunidade") ? (
+    <ComunidadePublica />
+  ) : (
+    <Aplicacao />
   );
 }

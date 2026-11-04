@@ -75,7 +75,7 @@ def criar(sessao, usuario, dados):
     limitar(sessao, Publicacao, usuario.id, instante, 60, 20)
     try:
         registro = repo.gravar(sessao, Publicacao(autor_id=usuario.id, categoria=dados.categoria,
-            conteudo=dados.conteudo, youtube_id=youtube_id, normalizado=normalizado, resumo=resumo_texto, criado_em=instante))
+            conteudo=dados.conteudo, youtube_id=youtube_id, publica=dados.publica, normalizado=normalizado, resumo=resumo_texto, criado_em=instante))
         sessao.commit()
     except IntegrityError:
         sessao.rollback()
@@ -92,13 +92,15 @@ def listar(sessao, usuario, modo, categoria, perfil, antes, limite):
     if modo == 'moderacao':
         exigir_moderador(sessao, usuario)
     moderador = repo.moderador(sessao, usuario.id)
+    from repositorios.participacao import ids_favoritos
     linhas, contagens = repo.publicacoes(sessao, usuario.id, modo, categoria, perfil, antes, limite)
+    favoritos = ids_favoritos(sessao, usuario.id, [r[0].id for r in linhas])
 
     def apresentar(linha):
         p, nome, tipo, pontos, estornado = linha
-        return dict(id=p.id, conteudo=p.conteudo, youtube_id=p.youtube_id, categoria=p.categoria, estado=p.estado, criado_em=p.criado_em,
+        return dict(id=p.id, conteudo=p.conteudo, youtube_id=p.youtube_id, publica=p.publica, revisao=p.revisao, categoria=p.categoria, estado=p.estado, criado_em=p.criado_em,
                     autor=dict(nome=nome, perfil=tipo), minha=p.autor_id == usuario.id,
-                    pode_excluir=moderador or p.autor_id == usuario.id, comentarios=contagens.get(p.id, 0),
+                    salva=p.id in favoritos, pode_excluir=moderador or p.autor_id == usuario.id, comentarios=contagens.get(p.id, 0),
                     pontos=0 if estornado else (pontos or 0), motivo=p.motivo if modo != 'feed' else None)
     return pagina(linhas, limite, apresentar)
 
@@ -138,7 +140,7 @@ def moderar(sessao, usuario, identificador, dados):
     mensagem = (f'Sua publicação em {registro.categoria} foi aprovada. '
                 + (f'Você recebeu {pontos} pontos na comunidade.' if pontos else 'Ela aparece no feed, sem pontos porque sua cota foi atingida.')) if dados.aprovar else f'Sua publicação em {registro.categoria} não foi aprovada. Motivo: {dados.motivo.strip()}'
     repo.gravar(sessao, NotificacaoComunidade(usuario_id=registro.autor_id, publicacao_id=registro.id,
-        estado=registro.estado, mensagem=mensagem, criado_em=instante))
+        estado=registro.estado, chave=f"moderacao:{registro.id}:{registro.revisao}", mensagem=mensagem, criado_em=instante))
     sessao.commit()
     return dict(estado=registro.estado)
 
@@ -185,20 +187,28 @@ def listar_comentarios(sessao, usuario, identificador, antes, limite):
     exigir_visivel(sessao, identificador)
     moderador = repo.moderador(sessao, usuario.id)
     return pagina(repo.comentarios(sessao, identificador, antes, limite), limite,
-        lambda r: dict(id=r[0].id, conteudo=r[0].conteudo, criado_em=r[0].criado_em,
+        lambda r: dict(id=r[0].id, resposta_id=r[0].resposta_id, conteudo=r[0].conteudo, criado_em=r[0].criado_em,
                        autor=dict(nome=r[1], perfil=r[2]), pode_excluir=moderador or r[0].autor_id == usuario.id))
 
 
 def comentar(sessao, usuario, identificador, dados):
     repo.bloquear_autor(sessao, usuario.id)
     exigir_visivel(sessao, identificador, True)
+    resposta = None
+    if dados.resposta_id:
+        resposta = repo.obter(sessao, Comentario, dados.resposta_id)
+        if resposta is None or resposta.publicacao_id != identificador or resposta.excluido_em:
+            raise Recusa('Comentário respondido indisponível.', 404)
     instante = agora()
     _, resumo_texto = identidade(dados.conteudo)
     if repo.comentario_repetido(sessao, usuario.id, identificador, resumo_texto):
         raise Recusa('Você já enviou este comentário.')
     limitar(sessao, Comentario, usuario.id, instante, 10, 100)
     registro = repo.gravar(sessao, Comentario(publicacao_id=identificador, autor_id=usuario.id,
-        conteudo=dados.conteudo, resumo=resumo_texto, criado_em=instante))
+        conteudo=dados.conteudo, resposta_id=dados.resposta_id, resumo=resumo_texto, criado_em=instante))
+    if resposta and resposta.autor_id != usuario.id:
+        repo.gravar(sessao, NotificacaoComunidade(usuario_id=resposta.autor_id, publicacao_id=identificador,
+            estado='resposta', chave=f'resposta:{registro.id}', mensagem=f'{usuario.nome} respondeu ao seu comentário: {dados.conteudo[:450]}', criado_em=instante))
     sessao.commit()
     return dict(id=registro.id)
 

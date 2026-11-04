@@ -25,7 +25,7 @@ def ler_notificacao(identificador: int, sessao=Depends(obter_sessao), usuario=De
 
 
 @router.get('/publicacoes')
-def listar(modo: Literal['feed', 'minhas', 'moderacao'] = 'feed', categoria: Categoria | None = None,
+def listar(modo: Literal['feed', 'minhas', 'moderacao', 'salvos'] = 'feed', categoria: Categoria | None = None,
            perfil: Perfil | None = None, antes: int | None = Query(None, gt=0), limite: int = Query(20, ge=1, le=50),
            sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
     return servico.listar(sessao, usuario, modo, categoria, perfil, antes, limite)

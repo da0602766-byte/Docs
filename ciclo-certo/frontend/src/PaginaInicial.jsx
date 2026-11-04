@@ -151,6 +151,7 @@ export default function PaginaInicial() {
           <a href="#cooperativa">Para a cooperativa</a>
           <a href="#pontos">Tabela de pontos</a>
           <a href="#perguntas">Perguntas</a>
+          <a href="/comunidade">Comunidade</a>
         </nav>
         <div className="lp-nav-actions">
           <a className="lp-link-btn" href="/cooperador">

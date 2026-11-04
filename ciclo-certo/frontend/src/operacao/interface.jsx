@@ -26,6 +26,10 @@ export function useDados(caminho, revisao = 0) {
   const [tentativa, setTentativa] = useState(0);
   useEffect(() => {
     let ativo = true;
+    if (!caminho) {
+      setEstado({ dados: null, erro: "", carregando: false });
+      return;
+    }
     setEstado({ dados: null, erro: "", carregando: true });
     solicitar(caminho)
       .then((dados) => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { enviar } from "../api";
-import { data, Cabecalho, Calendario, Tabela } from "./interface";
+import { data, Cabecalho, Calendario, useDados, Estado } from "./interface";
 
 export default function Agendar({ catalogo, concluir }) {
   const [selecao, setSelecao] = useState(null);
@@ -11,6 +11,9 @@ export default function Agendar({ catalogo, concluir }) {
   const [erro, setErro] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [revisao, setRevisao] = useState(0);
+  const anteriores = useDados("/coletas");
+  const [reutilizada, setReutilizada] = useState("");
+  const [confirmada, setConfirmada] = useState(false);
   const normalizar = (v) =>
     v
       .normalize("NFD")
@@ -42,7 +45,7 @@ export default function Agendar({ catalogo, concluir }) {
     const lista = [
       ...new Set([...materiais, ...(texto.trim() ? [texto.trim()] : [])]),
     ];
-    if (!selecao || !hora || !lista.length) {
+    if (!selecao || !hora || !lista.length || (reutilizada && !confirmada)) {
       setErro("Escolha dia, horário e ao menos um material.");
       return;
     }
@@ -69,6 +72,38 @@ export default function Agendar({ catalogo, concluir }) {
         titulo="Agendar coleta"
         texto="Escolha uma vaga e conte o que você separou."
       />
+      <details className="ws-card com-reagendar">
+        <summary>Agendar novamente usando uma coleta anterior</summary>
+        <Estado recurso={anteriores} />
+        <label className="ws-field">
+          Reaproveitar endereço e materiais
+          <select
+            value={reutilizada}
+            onChange={(e) => {
+              const id = e.target.value;
+              setReutilizada(id);
+              setConfirmada(false);
+              setSelecao(null);
+              setHora("");
+              const c = anteriores.dados?.find((c) => c.id === Number(id));
+              setEndereco(c?.endereco || "");
+              setMateriais(c?.materiais_informados || []);
+              setTexto("");
+            }}
+          >
+            <option value="">Começar com campos vazios</option>
+            {anteriores.dados?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {data(c.dia)} · {c.endereco}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="ws-help">
+          Escolha um novo dia e horário. Nenhuma coleta será criada antes da
+          confirmação.
+        </p>
+      </details>
       <div className="cc-duas-colunas">
         <Calendario
           dia={selecao?.dia}
@@ -183,6 +218,17 @@ export default function Agendar({ catalogo, concluir }) {
           <p className="ws-help">
             Você ganha pontos somente após a pesagem confirmada e sua avaliação.
           </p>
+          {reutilizada && (
+            <label className="com-consentimento">
+              <input
+                type="checkbox"
+                required
+                checked={confirmada}
+                onChange={(e) => setConfirmada(e.target.checked)}
+              />{" "}
+              Conferi o endereço e os materiais para esta nova coleta.
+            </label>
+          )}
           {erro && (
             <p role="alert" className="aviso erro">
               {erro}
@@ -193,7 +239,6 @@ export default function Agendar({ catalogo, concluir }) {
           </button>
         </form>
       </div>
-
     </>
   );
 }

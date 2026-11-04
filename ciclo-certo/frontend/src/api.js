@@ -4,6 +4,7 @@ const enderecoApi = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").re
 
 // A API pode devolver validações em lista; a interface apresenta uma mensagem legível.
 function tratarResposta(resposta, protegida, tokenEnviado) {
+  if (resposta.status === 204) return Promise.resolve(null);
   if (protegida && resposta.status === 401 && obterToken() === tokenEnviado) {
     removerToken();
     window.dispatchEvent(new Event("ciclo-certo-sessao-expirada"));
