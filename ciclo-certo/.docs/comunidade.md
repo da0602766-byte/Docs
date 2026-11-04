@@ -2,6 +2,8 @@
 
 ## Redesenho solicitado após a primeira publicação
 
+Publicado em `https://ciclo-certo.vercel.app` em 04/11/2026. Código `f92bbeb`; build de produção `dpl_6MEHUchzFJJemKJv1TiGtyUSFzxG`, preparado sem domínio, conferido e promovido. Página inicial, login e cooperador responderam 200 com o novo bundle; saúde da API 200 e Comunidade sem token 401. A API não precisou de alterações nem de migração neste redesenho.
+
 - Feed priorizado no celular: cabeçalho com ilustração de folhas, saldo/cota em uma faixa pequena e categorias em botões horizontais. Regras completas abertas sob demanda; identidade e paleta preservadas.
 - A publicação começa por um botão, sem textarea permanentemente aberto. Diálogo com altura limitada, campo sem redimensionamento, categoria obrigatória e rascunho mantido em memória ao fechar. Falhas preservam texto/categoria; envio em andamento impede fechamento por Escape e envio repetido.
 - Sucesso mostra “Sua ideia ganhou raízes!”, folhas animadas e um acorde curto sintetizado com Web Audio. Som começa apenas no envio confirmado, tem controle com preferência local persistida e falhas de áudio não interrompem a publicação. Movimento reduzido desativa as animações. Não existe anúncio de crédito antes da aprovação.
