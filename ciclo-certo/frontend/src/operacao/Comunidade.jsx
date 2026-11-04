@@ -1,8 +1,15 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { enviar } from "../api";
 import { Icone } from "../visual";
-import { useDados, Estado, Cabecalho, Modal } from "./interface";
-import "../comunidade.css";
+import { useDados, Estado, Modal } from "./interface";
+import { useFeedComunidade } from "./comunidadeFeed";
+import { prepararSom, tocarPublicacao } from "./comunidadeSom";
+import {
+  Inspiracao,
+  temInspiracao,
+  FimDoFeed,
+  AvisoComunidade,
+} from "./ComunidadeExtras";
 
 const base = "/comunidade";
 const nomePerfil = (tipo) => (tipo === "morador" ? "Morador" : "Cooperador");
@@ -66,13 +73,14 @@ function Autor({ autor, criado }) {
 
 // Comentários só são consultados quando a conversa está aberta, com paginação própria.
 function Comentarios({ publicacao, revisao, acao, atualizar }) {
+  const [revisaoLocal, setRevisaoLocal] = useState(0);
   const [paginas, setPaginas] = useState([]);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const recurso = useDados(
     `${base}/publicacoes/${publicacao.id}/comentarios?limite=10${paginas.length ? `&antes=${paginas.at(-1)}` : ""}`,
-    revisao,
+    `${revisao}:${revisaoLocal}`,
   );
   async function comentar(evento) {
     evento.preventDefault();
@@ -84,7 +92,8 @@ function Comentarios({ publicacao, revisao, acao, atualizar }) {
       });
       setTexto("");
       setPaginas([]);
-      atualizar();
+      setRevisaoLocal((n) => n + 1);
+      atualizar(publicacao.id);
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -349,39 +358,72 @@ function Confirmacao({ acao, fechar, concluir }) {
   );
 }
 
-// Toda a tela usa dados da API; o formulário não recebe autor, perfil ou pontos.
+// A página consulta contas e recompensas reais; exemplos editoriais ficam explicitamente separados.
 export default function Comunidade({ perfil }) {
   const [revisao, setRevisao] = useState(0);
   const [modo, setModo] = useState("feed");
   const [categoria, setCategoria] = useState("");
   const [filtroPerfil, setFiltroPerfil] = useState("");
-  const [paginas, setPaginas] = useState([]);
   const [texto, setTexto] = useState("");
   const [novaCategoria, setNovaCategoria] = useState("");
+  const [compondo, setCompondo] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
-  const [aviso, setAviso] = useState("");
+  const [aviso, setAviso] = useState(null);
   const [acao, setAcao] = useState(null);
+  const [verRegras, setVerRegras] = useState(false);
+  const [som, setSom] = useState(() => {
+    try {
+      return localStorage.getItem("ciclo-certo-comunidade-som-v1") !== "nao";
+    } catch {
+      return true;
+    }
+  });
+  const audio = useRef(null);
+  const envioEmCurso = useRef(false);
+  const inicioFeed = useRef(null);
   const resumo = useDados(`${base}/resumo`, `${revisao}:${modo}`);
-  const consulta = new URLSearchParams({ modo, limite: "15" });
+  const consulta = new URLSearchParams({ modo, limite: "12" });
   if (categoria) consulta.set("categoria", categoria);
   if (filtroPerfil) consulta.set("perfil", filtroPerfil);
-  if (paginas.length) consulta.set("antes", paginas.at(-1));
   const caminho =
     modo === "denuncias"
-      ? `${base}/denuncias?limite=15${paginas.length ? `&antes=${paginas.at(-1)}` : ""}`
+      ? `${base}/denuncias?limite=12`
       : `${base}/publicacoes?${consulta}`;
-  const feed = useDados(caminho, revisao);
+  const feed = useFeedComunidade(caminho, revisao);
+  const regras = resumo.dados;
   const atualizar = () => setRevisao((n) => n + 1);
-  function filtrar(alterar, valor) {
-    alterar(valor);
-    setPaginas([]);
+  const fecharAviso = useCallback(() => setAviso(null), []);
+  useEffect(
+    () => () => {
+      audio.current?.close().catch(() => {});
+    },
+    [],
+  );
+
+  // O rascunho permanece em memória ao fechar; nunca é enviado ou publicado sem ação explícita.
+  function abrirCompositor(sugestao = "") {
+    if (sugestao && !texto) setNovaCategoria(sugestao);
+    setCompondo(true);
+  }
+  function alternarSom() {
+    setSom(!som);
+    try {
+      localStorage.setItem(
+        "ciclo-certo-comunidade-som-v1",
+        som ? "nao" : "sim",
+      );
+    } catch {
+      /* Preferência funciona também sem armazenamento. */
+    }
   }
   async function publicar(evento) {
     evento.preventDefault();
+    if (envioEmCurso.current) return;
+    envioEmCurso.current = true;
     setEnviando(true);
     setErro("");
-    setAviso("");
+    if (som) audio.current = prepararSom(audio.current);
     try {
       await enviar(`${base}/publicacoes`, {
         categoria: novaCategoria,
@@ -389,86 +431,121 @@ export default function Comunidade({ perfil }) {
       });
       setTexto("");
       setNovaCategoria("");
+      setCompondo(false);
       setModo("minhas");
       setCategoria("");
       setFiltroPerfil("");
-      setPaginas([]);
-      setAviso(
-        "Publicação enviada para análise. Você pode acompanhar a aprovação em Minhas publicações.",
-      );
+      setAviso({
+        publicacao: true,
+        texto:
+          "Publicação enviada para análise. Acompanhe em Minhas publicações.",
+      });
+      if (som) tocarPublicacao(audio.current);
       atualizar();
     } catch (e) {
       setErro(e.message);
     } finally {
+      envioEmCurso.current = false;
       setEnviando(false);
     }
   }
-  const regras = resumo.dados;
   return (
     <div className="comunidade">
-      <Cabecalho
-        titulo="Comunidade"
-        texto="Ideias que circulam. Um bairro que se transforma."
-      />
+      <header className="com-cabecalho">
+        <div className="com-cabecalho-texto">
+          <p className="com-editorial">NOSSO BAIRRO, MAIS VIVO</p>
+          <h1>
+            Comunidade<span aria-hidden="true">.</span>
+          </h1>
+          <p>Boas ideias crescem quando a gente compartilha.</p>
+        </div>
+        <div className="com-jardim" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <Icone name="leaf" size={48} />
+        </div>
+      </header>
+      <div className="com-painel">
+        <button
+          className="com-pontos-resumo"
+          onClick={() => setVerRegras(true)}
+          aria-label="Ver meus pontos e regras da comunidade"
+        >
+          <span className="com-mini-folha">
+            <Icone name="leaf" size={20} />
+          </span>
+          <span>
+            <strong>
+              {regras ? regras.saldo.toLocaleString("pt-BR") : "—"} pontos
+            </strong>
+            <small>na comunidade</small>
+          </span>
+          <span className="com-cota-resumo">
+            Hoje{" "}
+            <b>{regras ? `${regras.usadas_dia}/${regras.limite_dia}` : "—"}</b>
+          </span>
+          <Icone name="arrow" size={16} />
+        </button>
+        <button
+          className="com-som"
+          onClick={alternarSom}
+          aria-pressed={som}
+          aria-label="Som ao publicar"
+          title={som ? "Desativar som ao publicar" : "Ativar som ao publicar"}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            aria-hidden="true"
+          >
+            <path d="M11 4 5 9H2v6h3l6 5V4Z" />
+            {som ? (
+              <>
+                <path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" />
+              </>
+            ) : (
+              <path d="m16 9 6 6m0-6-6 6" />
+            )}
+          </svg>
+          <span>Som {som ? "ligado" : "desligado"}</span>
+        </button>
+      </div>
+      {resumo.erro && (
+        <div className="com-estado">
+          <Estado recurso={resumo} />
+        </div>
+      )}
       <div className="com-grade">
         <div className="com-principal">
-          <section className="ws-card com-compor" aria-label="Nova publicação">
-            <div className="com-compor-titulo">
-              <Icone name="leaf" />
-              <strong>O que você quer compartilhar?</strong>
-              <span className="com-perfil">{nomePerfil(perfil.tipo)}</span>
-            </div>
-            <form onSubmit={publicar}>
-              <label className="ws-field">
-                <span className="sr-only">Sua publicação</span>
-                <textarea
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                  required
-                  minLength={10}
-                  maxLength={1200}
-                  placeholder="Uma dica, uma descoberta ou uma ideia para cuidar do nosso bairro…"
-                />
-              </label>
-              <div className="com-form-rodape">
-                <label className="com-categoria-campo">
-                  <span className="sr-only">Categoria obrigatória</span>
-                  <select
-                    aria-label="Categoria obrigatória"
-                    required
-                    value={novaCategoria}
-                    onChange={(e) => setNovaCategoria(e.target.value)}
-                  >
-                    <option value="">Escolha a categoria</option>
-                    {regras?.categorias.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </label>
-                <button className="ws-btn" disabled={enviando || !regras}>
-                  {enviando ? "Enviando…" : "Publicar"}
-                  <Icone name="arrow" size={16} />
-                </button>
-              </div>
-              <div className="com-compor-nota">
-                <small>Publicações passam por aprovação.</small>
-                <small>{texto.length}/1200</small>
-              </div>
-              {erro && (
-                <p role="alert" className="aviso erro">
-                  {erro}
-                </p>
-              )}
-            </form>
-          </section>
-          {aviso && (
-            <p role="status" className="com-aviso">
-              {aviso}
-            </p>
-          )}
+          <button
+            className="ws-card com-convite"
+            onClick={() => abrirCompositor()}
+          >
+            <span className="com-convite-icone" aria-hidden="true">
+              <Icone name="leaf" size={23} />
+            </span>
+            <span>
+              <strong>
+                {texto
+                  ? "Continuar meu rascunho"
+                  : "O que vamos cultivar hoje?"}
+              </strong>
+              <small>Compartilhe uma dica, experiência ou ideia.</small>
+            </span>
+            <span className="com-convite-mais" aria-hidden="true">
+              +
+            </span>
+          </button>
           <section
             className="ws-card com-feed"
             aria-label="Publicações da comunidade"
+            ref={inicioFeed}
+            tabIndex={-1}
           >
             <div
               className="com-abas"
@@ -488,201 +565,332 @@ export default function Comunidade({ perfil }) {
                 <button
                   key={id}
                   aria-pressed={modo === id}
-                  onClick={() => filtrar(setModo, id)}
+                  onClick={() => setModo(id)}
                 >
                   {nome}
                 </button>
               ))}
             </div>
             {modo !== "denuncias" && (
-              <div className="com-filtros">
-                <label>
-                  <span>Categoria</span>
-                  <select
-                    aria-label="Filtrar por categoria"
-                    value={categoria}
-                    onChange={(e) => filtrar(setCategoria, e.target.value)}
-                  >
-                    <option value="">Todas as categorias</option>
-                    {regras?.categorias.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Perfil</span>
+              <>
+                <div className="com-filtro-topo">
+                  <span>
+                    <Icone name="community" size={17} />{" "}
+                    {modo === "feed"
+                      ? "Conversas que transformam"
+                      : modo === "minhas"
+                        ? "Suas ideias por aqui"
+                        : "Conteúdos para analisar"}
+                  </span>
                   <select
                     aria-label="Filtrar por perfil"
                     value={filtroPerfil}
-                    onChange={(e) => filtrar(setFiltroPerfil, e.target.value)}
+                    onChange={(e) => setFiltroPerfil(e.target.value)}
                   >
                     <option value="">Todos os perfis</option>
                     <option value="morador">Moradores</option>
                     <option value="cooperativa">Cooperadores</option>
                   </select>
-                </label>
-              </div>
-            )}
-            <div className="com-estado">
-              <Estado recurso={feed} />
-            </div>
-            {feed.dados && (
-              <>
-                {!feed.dados.itens.length && (
-                  <div className="com-vazio">
-                    <span className="com-vazio-icone">
-                      <Icone name="community" size={28} />
-                    </span>
-                    <h2>
-                      {modo === "denuncias"
-                        ? "Nenhuma denúncia pendente"
-                        : modo === "moderacao"
-                          ? "Tudo em dia por aqui"
-                          : "Vamos começar uma conversa?"}
-                    </h2>
-                    <p>
-                      {modo === "denuncias" || modo === "moderacao"
-                        ? "Novos conteúdos para analisar aparecerão aqui."
-                        : "Nenhuma publicação nesta seleção. Compartilhe uma ideia ou experimente outros filtros."}
-                    </p>
-                  </div>
-                )}
-                {feed.dados.itens.map((item) =>
-                  modo === "denuncias" ? (
-                    <article key={item.id} className="com-publicacao">
-                      <span className="com-categoria">
-                        {item.comentario_id
-                          ? "Comentário denunciado"
-                          : "Publicação denunciada"}
-                      </span>
-                      <p className="com-texto">
-                        {item.excluido
-                          ? "Conteúdo já excluído."
-                          : item.conteudo}
-                      </p>
-                      <p className="com-motivo">Motivo: {item.motivo}</p>
-                      <div className="com-acoes">
-                        {!item.excluido && (
-                          <button
-                            onClick={() =>
-                              setAcao({
-                                tipo: item.comentario_id
-                                  ? "excluirComentario"
-                                  : "excluir",
-                                id: item.comentario_id || item.publicacao_id,
-                              })
-                            }
-                          >
-                            Excluir conteúdo
-                          </button>
-                        )}
-                        <button
-                          onClick={() =>
-                            setAcao({ tipo: "resolver", id: item.id })
-                          }
-                        >
-                          Concluir análise
-                        </button>
-                      </div>
-                    </article>
-                  ) : (
-                    <Publicacao
-                      key={item.id}
-                      item={item}
-                      modo={modo}
-                      revisao={revisao}
-                      acao={setAcao}
-                      atualizar={atualizar}
-                    />
-                  ),
-                )}
-                {(paginas.length > 0 || feed.dados.proximo) && (
-                  <Paginacao
-                    paginas={paginas}
-                    proximo={feed.dados.proximo}
-                    mudar={setPaginas}
-                  />
-                )}
+                </div>
+                <div
+                  className="com-categorias"
+                  role="group"
+                  aria-label="Filtrar por categoria"
+                >
+                  {["", ...(regras?.categorias || [])].map((c) => (
+                    <button
+                      key={c}
+                      aria-pressed={categoria === c}
+                      onClick={() => setCategoria(c)}
+                    >
+                      {c || "Tudo"}
+                    </button>
+                  ))}
+                </div>
               </>
+            )}
+            {feed.pronto &&
+              !feed.itens.length &&
+              (modo !== "feed" || !temInspiracao(categoria, filtroPerfil)) &&
+              !feed.erro &&
+              !feed.carregando && (
+                <div
+                  className={`com-vazio ${modo === "feed" ? "com-vazio-feed" : ""}`}
+                >
+                  <span className="com-vazio-icone">
+                    <Icone name="community" size={24} />
+                  </span>
+                  <h2>
+                    {modo === "denuncias"
+                      ? "Nenhuma denúncia pendente"
+                      : modo === "moderacao"
+                        ? "Tudo em dia por aqui"
+                        : "Vamos começar uma conversa?"}
+                  </h2>
+                  <p>
+                    {modo === "denuncias" || modo === "moderacao"
+                      ? "Novos conteúdos para analisar aparecerão aqui."
+                      : modo === "minhas"
+                        ? "Suas publicações e o andamento da análise aparecerão aqui."
+                        : "Ainda não há publicações nesta seleção. Sua ideia pode ser a primeira."}
+                  </p>
+                  {modo === "feed" && (
+                    <button
+                      className="com-inspirar"
+                      onClick={() => abrirCompositor()}
+                    >
+                      Compartilhar uma ideia <Icone name="arrow" size={15} />
+                    </button>
+                  )}
+                </div>
+              )}
+            {feed.itens.map((item) =>
+              modo === "denuncias" ? (
+                <article key={item.id} className="com-publicacao">
+                  <span className="com-categoria">
+                    {item.comentario_id
+                      ? "Comentário denunciado"
+                      : "Publicação denunciada"}
+                  </span>
+                  <p className="com-texto">
+                    {item.excluido ? "Conteúdo já excluído." : item.conteudo}
+                  </p>
+                  <p className="com-motivo">Motivo: {item.motivo}</p>
+                  <div className="com-acoes">
+                    {!item.excluido && (
+                      <button
+                        onClick={() =>
+                          setAcao({
+                            tipo: item.comentario_id
+                              ? "excluirComentario"
+                              : "excluir",
+                            id: item.comentario_id || item.publicacao_id,
+                          })
+                        }
+                      >
+                        Excluir conteúdo
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setAcao({ tipo: "resolver", id: item.id })}
+                    >
+                      Concluir análise
+                    </button>
+                  </div>
+                </article>
+              ) : (
+                <Publicacao
+                  key={item.id}
+                  item={item}
+                  modo={modo}
+                  revisao={revisao}
+                  acao={setAcao}
+                  atualizar={feed.comentou}
+                />
+              ),
+            )}
+            <FimDoFeed
+              feed={feed}
+              continuar={() => {
+                feed.carregar(true);
+                inicioFeed.current?.scrollIntoView({ block: "start" });
+                inicioFeed.current?.focus({ preventScroll: true });
+              }}
+            />
+            {modo === "feed" && feed.pronto && !feed.erro && !feed.proximo && (
+              <Inspiracao
+                categoria={categoria}
+                perfil={filtroPerfil}
+                abrir={abrirCompositor}
+              />
             )}
           </section>
         </div>
         <aside className="com-lateral">
-          <section className="ws-card com-recompensas">
-            <div className="com-compor-titulo">
-              <Icone name="leaf" />
-              <h2>Seus pontos na comunidade</h2>
-            </div>
-            <Estado recurso={resumo} />
-            {regras && (
-              <>
-                <div className="com-saldo">
-                  <strong>{regras.saldo.toLocaleString("pt-BR")}</strong>
-                  <span>pontos de participação</span>
-                </div>
-                <div className="com-cotas">
-                  <span>
-                    Hoje{" "}
-                    <strong>
-                      {regras.usadas_dia}/{regras.limite_dia}
-                    </strong>
-                  </span>
-                  <span>
-                    Esta semana{" "}
-                    <strong>
-                      {regras.usadas_semana}/{regras.limite_semana}
-                    </strong>
-                  </span>
-                </div>
-                <p className="com-regra">
-                  +{regras.pontos} pontos por publicação aprovada, dentro da
-                  cota.
-                </p>
-                <details>
-                  <summary>Como funciona a pontuação</summary>
-                  <p>
-                    Até {regras.limite_dia} publicações recompensadas por dia e{" "}
-                    {regras.limite_semana} por semana, para moradores e
-                    cooperadores. Vale a data da aprovação, no horário de
-                    Brasília. A semana começa na segunda-feira.
-                  </p>
-                  <p>
-                    Acima da cota, sua publicação aprovada aparece sem pontos.
-                    Curtidas e comentários não geram pontos. Excluir estorna os
-                    pontos e não reabre a cota.
-                  </p>
-                  <p>
-                    Este saldo é separado das coletas, sem conversão em dinheiro
-                    ou resgate.
-                  </p>
-                </details>
-              </>
-            )}
+          <section className="ws-card com-lateral-convite">
+            <Icone name="leaf" size={28} />
+            <p className="com-editorial">CADA IDEIA CONTA</p>
+            <h2>O próximo passo começa com uma conversa.</h2>
+            <p>
+              Uma descoberta na horta, um novo jeito de reutilizar, uma sugestão
+              para o bairro. Tem espaço para tudo isso aqui.
+            </p>
+            <button className="ws-btn" onClick={() => abrirCompositor()}>
+              Compartilhar ideia <Icone name="arrow" size={16} />
+            </button>
           </section>
           <section className="com-convivencia">
-            <h2>Um espaço para somar</h2>
+            <h2>Vamos cuidar deste espaço?</h2>
             <p>
-              Compartilhe informações, dicas, experiências e sugestões. Valorize
-              a autoria, evite repetir conteúdos e mantenha o respeito.
+              Valorize a autoria, evite repetir conteúdos e mantenha o respeito.
+              Não compartilhe dados pessoais de outras pessoas.
             </p>
             <p>
-              Não publique dados pessoais de outras pessoas. Encontrou algo
-              inadequado? Use Denunciar.
+              Encontrou algo inadequado? Use Denunciar para avisar a moderação.
             </p>
+            <button className="com-inspirar" onClick={() => setVerRegras(true)}>
+              Entenda os pontos <Icone name="arrow" size={15} />
+            </button>
           </section>
         </aside>
       </div>
+      {compondo && (
+        <Modal
+          titulo="Plante uma ideia"
+          className="com-compositor"
+          fechar={() => {
+            if (!envioEmCurso.current) setCompondo(false);
+          }}
+        >
+          <p className="com-compositor-sub">
+            Um pequeno gesto pode inspirar todo o bairro.
+          </p>
+          <div className="com-identidade">
+            <span className="com-mini-folha">
+              <Icone name="leaf" size={20} />
+            </span>
+            <div>
+              <strong>{perfil.nome}</strong>
+              <span className="com-perfil">
+                {nomePerfil(perfil.tipo)} · Publicando com sua conta
+              </span>
+            </div>
+          </div>
+          <form onSubmit={publicar}>
+            <label className="ws-field">
+              <span className="sr-only">Sua publicação</span>
+              <textarea
+                aria-label="Sua publicação"
+                autoFocus
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                required
+                minLength={10}
+                maxLength={1200}
+                disabled={enviando}
+                placeholder="Uma dica, uma descoberta ou uma ideia para cuidar do nosso bairro…"
+              />
+            </label>
+            <div className="com-compor-nota">
+              <small>De 10 a 1.200 caracteres</small>
+              <small>{texto.length}/1200</small>
+            </div>
+            <label className="ws-field com-categoria-campo">
+              <span className="ws-label">Categoria obrigatória</span>
+              <select
+                required
+                aria-label="Categoria obrigatória"
+                disabled={enviando}
+                value={novaCategoria}
+                onChange={(e) => setNovaCategoria(e.target.value)}
+              >
+                <option value="">Escolha onde sua ideia se encaixa</option>
+                {regras?.categorias.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <p className="com-compositor-info">
+              <Icone name="leaf" size={17} /> Sua publicação passa por análise
+              antes de aparecer no feed. Os pontos chegam após a aprovação,
+              dentro da cota.
+            </p>
+            {erro && (
+              <p role="alert" className="aviso erro">
+                {erro}
+              </p>
+            )}
+            {!regras && (
+              <p role="status">
+                Aguarde o carregamento das categorias para publicar.
+              </p>
+            )}
+            <div className="com-form-rodape">
+              <button
+                className="ws-btn ws-btn-ghost"
+                type="button"
+                disabled={enviando}
+                onClick={() => setCompondo(false)}
+              >
+                Agora não
+              </button>
+              <button
+                className="ws-btn"
+                disabled={
+                  enviando ||
+                  !regras ||
+                  texto.trim().length < 10 ||
+                  !novaCategoria
+                }
+              >
+                {enviando ? "Enviando…" : "Publicar"}
+                <Icone name="arrow" size={16} />
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {verRegras && (
+        <Modal
+          titulo="Seus pontos na comunidade"
+          className="com-recompensas"
+          fechar={() => setVerRegras(false)}
+        >
+          <Estado recurso={resumo} />
+          {regras && (
+            <>
+              <div className="com-saldo">
+                <strong>{regras.saldo.toLocaleString("pt-BR")}</strong>
+                <span>pontos de participação</span>
+              </div>
+              <div className="com-cotas">
+                <span>
+                  Hoje{" "}
+                  <strong>
+                    {regras.usadas_dia}/{regras.limite_dia}
+                  </strong>
+                </span>
+                <span>
+                  Esta semana{" "}
+                  <strong>
+                    {regras.usadas_semana}/{regras.limite_semana}
+                  </strong>
+                </span>
+              </div>
+              <p className="com-regra">
+                +{regras.pontos} pontos por publicação aprovada, dentro da cota.
+              </p>
+              <p>
+                Até {regras.limite_dia} publicações recompensadas por dia e{" "}
+                {regras.limite_semana} por semana, para moradores e
+                cooperadores. Vale a data da aprovação, no horário de Brasília.
+                A semana começa na segunda-feira.
+              </p>
+              <p>
+                Acima da cota, sua publicação aprovada aparece sem pontos.
+                Curtidas e comentários não geram pontos. Excluir estorna os
+                pontos e não reabre a cota.
+              </p>
+              <p>
+                Este saldo é separado das coletas, sem conversão em dinheiro ou
+                resgate. Os exemplos de demonstração não geram pontos.
+              </p>
+            </>
+          )}
+        </Modal>
+      )}
       {acao && (
         <Confirmacao
           acao={acao}
           fechar={() => setAcao(null)}
           concluir={(mensagem) => {
             setAcao(null);
-            setAviso(mensagem);
+            setAviso({ texto: mensagem });
             atualizar();
           }}
         />
       )}
+      {aviso && <AvisoComunidade aviso={aviso} fechar={fecharAviso} />}
     </div>
   );
 }

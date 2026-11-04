@@ -19,6 +19,14 @@ const caminho = require("node:path");
     const moderador = await navegador.newPage({
       viewport: { width: 1440, height: 1000 },
     });
+    await morador.addInitScript(() => {
+      window.notasPublicadas = 0;
+      const iniciar = OscillatorNode.prototype.start;
+      OscillatorNode.prototype.start = function (...argumentos) {
+        window.notasPublicadas++;
+        return iniciar.apply(this, argumentos);
+      };
+    });
     for (const pagina of [morador, moderador])
       pagina.on("pageerror", (e) => erros.push(e.message));
     async function entrar(pagina, cooperador) {
@@ -43,12 +51,62 @@ const caminho = require("node:path");
     await entrar(morador, false);
     await entrar(moderador, true);
     await morador
-      .getByText("Vamos começar uma conversa?", { exact: true })
+      .getByRole("region", { name: "Publicações de demonstração", exact: true })
       .waitFor();
     await morador.screenshot({
       path: caminho.join(pasta, "celular-vazio.png"),
       fullPage: true,
     });
+    assert.equal(
+      await morador.getByRole("textbox").count(),
+      0,
+      "Feed não abre campos de texto sozinho",
+    );
+    assert.equal(await morador.locator(".com-exemplo").count(), 6);
+    await morador
+      .getByRole("button", { name: /O que vamos cultivar hoje/ })
+      .click();
+    await morador
+      .getByLabel("Sua publicação", { exact: true })
+      .fill("Meu rascunho fica guardado ao fechar a janela.");
+    await morador.keyboard.press("Escape");
+    await morador.getByRole("dialog").waitFor({ state: "hidden" });
+    await morador
+      .getByRole("button", { name: /Continuar meu rascunho/ })
+      .click();
+    await morador.screenshot({
+      path: caminho.join(pasta, "rascunho-reaberto.png"),
+    });
+    assert.equal(
+      await morador.getByLabel("Sua publicação", { exact: true }).inputValue(),
+      "Meu rascunho fica guardado ao fechar a janela.",
+    );
+    assert.equal(
+      await morador
+        .getByRole("button", { name: "Publicar", exact: true })
+        .isDisabled(),
+      true,
+      "Categoria obrigatória",
+    );
+    for (const largura of [320, 390, 768, 1440]) {
+      await morador.setViewportSize({ width: largura, height: 844 });
+      const medidas = await morador
+        .getByLabel("Sua publicação", { exact: true })
+        .evaluate((e) => ({
+          altura: e.getBoundingClientRect().height,
+          resize: getComputedStyle(e).resize,
+          largura: document.documentElement.scrollWidth,
+          tela: innerWidth,
+        }));
+      assert.ok(medidas.altura <= 220 && medidas.altura >= 110);
+      assert.equal(medidas.resize, "none");
+      assert.ok(medidas.largura <= medidas.tela);
+      await morador.screenshot({
+        path: caminho.join(pasta, `compositor-${largura}.png`),
+        fullPage: true,
+      });
+    }
+    await morador.setViewportSize({ width: 390, height: 844 });
     await morador
       .getByLabel("Sua publicação", { exact: true })
       .fill(
@@ -57,10 +115,45 @@ const caminho = require("node:path");
     await morador
       .getByLabel("Categoria obrigatória", { exact: true })
       .selectOption("Compostagem");
+    // Uma falha mantém rascunho e categoria, sem tocar o som de sucesso.
+    await morador.route("**/comunidade/publicacoes", (rota) =>
+      rota.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Envio indisponível no teste." }),
+      }),
+    );
+    await morador
+      .getByRole("button", { name: "Publicar", exact: true })
+      .click();
+    await morador.getByText("Envio indisponível no teste.").waitFor();
+    assert.equal(
+      await morador
+        .getByLabel("Categoria obrigatória", { exact: true })
+        .inputValue(),
+      "Compostagem",
+    );
+    assert.ok(
+      (
+        await morador.getByLabel("Sua publicação", { exact: true }).inputValue()
+      ).includes("No teste local"),
+    );
+    assert.equal(await morador.evaluate(() => window.notasPublicadas), 0);
+    await morador.unroute("**/comunidade/publicacoes");
     await morador
       .getByRole("button", { name: "Publicar", exact: true })
       .click();
     await morador.getByText("Em análise", { exact: true }).waitFor();
+    await morador
+      .getByText("Sua ideia ganhou raízes!", { exact: true })
+      .waitFor();
+    assert.equal(await morador.evaluate(() => window.notasPublicadas), 2);
+    assert.equal(await morador.locator(".com-folhas > span").count(), 7);
+    await morador.screenshot({
+      path: caminho.join(pasta, "publicacao-confirmada.png"),
+      fullPage: true,
+    });
+    await morador.getByRole("button", { name: "Fechar notificação" }).click();
     await moderador
       .getByRole("button", { name: "Aprovações", exact: true })
       .click();
@@ -88,6 +181,18 @@ const caminho = require("node:path");
       .click();
     await morador
       .getByRole("button", { name: "1 comentário", exact: true })
+      .waitFor();
+    assert.equal(
+      await morador
+        .getByRole("button", { name: "1 comentário", exact: true })
+        .getAttribute("aria-expanded"),
+      "true",
+    );
+    await morador
+      .getByText(
+        "Vou experimentar a proporção de folhas secas no meu composto.",
+        { exact: true },
+      )
       .waitFor();
     for (const largura of [320, 390, 768, 1440]) {
       await morador.setViewportSize({ width: largura, height: 1000 });
@@ -152,13 +257,17 @@ const caminho = require("node:path");
       .getByRole("button", { name: "Confirmar", exact: true })
       .click();
     await morador
-      .getByText("Vamos começar uma conversa?", { exact: true })
-      .waitFor();
+      .getByRole("button", { name: "Excluir", exact: true })
+      .waitFor({ state: "hidden" });
+    await morador
+      .getByRole("button", { name: "Ver meus pontos e regras da comunidade" })
+      .click();
     assert.equal(await morador.locator(".com-saldo strong").innerText(), "0");
     assert.equal(
       await morador.locator(".com-cotas").innerText(),
       "Hoje\n1/2\nEsta semana\n1/6",
     );
+    await morador.getByRole("button", { name: "Fechar formulário" }).click();
     await morador.route("**/comunidade/publicacoes?**", (rota) =>
       rota.fulfill({
         status: 503,

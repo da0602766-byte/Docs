@@ -1,5 +1,18 @@
 # Comunidade — atualização de 04/11/2026
 
+## Redesenho solicitado após a primeira publicação
+
+- Feed priorizado no celular: cabeçalho com ilustração de folhas, saldo/cota em uma faixa pequena e categorias em botões horizontais. Regras completas abertas sob demanda; identidade e paleta preservadas.
+- A publicação começa por um botão, sem textarea permanentemente aberto. Diálogo com altura limitada, campo sem redimensionamento, categoria obrigatória e rascunho mantido em memória ao fechar. Falhas preservam texto/categoria; envio em andamento impede fechamento por Escape e envio repetido.
+- Sucesso mostra “Sua ideia ganhou raízes!”, folhas animadas e um acorde curto sintetizado com Web Audio. Som começa apenas no envio confirmado, tem controle com preferência local persistida e falhas de áudio não interrompem a publicação. Movimento reduzido desativa as animações. Não existe anúncio de crédito antes da aprovação.
+- Seis exemplos editoriais solicitados pelo usuário, um por categoria, identificados como **demonstração com personagens fictícios**. Aparecem ao final dos resultados reais e respeitam os filtros. Não criam contas, registros no banco, comentários, datas, curtidas ou pontos fictícios. O botão de inspiração abre uma publicação nova com a categoria sugerida, sem copiar o conteúdo.
+- Rolagem consulta lotes de 12 por cursor com IntersectionObserver, cancelamento de respostas antigas e trava contra chamadas duplicadas. Depois de 60 registros, “Continuar no feed” substitui o grupo e reposiciona a leitura abaixo do cabeçalho. Conteúdo fora da tela usa `content-visibility`; comentários continuam paginados e só são buscados quando abertos. Há botão alternativo sem Observer e repetição manual após falha, preservando resultados já carregados.
+- Comentários atualizam seu contador e a conversa aberta, sem reiniciar todo o feed. Recompensas, autenticação, moderação, API e banco permanecem com as regras da primeira entrega; este redesenho não requer migração.
+
+Validação deste redesenho: build Vite e sete testes frontend existentes aprovados; 32 testes backend aprovados no PostgreSQL descartável. `node testes/comunidade.interface.cjs` cobre os dois perfis, rascunho, erro no envio, som de sucesso, animação, publicação/aprovação/crédito, comentário sem fechar conversa, denúncia, exclusão, estorno e cotas. `node testes/comunidade.rolagem.cjs` cobre lotes, limite de memória renderizada, continuação, erro sem loop, troca rápida de filtros, perfil, silêncio persistido, movimento reduzido e viewport 320×460. Páginas públicas compiladas também verificadas. Revisão visual em 320, 390, 768 e 1440 px, sem overflow; seletor de perfil e altura do compositor corrigidos. Capturas em `frontend/resultados-visuais/comunidade/` (não versionadas).
+
+Os testes autenticados usam somente a API e o banco locais descartáveis. Produção é conferida pelo build publicado, páginas públicas e saúde da API; som em aparelho físico depende do volume/configuração do navegador.
+
 ## Estado da entrega
 
 Implementada e integrada às fontes da produção recuperadas pela CLI autenticada da Vercel. Mercado, Gestão, recuperação de senha, catálogo e refinamentos visuais foram restaurados da publicação existente; os metadados Git dessa publicação ainda apontavam para `6f16815`, mas seus arquivos-fonte continham alterações posteriores. Fontes: API `dpl_gy9CQ22n5MGNCeQjBoPQDtc8FrQr` e frontend `dpl_4WrFftx5LZinLiJSFApSrmHJn4CC`. Arquivos recuperados conferidos por SHA-1 antes da integração.

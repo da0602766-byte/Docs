@@ -9,3 +9,4 @@ import "./gestao.css";
 // Renderiza a aplicacao inteira no unico ponto de entrada do HTML.
 createRoot(document.getElementById("root")).render(<StrictMode><App /></StrictMode>);
 import "./refinamentos.css";
+import "./comunidade.css";

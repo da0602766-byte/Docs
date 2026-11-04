@@ -69,7 +69,7 @@ export function Cabecalho({ titulo, texto }) {
 }
 
 // O diálogo nativo gerencia foco, Escape e isolamento dos controles de fundo.
-export function Modal({ titulo, fechar, children }) {
+export function Modal({ titulo, fechar, children, className = "" }) {
   const tituloId = useId();
   const ref = useRef(null);
   useEffect(() => {
@@ -79,9 +79,12 @@ export function Modal({ titulo, fechar, children }) {
   }, []);
   return (
     <dialog
-      className="cc-modal"
+      className={`cc-modal ${className}`}
       ref={ref}
-      onCancel={fechar}
+      onCancel={(evento) => {
+        evento.preventDefault();
+        fechar();
+      }}
       aria-labelledby={tituloId}
     >
       <div className="cc-linha">
