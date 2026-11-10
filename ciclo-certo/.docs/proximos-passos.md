@@ -5,6 +5,9 @@
 > **Redesenho da Comunidade — publicado em 04/11/2026:** compositor sob demanda, folhas e som de confirmação, pontos compactos, exemplos explicitamente ilustrativos e rolagem por lotes com limite de 60 registros. Validação local concluída: fluxo real, rolagem/falhas, acessibilidade, 32 testes backend e 7 frontend. Domínio oficial conferido com o novo build. Sem migração nem conteúdo fictício no banco. Detalhes e comandos em [comunidade.md](comunidade.md).
 >
 > **Comunidade — primeira publicação de 04/11/2026:** integrada à versão em produção, preservando Mercado, Gestão e recuperação de senha. Fontes recuperadas da Vercel; 32 testes backend, 7 frontend e fluxo completo no navegador aprovados. Publicação concluída nos endereços oficiais, com dados preservados e moderação concedida a `da0602766@gmail.com`; detalhes em `ciclo-certo/.docs/comunidade.md`.
+
+> Evolução local de loja e gestão concluída em 29/10/2026, ainda sem publicação. Consulte [mercado-gestao.md](mercado-gestao.md) antes de seguir as notas históricas abaixo.
+
 > Atualização de 29/10/2026: versão `cb9cb24` publicada no frontend e na API da Vercel. Migração aplicada ao Supabase, preservando os 5 usuários, 1 coleta e 3 pesagens. Páginas públicas, catálogo, saúde, CORS e bloqueio sem token aprovados. Validação local: 20 testes backend, 3 frontend e build aprovados. Login em produção e câmera/assinatura em aparelho físico ainda pendentes. A revisão automática bloqueou o teste que criaria tokens para contas reais; ele não foi executado.
 >
 > A migração local `20261029023257_fluxo_coletas_recompensas.sql` foi registrada pelo MCP no histórico remoto como `20261029033020_fluxo_coletas_recompensas`: é a mesma migração, não reaplicar. As referências abaixo a entrega somente local ou produção antiga registram o estado anterior a esta publicação.

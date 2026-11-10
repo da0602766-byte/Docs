@@ -1,4 +1,16 @@
 > **Comunidade — 04/11/2026:** integrada à versão em produção, preservando Mercado, Gestão e recuperação de senha. Fontes recuperadas da Vercel; 32 testes backend, 7 frontend e fluxo completo no navegador aprovados. Publicação concluída nos endereços oficiais, com dados preservados e moderação concedida a `da0602766@gmail.com`; detalhes em `ciclo-certo/.docs/comunidade.md`.
+
+> **Publicado em 29/10/2026:** frontend e API atualizados na Vercel, incluindo o espaçamento de 24 px entre busca e coletas. API `dpl_gy9CQ22n5MGNCeQjBoPQDtc8FrQr`; frontend `dpl_4WrFftx5LZinLiJSFApSrmHJn4CC`. Publicação direta do código local, sem push ou commit.
+> Migrações locais `20261029222158` e `20261029225256` registradas remotamente como `20261029231401` e `20261029231407`. Não reaplicar. A segunda associa fotos pelo nome do produto, sem depender de IDs gerados. Banco preserva 5 usuários e 3 coletas; catálogo contém 8 produtos.
+> Saúde, catálogo, depoimentos, frontend e CORS aprovados; coletas sem sessão retornam 401. Login autenticado e gravações não foram testados em produção. SMTP não configurado: recuperação por e-mail está indisponível em produção; a caixa local permanece no preview. Permissão administrativa de expurgo não foi concedida a contas reais.
+> As notas de entrega exclusivamente local abaixo são históricas.
+
+> **Nova evolução local (29/10/2026): loja de recompensas e painel de gestão. Não publicada.**
+> Pontos são usados exclusivamente em produtos/cupons fictícios. Conversão e resgate em dinheiro foram removidos.
+> Refinamento local: sino com atualização automática, avisos temporários, catálogo editável com fotos, listas compactas, detalhes e avaliações redesenhados. Recuperação de senha usa caixa de saída local, conforme solicitado. Validação: 24 testes de API, 7 de frontend e build aprovados.
+> Execute a demonstração isolada conforme [.docs/mercado-gestao.md](.docs/mercado-gestao.md). O `.env` antigo aponta para produção: use `preview_teste:app` para revisar esta entrega.
+> As notas de publicação e regras monetárias abaixo são históricas e não descrevem esta evolução local.
+
 > Atualização de 29/10/2026: versão `cb9cb24` publicada no frontend e na API da Vercel. Migração aplicada ao Supabase, preservando os 5 usuários, 1 coleta e 3 pesagens. Páginas públicas, catálogo, saúde, CORS e bloqueio sem token aprovados. Validação local: 20 testes backend, 3 frontend e build aprovados. Login em produção e câmera/assinatura em aparelho físico ainda pendentes. A revisão automática bloqueou o teste que criaria tokens para contas reais; ele não foi executado.
 >
 > A migração local `20261029023257_fluxo_coletas_recompensas.sql` foi registrada pelo MCP no histórico remoto como `20261029033020_fluxo_coletas_recompensas`: é a mesma migração, não reaplicar. As referências abaixo a entrega somente local ou produção antiga registram o estado anterior a esta publicação.
@@ -68,7 +80,7 @@ Regressão de sessões simultâneas: `node --test testes/sessao.test.js testes/l
 A suíte usa PostgreSQL portátil de teste, nunca o Supabase de uso normal. A partir de `ciclo-certo/`:
 
 ```powershell
-npm install --prefix .test-infra --save-exact embedded-postgres@18.4.0-beta.17
+npm install --prefix .test-infra --save-exact embedded-postgres@17.10.0-beta.17
 node scripts/postgres-teste.mjs
 ```
 

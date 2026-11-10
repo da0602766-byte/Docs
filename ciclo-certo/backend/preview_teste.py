@@ -10,6 +10,7 @@ os.environ["DATABASE_URL"] = f"postgresql+psycopg://postgres:{acesso['password']
 os.environ["CHAVE_DO_TOKEN"] = secrets.token_hex(32)
 os.environ["ORIGEM_FRONTEND"] = "http://127.0.0.1:5175"
 os.environ.pop("VERCEL", None)
+os.environ["RECUPERACAO_LOCAL"] = "1"
 
 from sqlalchemy import create_engine, inspect, text, event
 from sqlalchemy.orm import sessionmaker
@@ -24,9 +25,15 @@ with engine_admin.begin() as conexao:
         conexao.exec_driver_sql((RAIZ / "backend/supabase/estrutura.sql").read_text(encoding="utf-8"))
         for migration in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
             conexao.exec_driver_sql(migration.read_text(encoding="utf-8"), execution_options={"no_parameters": True})
+    # O preview antigo recebe somente a migração incremental ainda ausente.
+    if not inspect(conexao).has_table("produtos", schema="public"):
+        conexao.exec_driver_sql((RAIZ / "supabase/migrations/20261029231401_mercado_gestao_local.sql").read_text(encoding="utf-8"))
+    if not inspect(conexao).has_table("recuperacoes_senha", schema="public"):
+        conexao.exec_driver_sql((RAIZ / "supabase/migrations/20261029231407_refinamento_interface_recuperacao.sql").read_text(encoding="utf-8"))
     for nome, tipo, email in [("Morador de Teste", "morador", "morador@example.org"), ("Cooperador de Teste", "cooperativa", "cooperador@example.org")]:
         if not conexao.scalar(text("SELECT id FROM usuarios WHERE email=:email"), {"email": email}):
             conexao.execute(text("INSERT INTO usuarios(nome,tipo,email,senha_hash) VALUES (:nome,:tipo,:email,:senha)"), dict(nome=nome,tipo=tipo,email=email,senha=gerar_hash_senha("TesteLocal123!")))
+    conexao.execute(text("UPDATE usuarios SET administrador=true WHERE email='cooperador@example.org' AND tipo='cooperativa'"))
 engine_admin.dispose()
 engine = create_engine(os.environ["DATABASE_URL"])
 

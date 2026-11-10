@@ -15,6 +15,7 @@ fs.writeFileSync(arquivo, JSON.stringify(acesso));
 const pg = new EmbeddedPostgres({
   databaseDir: path.join(pasta, "dados"), user: "postgres",
   password: acesso.password, port: acesso.port, persistent: true,
+  initdbFlags: ["--locale=C", "--encoding=UTF8"],
   postgresFlags: ["-h", "127.0.0.1"],
   onLog: () => {}, onError: (erro) => { if (String(erro).includes("FATAL")) console.error(erro); },
 });

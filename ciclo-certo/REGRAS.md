@@ -1,3 +1,5 @@
+> Ampliação autorizada em 29/10/2026: pontos exclusivos da loja, catálogo fictício, gestão de usuários e depoimentos, triagem, agenda, avisos e expurgo administrativo. Esta entrega é somente local. Regras atuais em [.docs/mercado-gestao.md](.docs/mercado-gestao.md); restrições antigas conflitantes ficam como histórico.
+
 # Regras do projeto para a IA
 
 Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs das aulas 8, 9 e 10 da UC4. Adapta as regras antigas à fase atual; não é transcrição do arquivo de regras disponibilizado pelo professor.

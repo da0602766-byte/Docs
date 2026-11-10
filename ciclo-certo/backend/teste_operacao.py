@@ -20,6 +20,7 @@ os.environ["DATABASE_URL"] = f"postgresql+psycopg://postgres:{ACESSO['password']
 os.environ["CHAVE_DO_TOKEN"] = secrets.token_hex(32)
 os.environ["ORIGEM_FRONTEND"] = "http://127.0.0.1:5175"
 os.environ.pop("VERCEL", None)
+os.environ["RECUPERACAO_LOCAL"]="1"
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -50,6 +51,8 @@ class TesteOperacao(unittest.TestCase):
             c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, baseline), execution_options={"no_parameters": True})
             c.exec_driver_sql("INSERT INTO usuarios(nome,tipo) VALUES ('Conta histórica','morador'); INSERT INTO coletas(morador_id,endereco,dia,materiais_informados,situacao,pontos) VALUES (1,'Rua histórica, 123','2020-01-01','[\"papel\"]','coletada',42)")
             for arquivo in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
+                if 'mercado_gestao' in arquivo.name:
+                    c.exec_driver_sql("INSERT INTO movimentos(usuario_id,chave,tipo,pontos,centavos,criado_em) VALUES(1,'saldo-anterior','credito_dinheiro',200,800,now())")
                 c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, arquivo.read_text(encoding="utf-8")), execution_options={"no_parameters": True})
         cls.engine = create_engine(os.environ["DATABASE_URL"], pool_size=8)
 
@@ -196,6 +199,77 @@ class TesteOperacao(unittest.TestCase):
         self.assertEqual(self.cliente.get('/carteira', headers=self.m).json()['pontos'], 500)
         self.post('/mercado/resgates', dict(produto_id=outro['id'], chave=uuid4().hex), self.m, 409)
 
+    def test_moderacao_exige_consentimento_e_expurgo_admin(self):
+        coleta = self.finalizar()
+        self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 5, "comentario": "Excelente coleta", "autoriza_depoimento": True}, self.m)
+        rota = f"/gestao/avaliacoes/{coleta['id']}"
+        self.assertEqual(self.cliente.put(rota, json={"publicar": True}, headers=self.m).status_code, 403)
+        self.assertEqual(self.cliente.put(rota, json={"publicar": True}, headers=self.c).status_code, 200)
+        self.assertTrue(any(a['id']==coleta['id'] for a in self.cliente.get('/depoimentos').json()))
+        expurgo = f"/gestao/historico/{coleta['id']}"
+        dados = {'confirmacao': f"APAGAR {coleta['id']}"}
+        self.assertEqual(self.cliente.request('DELETE', expurgo, json=dados, headers=self.c).status_code, 403)
+        with self.admin.begin() as c:
+            c.execute(text(f"UPDATE {self.esquema}.usuarios SET administrador=true WHERE id=:id"), {'id': self.coop['id']})
+        self.assertEqual(self.cliente.request('DELETE', expurgo, json={'confirmacao':'errada'}, headers=self.c).status_code, 422)
+        self.assertEqual(self.cliente.request('DELETE', expurgo, json=dados, headers=self.c).status_code, 200)
+        self.assertEqual(self.cliente.get(f"/coletas/{coleta['id']}", headers=self.c).status_code, 404)
+        self.assertFalse(any(a['id']==coleta['id'] for a in self.cliente.get('/depoimentos').json()))
+        self.assertEqual(self.cliente.get('/carteira', headers=self.m).json()['pontos'],3000)
+        self.assertEqual(self.cliente.get('/gestao/usuarios', headers=self.m).status_code,403)
+        resposta=self.cliente.get('/gestao/usuarios', headers=self.c)
+        self.assertEqual(resposta.status_code,200)
+        self.assertNotIn('senha',resposta.text)
+        pendente=self.finalizar()
+        self.assertEqual(self.cliente.request('DELETE', f"/gestao/historico/{pendente['id']}", json={'confirmacao':f"APAGAR {pendente['id']}"}, headers=self.c).status_code,409)
+        self.post(f"/coletas/{pendente['id']}/avaliar", {'nota':3,'comentario':'Privado'}, self.m)
+        self.assertEqual(self.cliente.put(f"/gestao/avaliacoes/{pendente['id']}", json={'publicar':True}, headers=self.c).status_code,409)
+
+    def test_ultima_unidade_entre_moradores(self):
+        with self.admin.begin() as c:
+            c.execute(text(f"UPDATE {self.esquema}.produtos SET estoque=1 WHERE id=4"))
+            for id in (self.morador['id'], self.outro['id']):
+                c.execute(text(f"INSERT INTO {self.esquema}.movimentos(usuario_id,chave,tipo,pontos,centavos,criado_em) VALUES(:id,:chave,'teste',2000,0,now())"), {'id':id,'chave':uuid4().hex})
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            respostas=list(pool.map(lambda h:self.cliente.post('/mercado/resgates',json={'produto_id':4,'chave':uuid4().hex},headers=h),[self.m,self.o]))
+        self.assertEqual(sorted(r.status_code for r in respostas),[200,409])
+        saldos=[self.cliente.get('/carteira',headers=h).json()['pontos'] for h in [self.m,self.o]]
+        self.assertEqual(sorted(saldos),[800,2000])
+
+    def test_recuperacao_expiracao_uso_unico_revogacao(self):
+        with patch('servicos.recuperacao.entregar') as entregar:
+            r=self.cliente.post('/acesso/recuperar',json={'email':self.morador['email']})
+            self.assertEqual(r.status_code,202)
+            token=entregar.call_args.args[1].split('#token=')[1]
+            desconhecido=self.cliente.post('/acesso/recuperar',json={'email':'nao-existe@example.org'})
+            self.assertEqual(r.json(),desconhecido.json())
+            self.cliente.post('/acesso/recuperar',json={'email':self.morador['email']})
+            self.assertEqual(entregar.call_count,1)
+        self.assertNotIn(token,r.text)
+        payload={'token':token,'senha':'NovaSenhaSegura123!'}
+        self.assertEqual(self.cliente.post('/acesso/redefinir',json={**payload,'token':'x'*43}).status_code,422)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            respostas=list(pool.map(lambda _:self.cliente.post('/acesso/redefinir',json=payload),range(2)))
+        self.assertEqual(sorted(r.status_code for r in respostas),[200,422])
+        self.assertEqual(self.cliente.get('/usuarios/eu',headers=self.m).status_code,401)
+        self.assertEqual(self.cliente.post('/login',data={'username':self.morador['email'],'password':payload['senha']}).status_code,200)
+        with patch('servicos.recuperacao.entregar') as entregar:
+            self.cliente.post('/acesso/recuperar',json={'email':self.outro['email']})
+            token=entregar.call_args.args[1].split('#token=')[1]
+        with self.admin.begin() as c:
+            c.execute(text(f"UPDATE {self.esquema}.recuperacoes_senha SET expira_em=now()-interval '1 minute' WHERE usuario_id=:id"),{'id':self.outro['id']})
+        self.assertEqual(self.cliente.post('/acesso/redefinir',json={**payload,'token':token}).status_code,422)
+
+    def test_coordenador_edita_mercado_morador_nao(self):
+        dados=dict(nome='Produto de teste',descricao='Descrição fictícia para teste',categoria='Casa',pontos=800,estoque=5,foto='/imagens/produtos/ecobag.jpg',ativo=True)
+        self.post('/gestao/produtos',dados,self.m,403)
+        p=self.post('/gestao/produtos',dados,self.c,201)
+        self.assertEqual(self.cliente.put(f"/gestao/produtos/{p['id']}",json={**dados,'ativo':False},headers=self.c).status_code,200)
+        self.assertNotIn(p['id'],[i['id'] for i in self.cliente.get('/mercado',headers=self.m).json()['produtos']])
+        self.post('/mercado/resgates',dict(produto_id=p['id'],chave=uuid4().hex),self.m,409)
+        self.assertEqual(self.cliente.put(f"/gestao/produtos/{p['id']}",json={**dados,'estoque':-1},headers=self.c).status_code,422)
+        self.post('/gestao/produtos',{**dados,'foto':'https://example.org/a.jpg'},self.c,422)
+
     def test_avaliacoes_concorrentes_creditam_uma_vez(self):
         coleta = self.finalizar()
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -282,6 +356,8 @@ class TesteOperacao(unittest.TestCase):
         with self.admin.connect() as c:
             historico = c.execute(text(f"SELECT situacao,pontos FROM {self.esquema}.coletas WHERE id=1")).one()
             self.assertEqual(tuple(historico), ("coletada", 42))
+            saldo = c.execute(text(f"SELECT pontos,centavos FROM {self.esquema}.movimentos WHERE chave='saldo-anterior'")).one()
+            self.assertEqual(tuple(saldo), (1000,0))
             tabelas = c.execute(text("SELECT relname, relrowsecurity FROM pg_class JOIN pg_namespace ON relnamespace=pg_namespace.oid WHERE nspname=:s AND relkind='r'"), {"s": self.esquema}).all()
             self.assertEqual(len(tabelas), 23)  # Dez tabelas da operação e treze da comunidade.
             self.assertTrue(all(linha[1] for linha in tabelas))

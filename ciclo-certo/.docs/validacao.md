@@ -4,6 +4,17 @@
 
 # Validação da entrega
 
+## Sincronização local e dependências — 29/10/2026
+
+- Cópia local avançada de `170b15d` para `6f16815` por fast-forward, incorporando os três commits da branch `main`. Arquivos não versionados em `entregas/qa_ia/` preservados.
+- React e React DOM atualizados de 19.3.0 para 19.3.1, com `package.json` e `package-lock.json` atualizados localmente. Nenhum commit ou push nesta tarefa.
+- Dependências do backend instaladas conforme `requirements.txt`; Pillow 12.3.0 acrescentado ao venv. `pip check` aprovado. Isso não representa atualização de todas as bibliotecas para suas versões mais recentes.
+- Frontend: sete testes aprovados com `node --test testes/sessao.test.js testes/listagem.test.js testes/publicacao.test.js`; `npm run build` aprovado com Vite 7.3.7 e React 19.3.1.
+- Backend: três testes de `python -m unittest teste_publicacao -v` aprovados, sem conexão ao banco real.
+- Supabase configurado: inspeção somente de metadados, em transação somente leitura e conexão TLS, confirmou as sete tabelas e todas as colunas exigidas pelos modelos atuais. A migração não foi reaplicada; nenhum registro de produção foi consultado ou alterado.
+- Limitação desta execução: a suíte `teste_operacao` não pôde ser repetida. O PostgreSQL portátil 18.4.0-beta.17 falhou no `initdb` com exceção nativa Windows `0xC0000005`, inclusive com locale C e UTF-8. Nenhum servidor de teste permaneceu em execução. Os resultados anteriores da suíte não foram contabilizados como validação desta atualização.
+- O código foi sincronizado e compilado localmente. A versão publicada na Vercel não foi alterada nesta tarefa; câmera/assinatura em aparelho físico continuam pendentes.
+
 ## Evolução local concluída em 29/10/2026
 
 20 testes (`teste_operacao` + `teste_publicacao`) passaram em PostgreSQL local isolado; 1 teste de configuração do frontend passou; `npm run build` concluiu com sucesso. Calendário, agendamento, responsabilidade, edição de peso, notificação, avaliação e carteira foram exercitados no navegador. A extensão bloqueou upload de arquivos; confirmação com imagens foi testada via API, e câmera/desenho/envio em celular seguem como conferência manual. Etapas e evidências detalhadas em [melhorias-coletas.md](melhorias-coletas.md). Nenhuma alteração foi implantada em produção. O restante deste arquivo registra entregas anteriores.

@@ -7,6 +7,8 @@ __pycache__/
 teste_*.py
 preview_teste.py
 preview_comunidade.py
+
+preparar_demo.py
 supabase/
 criar_tabelas.py
 banco.sql
