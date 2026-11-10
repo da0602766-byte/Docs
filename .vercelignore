@@ -8,6 +8,5 @@
 **/resultados-visuais/
 **/testes/
 **/.test-infra/
-ciclo-certo/backend/
-ciclo-certo/supabase/
 entregas/
+revisao-interface/

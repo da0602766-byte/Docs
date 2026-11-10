@@ -13,9 +13,7 @@ def criar_tabelas():
         papel = conexao.execute(text("SELECT 1 FROM pg_roles WHERE rolname = 'ciclo_certo_backend'")).scalar()
         if not papel:
             raise RuntimeError("Provisione o papel ciclo_certo_backend antes de criar as tabelas.")
-        sql = (Path(__file__).parent / "supabase" / "estrutura.sql").read_text(encoding="utf-8")
-        conexao.exec_driver_sql(sql)
-        # Instala também evoluções incrementais em bancos novos; nunca recria tabelas existentes.
+        # A primeira migração contém o baseline; cada arquivo é executado uma única vez.
         for migration in sorted((Path(__file__).parent.parent / "supabase" / "migrations").glob("*.sql")):
             conexao.exec_driver_sql(migration.read_text(encoding="utf-8"), execution_options={"no_parameters": True})
 

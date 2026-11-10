@@ -11,7 +11,7 @@
 
 # Publicação na Vercel
 
-**Evolução local posterior:** a lista de melhorias ainda não foi implantada. Antes do próximo deploy, aplicar `supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql` e coordenar a troca da API e do frontend. O backend antigo não entende os novos estados. Regras, testes e pendências em [melhorias-coletas](../.docs/melhorias-coletas.md). `main:app` continua sendo a entrada de produção; nunca publicar `preview_teste:app`.
+**Migrações e publicação:** as melhorias descritas abaixo já foram implantadas. O histórico local foi alinhado aos oito IDs registrados em produção; não reaplique essas migrações antes de um deploy. Nenhuma migração é executada automaticamente por `main:app`. Confira o histórico remoto e aplique somente migrações novas quando houver evolução de schema. Regras e histórico em [melhorias-coletas](../.docs/melhorias-coletas.md). `main:app` continua sendo a entrada de produção; nunca publicar `preview_teste:app`.
 
 Publicação concluída em 28/10/2026: dois projetos Vercel na equipe `projetos-fd50`, ligados a `da0602766-byte/Docs`, branch de produção `main`. O banco continua no Supabase. Variáveis de Production configuradas e builds remotos aprovados.
 

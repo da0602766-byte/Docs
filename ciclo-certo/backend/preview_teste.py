@@ -22,7 +22,7 @@ engine_admin = create_engine(os.environ["DATABASE_URL"])
 with engine_admin.begin() as conexao:
     assert conexao.scalar(text("SELECT current_database()")) == "ciclo_certo_teste_local"
     if not inspect(conexao).has_table("usuarios", schema="public"):
-        conexao.exec_driver_sql((RAIZ / "backend/supabase/estrutura.sql").read_text(encoding="utf-8"))
+        # O histórico completo inclui o baseline; não reaplicá-lo separadamente.
         for migration in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
             conexao.exec_driver_sql(migration.read_text(encoding="utf-8"), execution_options={"no_parameters": True})
     # O preview antigo recebe somente a migração incremental ainda ausente.

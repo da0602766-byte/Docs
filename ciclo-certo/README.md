@@ -52,7 +52,7 @@ Configure `DATABASE_URL`, `CHAVE_DO_TOKEN` (ao menos 32 caracteres) e `ORIGEM_FR
 
 O projeto de produção documentado usa Supabase `plhfkhxzmxzyfygjyzbk`, com papel restrito `ciclo_certo_backend`. Este clone não contém o `.env` de produção. Não recrie tabelas em um banco existente.
 
-**Migração obrigatória para esta versão:** aplique somente `supabase/migrations/20261029023257_fluxo_coletas_recompensas.sql` sobre o baseline existente. O script `backend/criar_tabelas.py` prepara baseline + migrações apenas em um `public` vazio, exigindo os papéis previamente provisionados. Histórico MySQL em `backend/legado/mysql/`.
+**Migrações:** os oito arquivos em `supabase/migrations/` correspondem ao histórico já aplicado em produção, com os mesmos IDs. Não reaplique essas migrações no banco existente. Para evoluções futuras, crie uma nova migração e confira o histórico remoto antes de executá-la. O script `backend/criar_tabelas.py` prepara o histórico completo apenas em um `public` vazio, exigindo os papéis previamente provisionados. Histórico MySQL em `backend/legado/mysql/`.
 
 Inicie a API:
 

@@ -47,10 +47,12 @@ class TesteOperacao(unittest.TestCase):
         with cls.admin.begin() as c:
             assert c.scalar(text("select current_database()")) == "ciclo_certo_teste_local"
             c.execute(text(f"CREATE SCHEMA {cls.esquema}"))
-            baseline = (RAIZ / "backend/supabase/estrutura.sql").read_text(encoding="utf-8")
+            migracoes = sorted((RAIZ / "supabase/migrations").glob("*.sql"))
+            baseline = migracoes[0].read_text(encoding="utf-8")
             c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, baseline), execution_options={"no_parameters": True})
             c.exec_driver_sql("INSERT INTO usuarios(nome,tipo) VALUES ('Conta histórica','morador'); INSERT INTO coletas(morador_id,endereco,dia,materiais_informados,situacao,pontos) VALUES (1,'Rua histórica, 123','2020-01-01','[\"papel\"]','coletada',42)")
-            for arquivo in sorted((RAIZ / "supabase/migrations").glob("*.sql")):
+            # O baseline já foi aplicado antes de inserir os registros históricos de teste.
+            for arquivo in migracoes[1:]:
                 if 'mercado_gestao' in arquivo.name:
                     c.exec_driver_sql("INSERT INTO movimentos(usuario_id,chave,tipo,pontos,centavos,criado_em) VALUES(1,'saldo-anterior','credito_dinheiro',200,800,now())")
                 c.exec_driver_sql(re.sub(r'\bpublic\b', cls.esquema, arquivo.read_text(encoding="utf-8")), execution_options={"no_parameters": True})
