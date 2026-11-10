@@ -267,6 +267,7 @@ export default function Gestao({ perfil, tela, catalogo, sair, pedidoAviso }) {
                         ? `Aceita por ${c.nome_cooperador}`
                         : "Aguardando responsável"}
                     </small>
+                    {c.equipamentos?.length > 0 && <small>Kit: {c.equipamentos.length} {c.equipamentos.length === 1 ? "item planejado" : "itens planejados"}</small>}
                   </span>
                   <span aria-hidden="true">→</span>
                 </button>

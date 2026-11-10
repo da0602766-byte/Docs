@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal, useDados } from "./operacao/interface";
 import NotificacoesCoordenador from "./NotificacoesCoordenador";
 
@@ -87,6 +87,24 @@ export function Situacao({ valor }) {
 // A navegação depende exclusivamente do perfil confirmado pelo backend.
 export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
   const [mais, setMais] = useState(false);
+  const conta = useRef(null);
+  // O menu da conta fecha sem tirar o foco de quem usa o teclado.
+  useEffect(() => {
+    const fechar = (evento) => {
+      if (evento.type === "keydown" && evento.key !== "Escape") return;
+      if (evento.type === "pointerdown" && conta.current?.contains(evento.target)) return;
+      if (conta.current?.open) {
+        conta.current.open = false;
+        if (evento.type === "keydown") conta.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", fechar);
+    document.addEventListener("keydown", fechar);
+    return () => {
+      document.removeEventListener("pointerdown", fechar);
+      document.removeEventListener("keydown", fechar);
+    };
+  }, []);
   const regras = useDados("/comunidade/resumo");
   const todos =
     perfil.tipo === "morador"
@@ -117,7 +135,6 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
   ];
   const extras = [
     ...todos.filter(([id]) => !principais.includes(id)),
-    ["avisos", "Notificações", "community"],
     ["impacto", "Meu impacto", "leaf"],
     ["acoes", "Ações do bairro", "calendar"],
     ["convites", "Convidar e gerar QR code", "plus"],
@@ -169,25 +186,27 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
               </button>
             ))}
           </nav>
-          {perfil.tipo === "cooperativa" && (
-            <NotificacoesCoordenador perfil={perfil} abrir={abrirAviso} />
-          )}
-          <div className="ws-user">
+          <div className="ws-header-acoes">
+            <NotificacoesCoordenador
+              perfil={perfil}
+              abrir={abrirAviso}
+              abrirCentral={() => navegar("avisos")}
+            />
+          <details className="ws-user ws-conta" ref={conta}>
+            <summary aria-label={`Menu de ${perfil.nome}`}>
             <span
               className={`ws-avatar ${perfil.tipo === "cooperativa" ? "ws-avatar-dark" : ""}`}
               aria-hidden="true"
             >
               {iniciais}
             </span>
-            <span className="ws-user-text">
+            </summary>
+            <div className="ws-conta-menu">
               <strong>{perfil.nome}</strong>
-              <small>
-                {perfil.tipo === "morador" ? "Morador" : "Cooperativa"}
-              </small>
-            </span>
-            <button className="botao-sair" onClick={aoSair}>
-              Sair
-            </button>
+              <button onClick={() => { conta.current.open = false; navegar("perfil"); }}>Meu perfil</button>
+              <button className="botao-sair" onClick={aoSair}>Sair</button>
+            </div>
+          </details>
           </div>
         </div>
       </header>

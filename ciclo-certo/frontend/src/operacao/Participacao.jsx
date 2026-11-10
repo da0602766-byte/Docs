@@ -270,6 +270,14 @@ export function CentralAvisos({ abrir }) {
     </section>
   );
 }
+// Rótulos de apresentação preservam as categorias e os pesos recebidos da API.
+const nomesMateriais = {
+  plastico: "Plástico", plástico: "Plástico", aluminio: "Alumínio",
+  papel_misto: "Papel misto", vidro_colorido: "Vidro colorido", papel: "Papel",
+  ferro: "Ferro", papelao: "Papelão", eletronicos: "Eletrônicos",
+  plastico_duro: "Plástico duro", vidro: "Vidro", longa_vida: "Longa vida",
+  plastico_filme: "Plástico filme", metal: "Metal",
+};
 export function Impacto() {
   const recurso = useDados("/comunidade/impacto");
   const d = recurso.dados;
@@ -295,11 +303,16 @@ export function Impacto() {
           <div className="cc-duas-colunas">
             <section className="ws-card cc-form">
               <h2>Por material</h2>
-              {d.materiais.map((m) => (
-                <p key={m.material}>
-                  {m.material}: {Number(m.quilos).toLocaleString("pt-BR")} kg
-                </p>
-              ))}
+              {d.materiais.length > 0 && (
+                <dl className="com-materiais">
+                  {d.materiais.map((m) => (
+                    <div key={m.material}>
+                      <dt>{nomesMateriais[m.material] || m.material.replaceAll("_", " ")}</dt>
+                      <dd><strong>{Number(m.quilos).toLocaleString("pt-BR")}</strong><span>kg</span></dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
               {!d.materiais.length && (
                 <p>Seu impacto aparecerá após uma coleta ser concluída.</p>
               )}

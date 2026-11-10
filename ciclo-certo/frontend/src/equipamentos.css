@@ -1,0 +1,27 @@
+.cc-kit { margin: 24px 0; }
+.cc-kit-intro { display:flex; align-items:flex-start; gap:12px; }
+.cc-kit-marca { display:grid; place-items:center; flex:0 0 48px; height:48px; border-radius:14px; background:#eef3e2; color:#1f3d2b; }
+.cc-kit h3 { margin:0 0 6px; font-size:22px; }
+.cc-kit p { color:var(--muted); line-height:1.5; }
+.cc-kit-atalhos { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; margin:16px 0; }
+.cc-kit-atalhos button { min-height:44px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--green); font:inherit; cursor:pointer; }
+.cc-kit-atalhos span { font-size:12px; color:var(--muted); }
+.cc-kit fieldset { border:0; margin:18px 0; padding:0; min-width:0; }
+.cc-kit legend { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+.cc-kit-grade { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.cc-kit-item { display:flex; align-items:center; gap:10px; padding:14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; min-width:0; background:var(--paper); }
+.cc-kit-item.selecionado { border-color:#4d7750; background:#eef3e2; box-shadow:inset 0 0 0 1px #4d7750; }
+.cc-kit-item input { width:18px; height:18px; margin:0; flex-shrink:0; accent-color:#1f3d2b; }
+.cc-kit-item > svg { flex-shrink:0; color:var(--green); }
+.cc-kit-item span { min-width:0; }
+.cc-kit-item strong { display:block; font-size:14px; }
+.cc-kit-item small { display:block; margin-top:4px; font-size:12px; color:var(--muted); line-height:1.45; }
+.cc-kit-item:has(:focus-visible) { outline:2px solid var(--green); outline-offset:3px; }
+.cc-kit-nota { font-size:12px; padding:12px; border-radius:8px; background:#f7f5ee; }
+.cc-kit-resumo { padding:24px; margin-top:20px; }
+.cc-kit-titulo { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.cc-kit-titulo h2 { margin:4px 0 16px; font-size:21px; }
+.cc-kit-resumo ul { display:flex; flex-wrap:wrap; gap:10px; list-style:none; padding:0; margin:0 0 20px; }
+.cc-kit-resumo li { padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--soft); font-size:14px; }
+.cc-kit-resumo li span { color:var(--green); }
+@media(max-width:540px) { .cc-kit-grade { grid-template-columns:1fr; } .cc-kit-titulo { align-items:flex-start; } }

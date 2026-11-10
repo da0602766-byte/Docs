@@ -36,3 +36,5 @@ class Coleta(Base):
 
     autoriza_depoimento = Column(Boolean, nullable=False, server_default="false")
     depoimento_publicado = Column(Boolean, nullable=False, server_default="false")
+
+    equipamentos = Column(JSON, nullable=False, default=list, server_default="[]")

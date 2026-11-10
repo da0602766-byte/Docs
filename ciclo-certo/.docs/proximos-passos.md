@@ -1,3 +1,7 @@
+> **Kit de equipamentos por coleta publicado em 04/11/2026:** seleção ao assumir, revisão pelo responsável e resumo na lista. Dez opções, kit essencial, persistência e autorização validadas. Operação e deploys em [equipamentos.md](equipamentos.md).
+
+> **Revisão de interface de 04/11/2026 publicada:** cinco ajustes solicitados nos comentários do navegador. Build, nove testes Node e conferência visual dos dois perfis em seis larguras aprovados. Publicada via CLI autenticada e domínio oficial conferido. Os cinco ajustes também passaram no frontend publicado com API interceptada para os dois perfis em 320/673/1440 px. Detalhes em [participacao.md](participacao.md).
+
 > **Participação ampliada — publicado em 04/11/2026:** leitura pública opt-in, links/WhatsApp, favoritos, respostas, correções com histórico, central de avisos, agendar novamente, impacto real, menu Mais, ações do bairro, QR e indicadores. 42 testes backend, nove frontend e jornadas no navegador aprovados. Migração incremental e domínios oficiais conferidos; dados preservados. Operação, limites e IDs em [participacao.md](participacao.md).
 >
 > **Comunidade: avisos e YouTube — publicado em 04/11/2026:** avisos persistentes de aprovação/recusa com som, folhas aleatórias, cartões separados e vídeos por link. Migração aditiva aplicada, dados preservados, 36 testes backend e nove frontend aprovados. Detalhes em [comunidade.md](comunidade.md).

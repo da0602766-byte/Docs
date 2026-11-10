@@ -16,7 +16,11 @@ class Agendamento(Entrada):
     materiais_informados: list[str] = Field(min_length=1, max_length=30)
 
 
-class Assumir(Entrada):
+class KitEquipamentos(Entrada):
+    equipamentos: list[str] = Field(default_factory=list, max_length=10)
+
+
+class Assumir(KitEquipamentos):
     confirmar: Literal[True]
     observacao: str = Field(default="", max_length=300)
 

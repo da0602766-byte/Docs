@@ -1281,3 +1281,45 @@
   text-decoration: underline;
   color: #1f3d2b;
 }
+
+/* Menus ficam acima dos cartões e mantêm alvos confortáveis para toque. */
+.ws .com-publicacao:has(.com-mais-acoes[open]) { content-visibility: visible; position: relative; z-index: 4; }
+.com-publicacao-topo { display: flex; align-items: flex-start; gap: 12px; }
+.com-publicacao-topo .com-autor { flex: 1; }
+.ws .com-mais-acoes { flex-shrink: 0; }
+.ws .com-mais-acoes summary::-webkit-details-marker,
+.ws-conta summary::-webkit-details-marker { display: none; }
+.ws .com-mais-acoes > div { top: calc(100% + 6px); width: 180px; scroll-margin-block: 90px; }
+.ws .com-mais-acoes button { border: 0; background: transparent; text-align: left; min-height: 44px; padding: 10px 12px; border-radius: 8px; color: var(--green); font: inherit; cursor: pointer; }
+.ws .com-mais-acoes button:hover { background: var(--soft); }
+.ws .com-comentarios form { display: grid; gap: 16px; }
+.ws .com-comentarios .ws-field { margin: 0; }
+.ws .com-form-rodape { flex-wrap: wrap; row-gap: 14px; }
+.ws .com-form-rodape .ws-btn { margin-left: auto; flex-shrink: 0; }
+
+/* Uma coluna para o material, outra para o peso, com unidade independente. */
+.com-materiais { margin: 16px 0 0; }
+.com-materiais > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 13px 14px; border-bottom: 1px solid var(--line); }
+.com-materiais > div:nth-child(odd) { background: var(--soft); border-radius: 8px; }
+.com-materiais > div:last-child { border-bottom: 0; }
+.com-materiais dt { overflow-wrap: anywhere; text-transform: capitalize; }
+.com-materiais dd { margin: 0; display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.com-materiais dd span { font-size: 12px; color: var(--muted); }
+
+/* Ações da conta ficam à direita em todas as larguras. */
+.ws .ws-header-acoes { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.ws .ws-header-acoes .cc-sino-area,
+.ws .ws-header-acoes .ws-user { margin-left: 0; }
+.ws .ws-conta { position: relative; display: block; min-width: 36px; flex-shrink: 0; }
+.ws-conta > summary { list-style: none; display: flex; align-items: center; gap: 10px; width: max-content; min-width: 36px; min-height: 44px; cursor: pointer; border-radius: 24px; }
+.ws-conta > summary:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+.ws-conta-menu { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: min(240px, calc(100vw - 32px)); display: grid; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); box-shadow: 0 8px 24px #1f3d2b18; }
+.ws-conta-menu > strong { padding: 10px 12px; overflow-wrap: anywhere; }
+.ws .ws-conta-menu button { text-align: left; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--green); font: inherit; cursor: pointer; }
+.ws .ws-conta-menu button:hover { background: var(--soft); }
+.ws .cc-caixa-avisos { max-height: min(480px, calc(100dvh - 160px)); overflow-y: auto; max-width: calc(100vw - 32px); }
+@media (max-width: 380px) {
+  .ws .ws-header-inner { gap: 8px; }
+  .ws .ws-header-acoes { gap: 6px; }
+  .ws .ws-logo { gap: 6px; font-size: 18px; }
+}
