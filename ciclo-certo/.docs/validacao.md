@@ -1,8 +1,8 @@
-## Consolida??o Git ? 10/11/2026
+## Consolidação Git — 10/11/2026
 
-Altera??es pendentes da pasta principal e de `revisao-interface` integradas ? `main`: loja e gest?o, demonstra??o local, proposta de IA, ajustes da comunidade e kit de equipamentos. A c?pia de revis?o permanece separada e ignorada pelo reposit?rio principal. Backup anterior ? sincroniza??o preservado no Git stash.
+Alterações pendentes da pasta principal e de `revisao-interface` integradas à `main`: loja e gestão, demonstração local, proposta de IA, ajustes da comunidade e kit de equipamentos. A cópia de revisão permanece separada e ignorada pelo repositório principal. Backup anterior à sincronização preservado no Git stash.
 
-Valida??o do conjunto consolidado: build Vite aprovado; nove testes Node aprovados (`sessao`, `listagem`, `publicacao` e `youtube`); 44 testes Python aprovados (`teste_operacao`, `teste_comunidade` e `teste_participacao`) em PostgreSQL local descart?vel. Nenhum teste acessou o banco de produ??o. As migra??es locais antigas de loja e recupera??o foram consolidadas nos arquivos j? versionados com os nomes remotos correspondentes, evitando execu??o duplicada.
+Validação do conjunto consolidado: build Vite aprovado; nove testes Node aprovados (`sessao`, `listagem`, `publicacao` e `youtube`); 44 testes Python aprovados (`teste_operacao`, `teste_comunidade` e `teste_participacao`) em PostgreSQL local descartável. Nenhum teste acessou o banco de produção. As migrações locais antigas de loja e recuperação foram consolidadas nos arquivos já versionados com os nomes remotos correspondentes, evitando execução duplicada.
 
 > Atualização de 29/10/2026: versão `cb9cb24` publicada no frontend e na API da Vercel. Migração aplicada ao Supabase, preservando os 5 usuários, 1 coleta e 3 pesagens. Páginas públicas, catálogo, saúde, CORS e bloqueio sem token aprovados. Validação local: 20 testes backend, 3 frontend e build aprovados. Login em produção e câmera/assinatura em aparelho físico ainda pendentes. A revisão automática bloqueou o teste que criaria tokens para contas reais; ele não foi executado.
 >
