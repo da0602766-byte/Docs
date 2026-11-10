@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { solicitar, enviar } from "../api";
+import KitEquipamentos from "./KitEquipamentos";
 import { Situacao } from "../visual";
 import {
   moeda,
@@ -127,6 +128,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
   const [mensagem, setMensagem] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [modal, setModal] = useState("");
+  const [equipamentos, setEquipamentos] = useState([]);
   const [observacao, setObservacao] = useState("");
   const [motivo, setMotivo] = useState("");
   const [material, setMaterial] = useState("aluminio");
@@ -282,7 +284,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             {perfil.tipo === "cooperativa" &&
               coleta.situacao === "agendada" && (
                 <button className="ws-btn" onClick={() => setModal("assumir")}>
-                  Assumir coleta
+                  Preparar kit e assumir
                 </button>
               )}
             {responsavel && coleta.situacao === "aguardando_avaliacao" && (
@@ -298,6 +300,13 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
               </button>
             )}
           </div>
+          {perfil.tipo === "cooperativa" && coleta.situacao !== "agendada" && (
+            <section className="ws-card cc-kit-resumo">
+              <div className="cc-kit-titulo"><div><p className="ws-kicker">Preparação da coleta</p><h2>Equipamentos planejados</h2></div><span className="ws-tag">{coleta.equipamentos?.length || 0} itens</span></div>
+              {coleta.equipamentos?.length ? <ul>{coleta.equipamentos.map(c => <li key={c}><span aria-hidden="true">✓</span> {catalogo.equipamentos?.find(e => e.codigo === c)?.nome || c}</li>)}</ul> : <p>Nenhum equipamento foi planejado para esta coleta.</p>}
+              {editavel && <button className="ws-btn ws-btn-ghost" onClick={() => { setEquipamentos(coleta.equipamentos || []); setModal("equipamentos"); }}>Revisar kit</button>}
+            </section>
+          )}
           <section className="ws-card cc-form">
             <h2>Pesagens {editavel ? "em conferência" : "registradas"}</h2>
             <Estado recurso={pesos} />
@@ -512,13 +521,14 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              acao("assumir", { confirmar: true, observacao });
+              acao("assumir", { confirmar: true, observacao, equipamentos });
             }}
           >
             <p>
               {perfil.nome}, você ficará responsável por conferir, pesar e
               finalizar esta coleta.
             </p>
+            <KitEquipamentos itens={catalogo.equipamentos || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
             <label className="ws-field">
               Observação (opcional)
               <textarea
@@ -535,6 +545,15 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             <button className="ws-btn" disabled={ocupado}>
               Confirmar responsabilidade
             </button>
+          </form>
+        </Modal>
+      )}
+      {modal === "equipamentos" && (
+        <Modal titulo="Revisar kit da coleta" fechar={() => !ocupado && setModal("")}>
+          <form onSubmit={e => { e.preventDefault(); acao("equipamentos", { equipamentos }, "PUT"); }}>
+            <KitEquipamentos itens={catalogo.equipamentos || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
+            {erro && <p role="alert">{erro}</p>}
+            <button className="ws-btn" disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar kit"}</button>
           </form>
         </Modal>
       )}

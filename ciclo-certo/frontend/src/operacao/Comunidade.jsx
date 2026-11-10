@@ -227,9 +227,60 @@ function Comentarios({ publicacao, revisao, acao, atualizar }) {
 
 function Publicacao({ item, modo, revisao, acao, atualizar }) {
   const [conversa, setConversa] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const menu = useRef(null);
+  // Só o menu aberto escuta clique externo e Escape.
+  useEffect(() => {
+    if (!menuAberto) return;
+    const fechar = (e) => {
+      if (e.type === "keydown" && e.key !== "Escape") return;
+      if (e.type === "pointerdown" && menu.current?.contains(e.target)) return;
+      if (menu.current) {
+        menu.current.open = false;
+        if (e.type === "keydown") menu.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", fechar);
+    document.addEventListener("keydown", fechar);
+    return () => {
+      document.removeEventListener("pointerdown", fechar);
+      document.removeEventListener("keydown", fechar);
+    };
+  }, [menuAberto]);
+  const executar = (acaoEscolhida) => {
+    menu.current.open = false;
+    acao(acaoEscolhida);
+  };
   return (
     <article className="com-publicacao">
-      <Autor autor={item.autor} criado={item.criado_em} />
+      <header className="com-publicacao-topo">
+        <Autor autor={item.autor} criado={item.criado_em} />
+        {(item.pode_excluir || item.estado === "aprovada") && (
+          <details className="com-mais-acoes" ref={menu} onToggle={(e) => {
+            setMenuAberto(e.currentTarget.open);
+            // Mantém as opções acima da navegação fixa em telas baixas.
+            if (e.currentTarget.open) e.currentTarget.lastElementChild.scrollIntoView({ block: "nearest" });
+          }}>
+            <summary aria-label="Mais ações da publicação">•••</summary>
+            <div>
+              {item.estado === "aprovada" && (
+                <button
+                  onClick={() =>
+                    executar({ tipo: "denunciar", publicacao: item.id })
+                  }
+                >
+                  Denunciar
+                </button>
+              )}
+              {item.pode_excluir && (
+                <button onClick={() => executar({ tipo: "excluir", id: item.id })}>
+                  Excluir
+                </button>
+              )}
+            </div>
+          </details>
+        )}
+      </header>
       <div className="com-etiquetas">
         <span className="com-categoria">{item.categoria}</span>
         {item.estado !== "aprovada" ? (
@@ -267,27 +318,6 @@ function Publicacao({ item, modo, revisao, acao, atualizar }) {
             </button>
             <Favorito item={item} />
           </>
-        )}
-        {(item.pode_excluir || item.estado === "aprovada") && (
-          <details className="com-mais-acoes">
-            <summary aria-label="Mais ações da publicação">•••</summary>
-            <div>
-              {item.estado === "aprovada" && (
-                <button
-                  onClick={() =>
-                    acao({ tipo: "denunciar", publicacao: item.id })
-                  }
-                >
-                  Denunciar
-                </button>
-              )}
-              {item.pode_excluir && (
-                <button onClick={() => acao({ tipo: "excluir", id: item.id })}>
-                  Excluir
-                </button>
-              )}
-            </div>
-          </details>
         )}
         {item.minha && item.estado === "rejeitada" && (
           <Corrigir

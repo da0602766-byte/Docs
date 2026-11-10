@@ -108,3 +108,9 @@ def carteira(usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao))
 @router.patch("/usuarios/eu")
 def perfil(dados: entrada.Perfil, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
     return servico.alterar_perfil(sessao, dados, usuario)
+
+
+# O serviço verifica autoria e situação antes de persistir o kit.
+@router.put("/coletas/{identificador}/equipamentos")
+def salvar_equipamentos(identificador: int, dados: entrada.KitEquipamentos, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
+    return servico.salvar_equipamentos(sessao, identificador, dados, usuario)

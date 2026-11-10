@@ -11,7 +11,7 @@ Implementação autorizada em 04/11/2026 após a lista de sugestões. Mantém a 
 - Autor pode corrigir publicação recusada após um minuto e reenviar. Preserva versão, texto e motivo anteriores; incrementa revisão, volta para pendente, e cria nova notificação na próxima decisão. Publicações aprovadas/excluídas não podem ser reenviadas. Hashes históricos impedem republicar conteúdo antigo, e vídeos anteriores também são verificados. Crédito mantém chave única por publicação.
 - Agendar novamente: seletor de coleta anterior reaproveita somente endereço e materiais; limpa data/hora e exige nova confirmação dos dados. Nenhuma coleta é criada ao selecionar.
 - Meu impacto apresenta coletas concluídas e pesos reais, por material e por mês, isolados por morador ou cooperador responsável. Sem estimativa de CO₂, árvores ou peso não registrado.
-- Navegação móvel com quatro destinos principais e Mais. Perfil, notificações, impacto, ações e convites ficam acessíveis pelo menu; ferramentas anteriores da cooperativa são preservadas.
+- Navegação móvel com quatro destinos principais e Mais. Perfil, impacto, ações e convites ficam acessíveis pelo menu; notificações agora ficam no sino do cabeçalho para ambos os perfis. Ferramentas anteriores da cooperativa são preservadas.
 - Moderação cadastra ações reais (evento, pergunta ou destaque), com período, descrição, local para eventos e inscrição idempotente. Destaque requer publicação pública aprovada e não concede bônus. Encerramento preserva inscrições; destaque removido/privado sai da vitrine. Ações abertas também aparecem na página pública.
 - Pergunta da semana convida à composição de resposta; destaque abre a publicação. Exemplos editoriais explícitos só aparecem quando a seleção do feed não contém publicações reais.
 - QR code local para agendamento, comunidade ou link público, com download PNG; biblioteca `qrcode@1.5.4`, carregada sob demanda. Nenhum parceiro ou evento fictício criado em produção.
@@ -41,3 +41,20 @@ Migração local `20261104214055_comunidade_participacao.sql` registrada remotam
 API oficial: saúde e leituras públicas 200; avisos, indicadores e detalhe autenticado 401 sem token; 58 caminhos preservando os 41 anteriores; CORS da origem oficial aprovado. Link compartilhado de conteúdo privado retorna 404 pelo rewrite. Início, login, cooperador e comunidade pública conferidos em 320/390/1440 px, HTTP 200, sem erro JavaScript nem overflow. Visitas de validação interceptadas no navegador para não contaminar os indicadores. Logs error/fatal da API: zero registros após a promoção.
 
 Os fluxos autenticados foram validados com API real e PostgreSQL local descartável; não se criaram contas, tokens ou conteúdo artificial em produção. Novas perguntas, eventos e destaques dependem do cadastro de informações reais pela moderação em Mais → Ações do bairro.
+
+
+## Revisão de interface — 04/11/2026 (publicada)
+
+Alterações preparadas a partir do commit `55cd8876fb49cb08a6fb56435602aa595ce7c271`, em cópia isolada `Docs/revisao-interface`, pois a pasta original contém alterações locais anteriores à Comunidade.
+
+- Menu de ações da publicação movido para o cabeçalho, junto ao autor. Ao abrir, remove a contenção de pintura somente desse cartão e mantém as opções acima da navegação inferior; fecha com Esc, clique externo ou escolha de ação.
+- Meu impacto usa lista semântica com materiais legíveis, linhas alternadas e coluna numérica com unidade kg separada. Pesos, categorias e total continuam vindos da API, sem reagrupamento ou arredondamento novo.
+- O mesmo componente de sino atende morador e cooperativa. O morador consulta a primeira página de seu histórico em `/comunidade/avisos` a cada 15 segundos e abre a central para navegar no histórico completo; o contador considera os avisos não lidos dessa página. A cooperativa conserva seus avisos de novos pedidos. A central também fica disponível pelo sino.
+- Avatar sempre à direita, com nome, Meu perfil e Sair dentro do menu da conta. Clique externo e Esc fecham o menu.
+- Formulário de comentários com 16 px entre o campo e o rodapé, quebra de linha e botão alinhado à direita em telas estreitas.
+
+Validação: build Vite e nove testes Node aprovados. `node testes/revisao-interface.cjs` passou em 320, 390, 673, 960, 1440 e 1920 px, para os dois perfis, com dados simulados e sem chamadas ao banco real: menus, acesso à central, materiais/pesos, espaçamento, saída e ausência de overflow horizontal/erros JavaScript. Capturas em `frontend/resultados-visuais/revisao-interface/`. Este roteiro verifica a interface com respostas simuladas; não substitui o fluxo autenticado em produção.
+
+Publicação autorizada pelo usuário e concluída via CLI autenticada, após o conector retornar 404. Equipe `projetos-fd50`, projeto `prj_VNnghSu52i0iMoIogvEbhk8k79c8`. Deploy de produção `dpl_APNNhoW3QsVXS2wqp8m69focXUbf`, URL `https://ciclo-certo-g5b62um16-projetos-fd50.vercel.app`, criado com `--prod --skip-domain` e promovido após conferência do HTML, JavaScript, CSS e origem HTTPS da API. Bundle oficial `/assets/index-CpmeWiUb.js`; CSS `/assets/index-DRDKJ2lY.css`.
+
+Domínio oficial: `/`, `/login` e `/cooperador` respondem 200 com o novo bundle, idêntico ao artefato conferido. `node testes/revisao-interface-producao.cjs` exercitou os cinco ajustes no frontend publicado, em 320/673/1440 px, nos dois perfis, sem erros JavaScript ou overflow. API interceptada com respostas simuladas e token sintético; não houve acesso a contas ou alterações de dados reais. Capturas em `frontend/resultados-visuais/revisao-interface-producao/`. Backend e banco não foram alterados. Fontes publicadas diretamente da cópia local, sem commit ou push.

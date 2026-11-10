@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { solicitar } from "./api";
 
 // O sino mantém a caixa de avisos; o toast desaparece após seis segundos.
-export default function NotificacoesCoordenador({ perfil, abrir }) {
+export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral }) {
+  const morador = perfil.tipo === "morador";
   const [avisos, setAvisos] = useState([]),
     [aberto, setAberto] = useState(false),
     [toast, setToast] = useState(null),
@@ -21,6 +22,12 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
     let iniciou = sessionStorage.getItem(chave) !== null;
     async function atualizar() {
       try {
+        // O morador vê seu histórico; a cooperativa mantém os avisos de novos pedidos.
+        if (morador) {
+          const resposta = await solicitar("/comunidade/avisos");
+          if (ativo) { setAvisos(resposta.itens); setErro(false); }
+          return;
+        }
         const coletas = await solicitar("/coletas");
         if (!ativo) return;
         const novas = coletas.filter((c) => !conhecidos.has(c.id));
@@ -44,7 +51,7 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
       } catch {
         if (ativo) setErro(true);
       } finally {
-        if (ativo) timer = setTimeout(atualizar, 3000);
+        if (ativo) timer = setTimeout(atualizar, morador ? 15000 : 3000);
       }
     }
     atualizar();
@@ -52,7 +59,7 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
       ativo = false;
       clearTimeout(timer);
     };
-  }, [chave]);
+  }, [chave, morador]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 6000);
@@ -72,7 +79,7 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
       document.removeEventListener("keydown", tecla);
     };
   }, []);
-  const pendentes = avisos.filter((a) => !vistos.current.has(a.id)).length;
+  const pendentes = avisos.filter((a) => morador ? !a.lida : !vistos.current.has(a.id)).length;
   return (
     <div className="cc-sino-area" ref={raiz}>
       <button
@@ -81,7 +88,7 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
         aria-expanded={aberto}
         onClick={() => {
           setAberto(!aberto);
-          avisos.forEach((a) => vistos.current.add(a.id));
+          if (!morador) avisos.forEach((a) => vistos.current.add(a.id));
         }}
       >
         <svg
@@ -110,21 +117,22 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
             </small>
           </header>
           {!avisos.length ? (
-            <p>Você está em dia. Novas solicitações aparecerão aqui.</p>
+            <p>{morador ? "Você está em dia. Seus avisos aparecerão aqui." : "Você está em dia. Novas solicitações aparecerão aqui."}</p>
           ) : (
             avisos.map((a) => (
               <button
                 key={a.id}
                 onClick={() => {
-                  abrir(a.id);
+                  if (morador) abrirCentral();
+                  else abrir(a.id);
                   setAberto(false);
                   setToast(null);
                 }}
               >
-                <strong>Nova coleta #{a.id}</strong>
-                <span>{a.nome} solicitou uma coleta</span>
+                <strong>{morador ? (a.estado === "aprovada" ? "Publicação aprovada" : a.estado === "resposta" ? "Nova resposta" : "Precisa de ajustes") : `Nova coleta #${a.id}`}</strong>
+                <span>{morador ? a.mensagem : `${a.nome} solicitou uma coleta`}</span>
                 <small>
-                  {new Date(a.hora).toLocaleTimeString("pt-BR", {
+                  {new Date(morador ? a.criado_em : a.hora).toLocaleTimeString("pt-BR", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -132,6 +140,7 @@ export default function NotificacoesCoordenador({ perfil, abrir }) {
               </button>
             ))
           )}
+          <button onClick={() => { abrirCentral(); setAberto(false); }}>Ver todas as notificações →</button>
         </section>
       )}
       {toast && (

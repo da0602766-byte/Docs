@@ -387,5 +387,26 @@ class TesteOperacao(unittest.TestCase):
         self.assertEqual(self.cliente.post('/login', data={'username': self.morador['email'], 'password': dados['senha']}).status_code, 200)
 
 
+    def test_kit_equipamentos_persistencia_permissoes_e_validacao(self):
+        coleta = self.agendar()
+        caminho = f"/coletas/{coleta['id']}"
+        self.assertEqual(coleta["equipamentos"], [])
+        self.post(caminho + "/assumir", {"confirmar": True, "equipamentos": ["inexistente"]}, esperado=422)
+        assumida = self.post(caminho + "/assumir", {"confirmar": True, "equipamentos": ["balanca", "luvas", "balanca"]})
+        self.assertEqual(assumida["equipamentos"], ["balanca", "luvas"])
+        self.assertEqual(self.cliente.get(caminho, headers=self.c).json()["equipamentos"], ["balanca", "luvas"])
+        for headers in [self.m, self.s]:
+            self.assertEqual(self.cliente.put(caminho + "/equipamentos", json={"equipamentos": ["carrinho"]}, headers=headers).status_code, 403)
+        self.assertEqual(self.cliente.put(caminho + "/equipamentos", json={"equipamentos": []}).status_code, 401)
+        self.assertEqual(self.cliente.put(caminho + "/equipamentos", json={"equipamentos": ["inexistente"]}, headers=self.c).status_code, 422)
+        resposta = self.cliente.put(caminho + "/equipamentos", json={"equipamentos": ["carrinho", "sacos"]}, headers=self.c)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.json()["equipamentos"], ["carrinho", "sacos"])
+        self.assertEqual(resposta.json()["pontos"], assumida["pontos"])
+        self.post(caminho + "/cancelar", {"motivo": "Cancelamento de teste do kit"})
+        self.assertEqual(self.cliente.put(caminho + "/equipamentos", json={"equipamentos": []}, headers=self.c).status_code, 409)
+        self.assertEqual(len(self.cliente.get("/catalogo").json()["equipamentos"]), 10)
+
+
 if __name__ == "__main__":
     unittest.main()

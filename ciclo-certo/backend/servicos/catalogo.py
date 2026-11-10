@@ -22,7 +22,8 @@ ITENS = [
 
 def catalogo():
     """Expõe a mesma regra ao formulário e ao cálculo autorizado no servidor."""
-    return {"pontos_por_real": 100, "percentual_morador": configuracao.percentual_morador,
+    from servicos.equipamentos import EQUIPAMENTOS
+    return {"equipamentos": EQUIPAMENTOS, "pontos_por_real": 100, "percentual_morador": configuracao.percentual_morador,
             "ficticio": True, "itens": [dict(codigo=c, nome=n, minimo=a, maximo=b,
             referencia=ref, cuidado=aviso, valor_morador_kg=str(tarifa(c)) if a else None)
             for c, n, a, b, ref, aviso in ITENS]}

@@ -1,3 +1,5 @@
+> **Kit de equipamentos publicado em 04/11/2026:** em Pedidos, abrir a coleta e usar Preparar kit e assumir; dez equipamentos, atalho de kit essencial e revisão pelo responsável. [Operação e validação](.docs/equipamentos.md).
+
 > **Comunidade — 04/11/2026:** integrada à versão em produção, preservando Mercado, Gestão e recuperação de senha. Fontes recuperadas da Vercel; 32 testes backend, 7 frontend e fluxo completo no navegador aprovados. Publicação concluída nos endereços oficiais, com dados preservados e moderação concedida a `da0602766@gmail.com`; detalhes em `ciclo-certo/.docs/comunidade.md`.
 
 > **Publicado em 29/10/2026:** frontend e API atualizados na Vercel, incluindo o espaçamento de 24 px entre busca e coletas. API `dpl_gy9CQ22n5MGNCeQjBoPQDtc8FrQr`; frontend `dpl_4WrFftx5LZinLiJSFApSrmHJn4CC`. Publicação direta do código local, sem push ou commit.

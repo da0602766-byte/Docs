@@ -1,0 +1,13 @@
+**/.env
+**/.env.*
+**/node_modules/
+**/venv/
+**/.venv/
+**/__pycache__/
+**/dist/
+**/resultados-visuais/
+**/testes/
+**/.test-infra/
+ciclo-certo/backend/
+ciclo-certo/supabase/
+entregas/
