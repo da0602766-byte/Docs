@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
+from pydantic import SecretStr
 
 
 # Carrega as variaveis locais antes de o FastAPI configurar os recursos externos.
@@ -45,3 +46,48 @@ smtp_porta = int(os.getenv('SMTP_PORTA', '587'))
 smtp_usuario = os.getenv('SMTP_USUARIO', '')
 smtp_senha = os.getenv('SMTP_SENHA', '')
 smtp_remetente = os.getenv('SMTP_REMETENTE', '')
+
+# IA é opcional; o site pode iniciar sem chaves ou modelos de nenhum provedor.
+_provedores_ia = {
+    "gemini": ("GEMINI_API_KEY", "GEMINI_MODEL"),
+    "openrouter": ("OPENROUTER_API_KEY", "OPENROUTER_MODEL"),
+}
+
+
+# O futuro serviço chama esta função antes de integrar um provedor, sem trocar de chave em caso de falha.
+def obter_configuracao_ia():
+    habilitada = os.getenv("IA_HABILITADA", "0").strip()
+    if habilitada == "0":
+        return None
+    if habilitada != "1":
+        raise ValueError("Configure IA_HABILITADA com 0 ou 1.")
+
+    provedor = os.getenv("IA_PROVEDOR", "gemini").strip().lower()
+    if provedor not in _provedores_ia:
+        raise ValueError("Configure IA_PROVEDOR com gemini ou openrouter.")
+
+    nome_chave, nome_modelo = _provedores_ia[provedor]
+    chave = os.getenv(nome_chave, "").strip()
+    modelo = os.getenv(nome_modelo, "").strip()
+    faltando = [nome for nome, valor in ((nome_chave, chave), (nome_modelo, modelo)) if not valor]
+    if faltando:
+        raise ValueError(f"Preencha {', '.join(faltando)} no ambiente do backend.")
+
+    # SecretStr oculta a chave na representação do objeto; só o cliente do provedor deve abri-la.
+    return {"provedor": provedor, "modelo": modelo, "chave": SecretStr(chave)}
+
+
+# Executar este arquivo diretamente verifica só a configuração local, sem banco nem rede.
+if __name__ == "__main__":
+    for nomes in _provedores_ia.values():
+        for nome in nomes:
+            estado = "preenchido" if os.getenv(nome, "").strip() else "vazio"
+            print(f"{nome}: {estado}")
+    try:
+        configuracao_ia = obter_configuracao_ia()
+    except ValueError as erro:
+        raise SystemExit(str(erro))
+    if configuracao_ia is None:
+        print("IA desativada (IA_HABILITADA=0).")
+    else:
+        print(f"Configuração preenchida para {configuracao_ia['provedor']}. Nenhuma chamada foi feita.")

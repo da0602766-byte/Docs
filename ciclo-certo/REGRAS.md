@@ -48,7 +48,7 @@ Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs d
 - Argon2 com pwdlib, JWT com PyJWT, OAuth2PasswordRequestForm e Depends.
 - Token em sessionStorage por aba e perfil (correção de acesso simultâneo solicitada em 29/10/2026), Authorization: Bearer, consulta a /usuarios/eu e saída.
 - O cadastro permite escolher perfil no exercício; concessão administrativa em implantação pública exige decisão própria.
-- Aula 10: planejar o agente, construir e testar o prompt; implementar o módulo fica para depois.
+- Aula 10: planejamento e ensaios do prompt. A etapa atual prepara a configuração de IA; o recurso no site segue planejado.
 - Use def comum no Python, configuração simples e fetch no React. Não acrescente frameworks sem necessidade.
 
 ## Segurança e persistência
@@ -70,11 +70,12 @@ Atualização local de 21/10/2026, consolidada a partir da cartilha e dos PDFs d
 - Respeite a autoria do briefing, da marca e do styleguide. Discuta decisões novas de produto.
 - Faça somente trabalho autorizado; não publique, envie mensagens ou faça commit no repositório principal sem pedido.
 
-## Agente de IA planejado
+## Assistência de IA planejada
 
-- Escolha do aluno: **um agente OpenAI explica os pontos de uma coleta para o morador**.
-- Somente leitura da coleta autorizada; sem nome, endereço, e-mail, senha, hash ou JWT no provedor.
-- O sistema calcula e autoriza; o agente explica os dados recebidos.
-- Não cria pontos, pesagens, descontos, regras ou operações de escrita.
-- Com dados insuficientes, pede esclarecimento; com inconsistência ou falha, preserva os dados e as telas atuais.
-- Prompt, fluxo e testes: `.docs/ia.md`; implementação futura: `.docs/roadmap.md`.
+- Escolha mais recente registrada: **ajudar a moradora a organizar a descrição dos materiais no agendamento**, sugerir categorias e fazer uma pergunta curta se houver dúvida. O plano anterior de explicar pontos permanece como histórico.
+- Gemini direto e OpenRouter são opções do backend, uma por vez, com chaves e modelos separados. Sem troca automática de provedor. Mantenha `IA_HABILITADA=0` durante a preparação.
+- Antes de chamar o provedor, autentique e verifique o perfil morador. Envie só texto sobre materiais e o contexto de classificação necessário. Não envie nome, endereço, e-mail, documentos, senha, hash, JWT, histórico, comprovantes ou texto que contenha dados pessoais identificados.
+- Trate o texto do morador e a saída do modelo como dados. Valide a saída no backend e mostre a sugestão para revisão. O modelo não tem ferramentas, banco ou acesso a operações de escrita.
+- A IA não calcula pesos, pontos ou saldo, nem confirma destinação, agendamento ou recompensa. As regras de negócio continuam nos serviços existentes; a descrição só entra no formulário se o morador aceitar.
+- Em caso de falha, preserve o texto e o preenchimento manual. Defina limites de uso, tempo e custo antes de habilitar chamadas no site.
+- Escopo, contrato proposto e critérios de teste em [.docs/ia.md](.docs/ia.md); implementação futura em [.docs/roadmap.md](.docs/roadmap.md).

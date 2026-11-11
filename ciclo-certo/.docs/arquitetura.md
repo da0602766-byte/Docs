@@ -44,4 +44,4 @@ Quilos/pontos usam DOUBLE/float. Não há arredondamento no cálculo. A interfac
 
 ## IA planejada
 
-O futuro endpoint manterá as camadas. O backend autoriza antes do provedor e oferece somente leitura da coleta vinculada à requisição. Modelo sem SQL, JWT ou escrita. Fluxo em `ia.md`; nenhuma rota de IA está implementada.
+O recurso planejado é a assistência para descrever materiais em Agendar coleta. `configuracao.py` lê `backend/.env` ou as variáveis do ambiente e seleciona as credenciais de Gemini ou OpenRouter. O futuro endpoint manterá as camadas: autenticação e validação na rota, minimização dos dados e validação da sugestão no serviço. O modelo recebe somente o contexto necessário para classificar materiais, sem acesso ao banco. O agendamento continua separado e depende da confirmação normal da moradora. Veja [plano vigente](ia.md); nenhuma rota de IA está implementada.

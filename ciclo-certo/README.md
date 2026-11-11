@@ -77,6 +77,18 @@ As sessões ficam em `sessionStorage`, separadas por aba e perfil. É possível 
 
 Regressão de sessões simultâneas: `node --test testes/sessao.test.js testes/listagem.test.js testes/publicacao.test.js`, na pasta `frontend`. Sete testes passaram, incluindo isolamento entre perfis, recarga, saída, expiração e resposta 401 atrasada; build aprovado. Testes usam respostas simuladas, sem credenciais reais.
 
+## Preparação da IA
+
+No arquivo local `backend/.env`, preencha `GEMINI_API_KEY` e `OPENROUTER_API_KEY`. É possível guardar as duas chaves; a futura assistência usará apenas o provedor escolhido em `IA_PROVEDOR` (`gemini` ou `openrouter`) e seu modelo (`GEMINI_MODEL` ou `OPENROUTER_MODEL`). Se o arquivo não existir, crie-o a partir de [backend/.env.exemplo](backend/.env.exemplo). Mantenha `IA_HABILITADA=0` até a integração estar pronta. As chaves ficam fora do Git e do frontend.
+
+Para conferir os campos preenchidos sem mostrar os valores nem chamar APIs, execute a partir de `ciclo-certo/`:
+
+```powershell
+.\venv\Scripts\python.exe backend/configuracao.py
+```
+
+A funcionalidade planejada é sugerir descrições de materiais no agendamento. [Escopo, regras e pendências](.docs/ia.md) · [Configuração futura na Vercel](docs/VERCEL.md#credenciais-opcionais-da-ia).
+
 ## Testes locais isolados
 
 A suíte usa PostgreSQL portátil de teste, nunca o Supabase de uso normal. A partir de `ciclo-certo/`:
@@ -136,4 +148,4 @@ Rotas chamam serviços; serviços aplicam autorização e transações; reposit�
 
 JWT HS256 com `sub`, `exp` e versão de sessão, senha Argon2, CORS de origem exata, dados privados protegidos por API e RLS. Créditos/resgates são transacionais e idempotentes. Imagens não possuem URL pública. `.env`, ambientes, dependências, testes locais e builds ficam fora do Git.
 
-Regras de trabalho em [REGRAS.md](REGRAS.md); continuidade em [.docs/proximos-passos.md](.docs/proximos-passos.md). O agente de IA permanece planejado, sem chamadas a provedores.
+Regras de trabalho em [REGRAS.md](REGRAS.md); continuidade em [.docs/proximos-passos.md](.docs/proximos-passos.md). A configuração de IA está preparada no backend; a rota, a interface e as chamadas aos provedores ainda precisam ser implementadas.

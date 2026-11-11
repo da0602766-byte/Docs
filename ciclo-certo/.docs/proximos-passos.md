@@ -39,12 +39,10 @@ Migração concluída em 28/10/2026: 4 usuários preservados, nenhuma coleta/pes
 
 Execução em clone local limpo de um snapshot das fontes atuais, banco vazio, revisão 0003, preservação de registros no banco local e testes HTTP já concluídos; evidências em `validacao.md`.
 
-## Implementação futura de IA
+## Próxima etapa da IA
 
-1. Definir modelo OpenAI, orçamento e credencial somente no backend.
-2. Implementar leitura autorizada e endpoint planejado; testar acesso antes do provedor.
-3. Integrar Responses API, ferramenta restrita e validação de resposta/falhas/timeout.
-4. Adicionar botão e estados de carregamento/erro ao detalhe da coleta.
-5. Repetir ensaios pelo caminho real da API e comparar com o histórico.
+1. Preencher as chaves em `backend/.env` e definir o modelo para o primeiro teste. A [configuração local](../README.md#preparação-da-ia) já aceita Gemini e OpenRouter, sem ativar chamadas.
+2. Implementar o endpoint de sugestão de materiais para moradores, com limites e privacidade definidos no [plano vigente](ia.md). Testar autorização e falhas com provedor simulado.
+3. Validar o modelo escolhido com exemplos fictícios, orçamento e prazo de resposta. Adicionar a prévia editável e o tratamento de erros em Agendar coleta.
 
-IA ainda não implementada. Não criar chamadas pagas, dados reais ou contas na aplicação para apresentar o plano como concluído.
+A integração com os provedores ainda não foi implementada. A explicação de pontos permanece no histórico de planejamento.

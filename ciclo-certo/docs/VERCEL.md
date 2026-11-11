@@ -49,6 +49,12 @@ No projeto Supabase atual, use o host `aws-0-us-east-2.pooler.supabase.com`, usu
 
 `VERCEL=1` é fornecida pela plataforma. Nesse ambiente a API usa `NullPool`, mantém prepared statements desativados e exige `ORIGEM_FRONTEND` HTTPS válida. Credenciais não recebem prefixo `VITE_`; esse prefixo expõe o valor ao navegador. Nenhum `.env` ou backup deve ser enviado ao GitHub. Os arquivos `.vercelignore` também os excluem de uploads via CLI.
 
+### Credenciais opcionais da IA
+
+Quando for implantar a integração, use **Settings → Environment Variables** apenas no projeto `ciclo-certo-api`. Cadastre `GEMINI_API_KEY` e/ou `OPENROUTER_API_KEY` como [Secret](https://vercel.com/docs/environment-variables/sensitive-environment-variables), no ambiente correspondente. Use `IA_PROVEDOR` para selecionar `gemini` ou `openrouter` e preencha `GEMINI_MODEL` ou `OPENROUTER_MODEL` com o identificador exato do modelo escolhido. `IA_HABILITADA=0` mantém o recurso desligado; habilite só após a implementação e os testes. As alterações de ambiente entram no próximo deploy. Use chaves distintas para testes e produção.
+
+O arquivo `backend/.env` é da execução local. Nesta preparação, nenhuma variável foi alterada na Vercel e nenhum deploy foi feito. Veja [plano de IA](../.docs/ia.md).
+
 ## Ordem de configuração
 
 1. Importe o repositório duas vezes, usando as pastas e presets da tabela. Identifique os domínios de produção dos dois projetos. Um primeiro build sem as variáveis obrigatórias será recusado intencionalmente.

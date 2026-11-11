@@ -10,7 +10,7 @@
 - [x] Correção dos tetos de peso/materiais e da precisão do formulário.
 - [x] DER, README de entrega e documentação de continuidade.
 
-## Aula 10: planejamento
+## Aula 10: planejamento histórico
 
 - [x] Discutir alternativas e escolher explicação dos pontos.
 - [x] Definir um agente OpenAI, com leitura restrita e revisão humana.
@@ -20,17 +20,16 @@
 - [x] Adaptar o visual do ZIP e conferir as telas em viewports de celular/computador, com API simulada e capturas.
 - [ ] Revisão pessoal em aparelhos físicos e estudo para a apresentação.
 
-## MVP futuro — não implementado
+## MVP vigente — assistência no agendamento
 
-1. **Configuração:** definir modelo compatível, orçamento, timeout e limite de chamadas. Na implementação, acrescentar OPENAI_API_KEY/OPENAI_MODEL à configuração; apenas chaves vazias ao .env.exemplo.
-2. **Ferramenta:** `consultar_pontos_da_coleta`, sem ID ou usuário livre: backend vincula a coleta previamente autorizada. Reutilizar serviços e preparar retrato consistente sem dados pessoais.
-3. **Endpoint proposto:** `POST /coletas/{coleta_id}/explicacao`, exclusivo do morador dono. Planejar 200 para explicação/estado; 401 sem autenticação; 403 sem permissão; 404 inexistente; 422 entrada inválida; 503 provedor indisponível. Ainda não existe no contrato atual.
-4. **OpenAI:** Responses API com function calling para leitura e saída estruturada no formato de `ia.md`. Backend executa a ferramenta; modelo sem banco direto. Limitar rodadas e ferramentas permitidas.
-5. **Validação/revisão:** conferir estrutura, estado, coleta e referências; mostrar pesagens oficiais junto da explicação. Texto gerado nunca substitui nem altera o histórico. Usuário pode descartar a explicação.
-6. **Tela:** botão Explicar meus pontos no detalhe, carregamento e erro recuperável, sem bloquear as funções atuais ou gravar dados automaticamente.
-7. **Testes:** normal, vago, fora do assunto, sem pesagem, dados inconsistentes, tentativa de mudar regras, coleta de outro morador, injeção no texto, token inválido, provedor indisponível, timeout e resposta inválida. Recusas de acesso não chamam o provedor; nenhuma explicação altera banco.
+- [x] Confirmar o recorte já escolhido: organizar materiais, sugerir categorias e pedir esclarecimento quando necessário. [Plano e histórico](ia.md).
+- [x] Preparar configuração de Gemini e OpenRouter no backend, opcional e desativada por padrão.
+- [ ] Escolher o provedor/modelo para o primeiro teste e definir orçamento, prazo de resposta e limite de chamadas por morador.
+- [ ] Criar rota autenticada e contrato de entrada e saída. Recusar acesso e entradas inválidas antes do provedor.
+- [ ] Integrar o provedor selecionado, validar a resposta e testar falhas com simulação. Em seguida, testar com exemplos fictícios na API externa.
+- [ ] Adicionar prévia editável em Agendar coleta, com estados de carregamento e erro e preenchimento manual disponível.
 
-**Aceite:** somente coleta autorizada, valores preservados, ausência/inconsistência indicadas e falha da IA sem impedir agendamento, histórico ou pesagem.
+**Aceite:** sugestão em português, categorias válidas ou dúvida explícita, nenhuma gravação automática, nenhum dado pessoal enviado e agendamento manual disponível durante falhas.
 
 ## Depois do MVP
 

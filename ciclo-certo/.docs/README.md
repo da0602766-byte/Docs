@@ -10,5 +10,5 @@
 6. Acesso: Argon2, JWT de 60 minutos, dois perfis e dono pelo token.
 7. Frontend: React/Vite, CSS responsivo, fetch e as quatro telas da cartilha.
 8. Execução/testes: `../README.md`; modelo de dados: `../docs/DER.md`.
-9. IA escolhida: um agente OpenAI explica pontos; integração planejada em `ia.md`.
+9. IA: assistência na descrição de materiais; configuração local preparada para Gemini e OpenRouter. Consulte o [plano vigente](ia.md).
 10. Leia `../REGRAS.md` e `proximos-passos.md`; registre validação real ao terminar.
