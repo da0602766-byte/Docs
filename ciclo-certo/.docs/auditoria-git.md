@@ -1,6 +1,6 @@
 # Verificação antes do push — 10/11/2026
 
-O push permanece pendente. Esta verificação não publicou builds nem aplicou migrações no Supabase remoto.
+A auditoria abaixo foi concluída antes do push. A publicação posterior, autorizada pelo usuário, está registrada ao final. Nenhuma migração foi reaplicada no Supabase remoto.
 
 ## Preservação da versão publicada
 
@@ -39,4 +39,15 @@ Após as correções, os 44 testes de operação, comunidade e participação pa
 
 O backend mantém faixas de versões em `requirements.txt`. O contrato OpenAPI difere somente na anotação `pattern` do campo decimal `Peso.quilos`, gerada pelo validador instalado localmente; caminhos, métodos e os demais campos coincidem com a produção. Portanto, igualdade das fontes não garante dependências idênticas em um novo build. Não foram alteradas versões de dependências nesta revisão.
 
-Não foram realizados login nem escritas em produção. A verificação confirma preservação do código publicado e elimina as duplicidades encontradas; não constitui garantia de ausência de qualquer erro futuro. Aprovação e acompanhamento de eventual push/deploy permanecem necessários.
+Não foram realizados login nem escritas em produção. A verificação confirma preservação do código publicado e elimina as duplicidades encontradas; não constitui garantia de ausência de qualquer erro futuro.
+
+## Push e publicação concluídos — 10/11/2026
+
+Após autorização explícita, os oito commits foram enviados a `da0602766-byte/Docs`, branch `main`, até `ced38f6d68fa1542bc7cf451c4557f66556775bb`. A integração Git iniciou os dois deploys de produção; ambos chegaram a `READY` / `PROMOTED` e receberam os domínios oficiais:
+
+- Frontend: `dpl_A9iar7cxj62CBDPYrpodtXge2zpL`, em https://ciclo-certo.vercel.app.
+- API: `dpl_Eq7H9ghn4Nc5jpwGrMJhAH2jsqHF`, em https://ciclo-certo-api.vercel.app.
+
+Conferência posterior: início, login e cooperador com HTTP 200; JavaScript e CSS principais idênticos à publicação anterior; saúde e catálogo com HTTP 200, incluindo os dez equipamentos; coletas, gestão de usuários e avisos protegidos com HTTP 401 sem sessão. CORS mantém a origem oficial. O contrato OpenAPI completo é idêntico ao anterior, com as mesmas 69 operações.
+
+`node testes/revisao-interface-producao.cjs` passou nos dois perfis, em 320/673/1440 px, sem erros JavaScript ou overflow. O frontend foi acessado no domínio oficial com chamadas à API interceptadas e dados simulados; nenhum token real, conta ou registro de produção foi usado. As oito migrações remotas permanecem inalteradas, sem reaplicação durante o deploy.
