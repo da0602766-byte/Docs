@@ -1,3 +1,5 @@
+> **Sistema completo restaurado em 12/11/2026:** frontend, API, IA/Cici e todas as alterações locais anteriores estão nesta pasta. As fontes dos dois deploys de produção foram conferidas; nenhuma está ausente. O checkout com entrega simulada e os ajustes posteriores do menu móvel também foram preservados localmente. [Conferência, testes e limites](.docs/restauracao-2026-11-12.md).
+
 > **Kit de equipamentos publicado em 04/11/2026:** em Pedidos, abrir a coleta e usar Preparar kit e assumir; dez equipamentos, atalho de kit essencial e revisão pelo responsável. [Operação e validação](.docs/equipamentos.md).
 
 > **Comunidade — 04/11/2026:** integrada à versão em produção, preservando Mercado, Gestão e recuperação de senha. Fontes recuperadas da Vercel; 32 testes backend, 7 frontend e fluxo completo no navegador aprovados. Publicação concluída nos endereços oficiais, com dados preservados e moderação concedida a `da0602766@gmail.com`; detalhes em `ciclo-certo/.docs/comunidade.md`.
@@ -30,7 +32,7 @@ A publicação em [ciclo-certo.vercel.app](https://ciclo-certo.vercel.app), com 
 1. Morador escolhe um dia/horário disponível e informa endereço e materiais; sugestões de categorias e avisos de cuidado ajudam no preenchimento.
 2. Cooperador abre a coleta e confirma sua responsabilidade em um formulário compacto.
 3. O responsável registra, corrige ou remove pesos durante o atendimento.
-4. O solicitante confere os pesos e assina; foto e assinatura são obrigatórias para finalizar. Depois disso os pesos ficam bloqueados.
+4. O solicitante confere os pesos e assina. A foto é opcional. Depois da finalização, os pesos ficam bloqueados.
 5. A avaliação é solicitada automaticamente nas notificações do morador; o responsável pode reenviar o aviso.
 6. Qualquer nota libera a mesma recompensa. No modo padrão, os pontos são convertidos automaticamente em dinheiro fictício; também é possível acumular pontos e gerar um vale fictício.
 
@@ -52,7 +54,7 @@ Configure `DATABASE_URL`, `CHAVE_DO_TOKEN` (ao menos 32 caracteres) e `ORIGEM_FR
 
 O projeto de produção documentado usa Supabase `plhfkhxzmxzyfygjyzbk`, com papel restrito `ciclo_certo_backend`. Este clone não contém o `.env` de produção. Não recrie tabelas em um banco existente.
 
-**Migrações:** os oito arquivos em `supabase/migrations/` correspondem ao histórico já aplicado em produção, com os mesmos IDs. Não reaplique essas migrações no banco existente. Para evoluções futuras, crie uma nova migração e confira o histórico remoto antes de executá-la. O script `backend/criar_tabelas.py` prepara o histórico completo apenas em um `public` vazio, exigindo os papéis previamente provisionados. Histórico MySQL em `backend/legado/mysql/`.
+**Migrações:** os 12 arquivos locais correspondem ao histórico de produção até `20261112235126_entrega_simulada_recompensas`. Essas migrações já foram aplicadas no banco existente. O script `backend/criar_tabelas.py` prepara o histórico completo em um banco vazio com os papéis previamente provisionados.
 
 Inicie a API:
 
@@ -77,19 +79,45 @@ As sessões ficam em `sessionStorage`, separadas por aba e perfil. É possível 
 
 Regressão de sessões simultâneas: `node --test testes/sessao.test.js testes/listagem.test.js testes/publicacao.test.js`, na pasta `frontend`. Sete testes passaram, incluindo isolamento entre perfis, recarga, saída, expiração e resposta 401 atrasada; build aprovado. Testes usam respostas simuladas, sem credenciais reais.
 
-## Preparação da IA
+## Checkout da loja
 
-No arquivo local `backend/.env`, preencha `GEMINI_API_KEY` e `OPENROUTER_API_KEY`. É possível guardar as duas chaves; a futura assistência usará apenas o provedor escolhido em `IA_PROVEDOR` (`gemini` ou `openrouter`) e seu modelo (`GEMINI_MODEL` ou `OPENROUTER_MODEL`). Se o arquivo não existir, crie-o a partir de [backend/.env.exemplo](backend/.env.exemplo). Mantenha `IA_HABILITADA=0` até a integração estar pronta. As chaves ficam fora do Git e do frontend.
+Em **Loja → Trocar pontos**, confira o produto e o saldo após a troca, informe o endereço e selecione uma data de entrega. O endereço do perfil é reaproveitado como sugestão e pode ser editado para aquela troca. O servidor disponibiliza os próximos cinco dias de segunda a sexta no horário de Brasília. O endereço e a data ficam no histórico privado **Minhas trocas**. As entregas são simuladas.
 
-Para conferir os campos preenchidos sem mostrar os valores nem chamar APIs, execute a partir de `ciclo-certo/`:
+A migração `20261112235126_entrega_simulada_recompensas` adiciona os campos aos pedidos e foi aplicada em produção em 12/11/2026. O arquivo local foi alinhado ao ID registrado pelo Supabase. Trocas antigas continuam disponíveis no histórico.
 
-```powershell
-.\venv\Scripts\python.exe backend/configuracao.py
+## Assistente de materiais
+
+### Ajustes publicados em 12/11/2026
+
+- A página inicial alterna três fotos de coleta, materiais e triagem. É possível pausar e avançar manualmente. A preferência por movimento reduzido é respeitada.
+- O morador pode guardar um endereço de retirada no cadastro ou no perfil. A Cici preenche o campo de endereço no agendamento para revisão. Esse campo fica disponível somente para a própria conta e fora das mensagens enviadas ao provedor.
+- Encerrar ou mudar o assunto limpa o rascunho e o contexto da Cici. Uma coleta registrada depende das regras normais do sistema. A resposta da Cici tem um efeito breve de folhas e luz.
+- A navegação móvel fica no cabeçalho. O sino reúne avisos da Comunidade e das coletas. Ao abrir o sino, o sistema confirma a leitura dos avisos exibidos.
+
+No arquivo `backend/.env.local`, preencha uma ou as duas variáveis abaixo. O arquivo fica fora do Git. Em outro clone, crie o arquivo com essas linhas se ele ainda estiver ausente.
+
+```dotenv
+GEMINI_API_KEY=
+OPENROUTER_API_KEY=
 ```
 
-A funcionalidade planejada é sugerir descrições de materiais no agendamento. [Escopo, regras e pendências](.docs/ia.md) · [Configuração futura na Vercel](docs/VERCEL.md#credenciais-opcionais-da-ia).
+Reinicie a API depois de salvar. Entre como morador, abra **Agendar**, descreva os materiais e clique em **Ajudar com os materiais**. Revise a prévia antes de usar a descrição.
+
+Com as duas chaves, o assistente de materiais e a moderação de texto tentam Gemini primeiro e usam OpenRouter se a tentativa falhar. Cada provedor pode funcionar sozinho. Use `GEMINI_MODEL` e `OPENROUTER_MODEL` para configurar os modelos com saída estruturada.
+
+O comando `..\venv\Scripts\python.exe -m unittest teste_ia -v`, executado de `backend/`, valida a rota com respostas simuladas. Para configurar as chaves na nuvem, veja a [publicação na Vercel](docs/VERCEL.md#variáveis).
+
+Em 11/11/2026, a atualização foi publicada na Vercel. Os dois provedores responderam com uma descrição fictícia no teste local. No site publicado, o fluxo de erro, revisão e aplicação da sugestão foi conferido com respostas simuladas em 390 e 1440 px. A API de produção teve saúde, rota, autenticação obrigatória e CORS verificados. [Registro da publicação](docs/VERCEL.md#assistente-de-materiais-em-produção).
 
 ## Testes locais isolados
+
+### Moderação automática da Comunidade
+
+Publicações novas, correções reenviadas e comentários passam pela IA no próprio envio. A decisão, o aviso e os pontos de uma publicação são gravados juntos. Publicações recusadas ficam em **Minhas publicações** com o motivo. Comentários recusados retornam o motivo no formulário. Se os provedores estiverem indisponíveis, a API retorna erro temporário e a pessoa pode reenviar o mesmo texto.
+
+A análise usa o texto, a categoria e, no caso de comentários, o contexto da publicação e da resposta quando adequado. O texto de publicações com vídeo também é analisado no envio. O vídeo aguarda revisão da moderação antes de aparecer no feed. Uma publicação antiga ainda pendente passa pela IA quando um moderador tenta aprová-la.
+
+### Banco e testes
 
 A suíte usa PostgreSQL portátil de teste, nunca o Supabase de uso normal. A partir de `ciclo-certo/`:
 
@@ -140,7 +168,7 @@ Esse módulo usa exclusivamente `ciclo_certo_teste_local`, cria `morador@example
 
 - Público: `POST /usuarios`, `POST /login`, `GET /catalogo`, `GET /saude`.
 - Autenticado: `GET/PATCH /usuarios/eu`, `GET /agenda`, `GET /coletas`, `GET /coletas/{id}`, `GET /coletas/{id}/pesagens`.
-- Morador: `POST /coletas`, `POST /coletas/{id}/avaliar`, `GET /carteira`, `PUT /carteira/preferencia`, `POST /carteira/resgatar`.
+- Morador: `POST /coletas`, `POST /coletas/{id}/avaliar`, `GET /carteira`, `PUT /carteira/preferencia`, `POST /carteira/resgatar`, `POST /ia/sugestao-materiais`.
 - Cooperador: `PUT /agenda`, `POST /coletas/{id}/assumir`; somente o responsável usa `POST/PUT/DELETE .../pesagens`, `POST .../finalizar`, `POST .../cancelar` e `POST .../solicitar-avaliacao`.
 - Privado: `GET /coletas/{id}/comprovante` (morador dono ou responsável), `GET /notificacoes`, `PUT /notificacoes/{id}/lida` (dono).
 
@@ -148,4 +176,4 @@ Rotas chamam serviços; serviços aplicam autorização e transações; reposit�
 
 JWT HS256 com `sub`, `exp` e versão de sessão, senha Argon2, CORS de origem exata, dados privados protegidos por API e RLS. Créditos/resgates são transacionais e idempotentes. Imagens não possuem URL pública. `.env`, ambientes, dependências, testes locais e builds ficam fora do Git.
 
-Regras de trabalho em [REGRAS.md](REGRAS.md); continuidade em [.docs/proximos-passos.md](.docs/proximos-passos.md). A configuração de IA está preparada no backend; a rota, a interface e as chamadas aos provedores ainda precisam ser implementadas.
+Regras de trabalho em [REGRAS.md](REGRAS.md) e continuidade em [.docs/proximos-passos.md](.docs/proximos-passos.md).

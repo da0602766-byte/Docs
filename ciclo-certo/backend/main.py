@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import configuracao as configuracao
 from rotas import usuarios as rotas_usuarios
 from rotas import autenticacao as rotas_autenticacao
+from rotas.ia import router as rotas_ia
 from rotas.operacao import router as rotas_operacao
 from rotas.comunidade import router as rotas_comunidade
 from servicos.operacao import Recusa
@@ -27,6 +28,7 @@ app.add_middleware(
 # Conecta os routers, que mantem cada recurso separado da inicializacao da aplicacao.
 app.include_router(rotas_usuarios.router)
 app.include_router(rotas_autenticacao.router)
+app.include_router(rotas_ia)
 app.include_router(rotas_operacao)
 app.include_router(rotas_comunidade)
 from rotas.mercado import router as rotas_mercado
@@ -54,3 +56,6 @@ app.include_router(rotas_recuperacao)
 
 from rotas.participacao import router as rotas_participacao
 app.include_router(rotas_participacao)
+
+from rotas.rota_coletas import router as rotas_rota_coletas
+app.include_router(rotas_rota_coletas)

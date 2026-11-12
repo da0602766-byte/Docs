@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { solicitar } from "./api";
+import { enviar, solicitar } from "./api";
 
 // O sino mantém a caixa de avisos; o toast desaparece após seis segundos.
 export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral }) {
@@ -9,6 +9,7 @@ export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral })
     [toast, setToast] = useState(null),
     [erro, setErro] = useState(false);
   const vistos = useRef(new Set()),
+    leiturasEmCurso = useRef(new Set()),
     raiz = useRef(null);
   const chave = `cc-avisos-${perfil.id}`;
   useEffect(() => {
@@ -24,8 +25,22 @@ export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral })
       try {
         // O morador vê seu histórico; a cooperativa mantém os avisos de novos pedidos.
         if (morador) {
-          const resposta = await solicitar("/comunidade/avisos");
-          if (ativo) { setAvisos(resposta.itens); setErro(false); }
+          const [comunidade, coletas] = await Promise.allSettled([
+            solicitar("/comunidade/avisos"),
+            solicitar("/notificacoes"),
+          ]);
+          if (ativo) {
+            setAvisos((anteriores) => {
+              const itens = comunidade.status === "fulfilled"
+                ? comunidade.value.itens.map((a) => ({ ...a, origem: "comunidade" }))
+                : anteriores.filter((a) => a.origem === "comunidade");
+              const operacao = coletas.status === "fulfilled"
+                ? coletas.value.map((a) => ({ ...a, origem: "coleta" }))
+                : anteriores.filter((a) => a.origem === "coleta");
+              return [...itens, ...operacao].sort((a, b) => Date.parse(b.criado_em) - Date.parse(a.criado_em));
+            });
+            setErro(comunidade.status === "rejected" || coletas.status === "rejected");
+          }
           return;
         }
         const coletas = await solicitar("/coletas");
@@ -79,17 +94,45 @@ export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral })
       document.removeEventListener("keydown", tecla);
     };
   }, []);
-  const pendentes = avisos.filter((a) => morador ? !a.lida : !vistos.current.has(a.id)).length;
+  const chaveAviso = (a) => `${a.origem}:${a.id}`;
+  const pendentes = avisos.filter((a) => morador
+    ? !a.lida && !vistos.current.has(chaveAviso(a))
+    : !vistos.current.has(a.id)).length;
+
+  function abrirSino() {
+    setAberto(!aberto);
+    if (aberto) return;
+    setToast(null);
+    if (!morador) {
+      avisos.forEach((a) => vistos.current.add(a.id));
+      return;
+    }
+    const novos = avisos.filter((a) => !a.lida && !leiturasEmCurso.current.has(chaveAviso(a)));
+    novos.forEach((a) => {
+      const id = chaveAviso(a);
+      vistos.current.add(id);
+      leiturasEmCurso.current.add(id);
+      const base = a.origem === "coleta" ? "/notificacoes" : "/comunidade/notificacoes";
+      enviar(`${base}/${a.id}/lida`, {}, "PUT")
+        .then(() => {
+          vistos.current.delete(id);
+          setAvisos((lista) => lista.map((item) => chaveAviso(item) === id ? { ...item, lida: true } : item));
+          if (a.origem === "coleta") window.dispatchEvent(new Event("ciclo-certo-avisos-coleta-lidos"));
+        })
+        .catch(() => {
+          vistos.current.delete(id);
+          setErro(true);
+        })
+        .finally(() => leiturasEmCurso.current.delete(id));
+    });
+  }
   return (
     <div className="cc-sino-area" ref={raiz}>
       <button
         className="cc-sino"
         aria-label={`Notificações${pendentes ? `, ${pendentes} novas` : ""}`}
         aria-expanded={aberto}
-        onClick={() => {
-          setAberto(!aberto);
-          if (!morador) avisos.forEach((a) => vistos.current.add(a.id));
-        }}
+        onClick={abrirSino}
       >
         <svg
           width="22"
@@ -103,7 +146,6 @@ export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral })
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6" />
         </svg>
         {pendentes > 0 && <span>{pendentes}</span>}
-        <i className={erro ? "offline" : ""} />
       </button>
       {aberto && (
         <section
@@ -121,15 +163,18 @@ export default function NotificacoesCoordenador({ perfil, abrir, abrirCentral })
           ) : (
             avisos.map((a) => (
               <button
-                key={a.id}
+                key={morador ? chaveAviso(a) : a.id}
                 onClick={() => {
-                  if (morador) abrirCentral();
+                  if (a.origem === "coleta") abrir(a.coleta_id);
+                  else if (morador) abrirCentral();
                   else abrir(a.id);
                   setAberto(false);
                   setToast(null);
                 }}
               >
-                <strong>{morador ? (a.estado === "aprovada" ? "Publicação aprovada" : a.estado === "resposta" ? "Nova resposta" : "Precisa de ajustes") : `Nova coleta #${a.id}`}</strong>
+                <strong>{a.origem === "coleta" ? (a.tipo === "avaliacao" ? "Avaliação da coleta" : "Aviso da coleta")
+                  : morador ? (a.estado === "aprovada" ? "Publicação aprovada" : a.estado === "resposta" ? "Nova resposta" : "Aviso da comunidade")
+                    : `Nova coleta #${a.id}`}</strong>
                 <span>{morador ? a.mensagem : `${a.nome} solicitou uma coleta`}</span>
                 <small>
                   {new Date(morador ? a.criado_em : a.hora).toLocaleTimeString("pt-BR", {

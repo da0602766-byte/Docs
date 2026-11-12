@@ -1,11 +1,26 @@
 """Consultas paginadas e bloqueios; decisões de negócio permanecem no serviço."""
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, case, or_, and_
 from modelos.usuario import Usuario
 from modelos.comunidade import Publicacao, Comentario, Credito, Denuncia, Moderador, Regras, NotificacaoComunidade
 
 
 def moderador(sessao, usuario_id):
     return sessao.get(Moderador, usuario_id) is not None
+
+
+def sancao_ativa(sessao, usuario_id, agora, so_grave=False):
+    consulta = select(Denuncia).where(Denuncia.restringido_id == usuario_id,
+        Denuncia.sancao_ate > agora, Denuncia.revogada_em.is_(None))
+    if so_grave:
+        consulta = consulta.where(Denuncia.analise != "ofensa")
+    return sessao.scalar(consulta.order_by(case((Denuncia.analise == "ofensa", 1), else_=0),
+        Denuncia.sancao_ate.desc()).limit(1))
+
+
+def sancao_ja_aplicada(sessao, publicacao_id, comentario_id, revisao):
+    return sessao.scalar(select(Denuncia.id).where(Denuncia.publicacao_id == publicacao_id,
+        Denuncia.comentario_id == comentario_id, Denuncia.revisao_denunciada == revisao,
+        Denuncia.sancao_ate.is_not(None)).limit(1)) is not None
 
 
 def regras(sessao):
@@ -93,8 +108,8 @@ def comentarios(sessao, publicacao_id, antes, limite):
     return sessao.execute(consulta.order_by(Comentario.id.desc()).limit(limite + 1)).all()
 
 
-def denuncias(sessao, antes, limite):
-    consulta = select(Denuncia, Publicacao.conteudo, Publicacao.estado, Comentario.conteudo, Comentario.excluido_em).join(Publicacao, Publicacao.id == Denuncia.publicacao_id).outerjoin(Comentario, Comentario.id == Denuncia.comentario_id).where(Denuncia.resolvido_em.is_(None))
+def denuncias(sessao, antes, limite, instante):
+    consulta = select(Denuncia, Publicacao.conteudo, Publicacao.estado, Comentario.conteudo, Comentario.excluido_em).join(Publicacao, Publicacao.id == Denuncia.publicacao_id).outerjoin(Comentario, Comentario.id == Denuncia.comentario_id).where(or_(Denuncia.resolvido_em.is_(None), and_(Denuncia.sancao_ate > instante, Denuncia.revogada_em.is_(None))))
     if antes:
         consulta = consulta.where(Denuncia.id < antes)
     return sessao.execute(consulta.order_by(Denuncia.id.desc()).limit(limite + 1)).all()

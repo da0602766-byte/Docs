@@ -16,7 +16,15 @@ class Usuario(Base):
     nome = Column(String(80), nullable=False)
     tipo = Column(Enum("morador", "cooperativa", native_enum=False, create_constraint=True, name="conferir_tipo_usuario"), nullable=False)
     email = Column(String(100), nullable=True)
+    endereco_coleta = Column(String(160), nullable=True)
     senha_hash = Column(String(255), nullable=True)
     versao_token = Column(Integer, nullable=False, server_default="0")
     administrador = Column(Boolean, nullable=False, server_default="false")
     recompensa = Column(String(12), nullable=False, server_default="pontos")
+    email_verificado_em = Column(DateTime(timezone=True), nullable=True)
+    confirmacao_email_hash = Column(String(64), nullable=True)
+    confirmacao_email_enviada_em = Column(DateTime(timezone=True), nullable=True)
+
+    @property
+    def email_verificado(self):
+        return self.email_verificado_em is not None

@@ -1,10 +1,56 @@
 import React, { useEffect, useState } from "react";
 import { solicitar } from "./api";
+import Cici, { CADASTRO_COLETA, ENTRAR_COLETA } from "./Cici";
 import { Tabela } from "./operacao/interface";
 
 // A página pública apresenta o serviço e encaminha todas as ações para o login.
-const HERO_PHOTO = "/imagens/reciclaveis.jpg";
-const COOP_PHOTO = "/imagens/cooperativa.jpg";
+const HERO_PHOTO = "/imagens/coleta-porta-a-porta.webp";
+const COOP_PHOTO = "/imagens/triagem-cooperativa.webp";
+const FOTOS_INICIO = [
+  { src: HERO_PHOTO, alt: "Moradora entrega uma caixa de recicláveis a um cooperador", titulo: "A cooperativa busca na sua porta" },
+  { src: "/imagens/reciclaveis.jpg", alt: "Materiais recicláveis separados para a coleta", titulo: "Separe os materiais antes da retirada" },
+  { src: COOP_PHOTO, alt: "Cooperadores trabalham na triagem dos materiais", titulo: "A cooperativa faz a triagem dos recicláveis" },
+];
+
+function FotosInicio() {
+  const [indice, setIndice] = useState(0);
+  const [pausado, setPausado] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const [sobre, setSobre] = useState(false);
+  const [emFoco, setEmFoco] = useState(false);
+  useEffect(() => {
+    if (pausado || sobre || emFoco) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setIndice((valor) => (valor + 1) % FOTOS_INICIO.length);
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [pausado, sobre, emFoco]);
+  const foto = FOTOS_INICIO[indice];
+  return (
+    <figure className="lp-hero-media lp-fotos-inicio" aria-label="Etapas da coleta seletiva"
+      onMouseEnter={() => setSobre(true)} onMouseLeave={() => setSobre(false)}
+      onFocus={() => setEmFoco(true)} onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setEmFoco(false);
+      }}>
+      {FOTOS_INICIO.map((item, i) => (
+        <img key={item.src} src={item.src} alt={i === indice ? item.alt : ""}
+          aria-hidden={i !== indice} className={i === indice ? "ativa" : ""}
+          width="1260" height="840" fetchPriority={i === 0 ? "high" : "low"} />
+      ))}
+      <figcaption aria-live={pausado ? "polite" : "off"}>
+        <strong>{foto.titulo}</strong>
+        <span>Imagem ilustrativa</span>
+      </figcaption>
+      <div className="lp-fotos-controles">
+        <button type="button" aria-label="Imagem anterior"
+          onClick={() => setIndice((i) => (i + FOTOS_INICIO.length - 1) % FOTOS_INICIO.length)}>‹</button>
+        <button type="button" aria-label={pausado ? "Reproduzir imagens" : "Pausar imagens"}
+          onClick={() => setPausado((valor) => !valor)}>{pausado ? "▶" : "Ⅱ"}</button>
+        <button type="button" aria-label="Próxima imagem"
+          onClick={() => setIndice((i) => (i + 1) % FOTOS_INICIO.length)}>›</button>
+      </div>
+    </figure>
+  );
+}
 
 const FAQ = [
   {
@@ -104,14 +150,15 @@ function Logo() {
 }
 
 export default function PaginaInicial() {
-  const [depoimentos, setDepoimentos] = useState([]);
+  const [depoimentos, setDepoimentos] = useState(null);
+  const [erroDepoimentos, setErroDepoimentos] = useState(false);
   useEffect(() => {
     let ativo = true;
     solicitar("/depoimentos", {}, false)
       .then((d) => {
         if (ativo) setDepoimentos(d);
       })
-      .catch(() => {});
+      .catch(() => { if (ativo) setErroDepoimentos(true); });
     return () => {
       ativo = false;
     };
@@ -147,9 +194,11 @@ export default function PaginaInicial() {
       <header className="lp-wrap lp-nav">
         <Logo />
         <nav aria-label="Navegação principal" className="lp-nav-links">
+          <a href="#cici">Cici</a>
           <a href="#moradores">Para moradores</a>
           <a href="#cooperativa">Para a cooperativa</a>
           <a href="#pontos">Tabela de pontos</a>
+          <a href="#avaliacoes">Avaliações</a>
           <a href="#perguntas">Perguntas</a>
           <a href="/comunidade">Comunidade</a>
         </nav>
@@ -157,101 +206,28 @@ export default function PaginaInicial() {
           <a className="lp-link-btn" href="/cooperador">
             Área da cooperativa
           </a>
-          <a className="lp-btn lp-btn-sm" href="/login">
+          <a className="lp-btn lp-btn-sm" href={CADASTRO_COLETA}>
             Agendar coleta
           </a>
         </div>
       </header>
 
       <main>
-        <section id="inicio" className="lp-wrap lp-hero">
+        <section id="inicio" className="lp-wrap lp-hero lp-hero-cici">
           <div className="lp-hero-copy">
             <p className="lp-kicker">Coleta seletiva porta a porta</p>
-            <h1>Separou em casa? A cooperativa busca na sua porta.</h1>
+            <h1>O que você quer reciclar hoje?</h1>
             <p className="lp-lead">
-              Agende a coleta de papel, vidro, plástico e metal pelo celular.
-              Depois da pesagem no galpão, você vê quantos quilos entregou e
-              quantos pontos cada material rendeu.
+              A Cici te ajuda a separar seus recicláveis. Depois, agende a retirada
+              pela cooperativa e acompanhe a coleta pelo celular.
             </p>
-            <div className="lp-actions">
-              <a className="lp-btn" href="/login">
-                Agendar minha coleta <Icon name="arrow" size={18} />
-              </a>
-              <a className="lp-btn lp-btn-ghost" href="/cooperador">
-                Sou da cooperativa
-              </a>
+            <Cici catalogo={catalogo} />
+            <div className="lp-acesso-coleta">
+              <a href={CADASTRO_COLETA}>Crie sua conta para agendar</a>
+              <a href={ENTRAR_COLETA}>Já tenho conta</a>
             </div>
-            <dl className="lp-facts">
-              <div>
-                <dt>3 passos</dt>
-                <dd>endereço, dia e materiais</dd>
-              </div>
-              <div>
-                <dt>12 categorias</dt>
-                <dd>com valor por quilo</dd>
-              </div>
-              <div>
-                <dt>Cada pesagem</dt>
-                <dd>registrada no seu histórico</dd>
-              </div>
-            </dl>
           </div>
-
-          <figure className="lp-hero-media">
-            <img
-              src={HERO_PHOTO}
-              alt="Garrafas plásticas e latas de alumínio reunidas para reciclagem"
-            />
-            <div
-              className="lp-receipt"
-              aria-label="Exemplo de detalhe de coleta no aplicativo"
-            >
-              <div className="lp-receipt-head">
-                <div>
-                  <span>Coleta nº 1071</span>
-                  <strong>Quarta, 11 de junho</strong>
-                </div>
-                <span className="lp-tag lp-tag-done">Coletada</span>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Material</th>
-                    <th>Peso</th>
-                    <th>Pontos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Vidro transparente</td>
-                    <td>6 kg</td>
-                    <td>150</td>
-                  </tr>
-                  <tr>
-                    <td>Ferro</td>
-                    <td>5 kg</td>
-                    <td>200</td>
-                  </tr>
-                  <tr>
-                    <td>PET</td>
-                    <td>6 kg</td>
-                    <td>1.050</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td>17 kg</td>
-                    <td>1.400 pts</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <figcaption>
-              Exemplo com participação de 50% e avaliação concluída. Pontos para
-              usar na loja.
-            </figcaption>
-          </figure>
+          <FotosInicio />
         </section>
 
         <section className="lp-problem" aria-labelledby="problema">
@@ -408,7 +384,7 @@ export default function PaginaInicial() {
                 loading="lazy"
                 className="lp-coop-photo"
                 src={COOP_PHOTO}
-                alt="Trabalhador alimentando uma esteira de triagem com material reciclável"
+                alt="Cooperadora separando papelão, garrafas PET e latas em caixas de triagem"
               />
 
               <div
@@ -576,13 +552,34 @@ export default function PaginaInicial() {
           </div>
         </section>
 
+        <section id="avaliacoes" className="lp-wrap lp-section lp-avaliacoes" aria-labelledby="lp-avaliacoes-titulo">
+          <h2 id="lp-avaliacoes-titulo">Avaliações de quem já reciclou</h2>
+          <p className="lp-body">Depoimentos de moradores que autorizaram a publicação após a coleta.</p>
+          {depoimentos?.length ? (
+            <div className="lp-avaliacoes-grade">
+              {depoimentos.map((d) => (
+                <blockquote className="lp-avaliacao" key={d.id}>
+                  <strong className="lp-estrelas">
+                    <span aria-hidden="true">{"★".repeat(d.nota)}{"☆".repeat(5 - d.nota)}</span>
+                    <span className="cici-sr">{d.nota} de 5 estrelas</span>
+                  </strong>
+                  <p>{d.comentario}</p>
+                  <cite>{d.autor}</cite>
+                </blockquote>
+              ))}
+            </div>
+          ) : (
+            <p role="status">{erroDepoimentos ? "As avaliações estão temporariamente indisponíveis." : depoimentos ? "Ainda não há depoimentos publicados." : "Carregando avaliações…"}</p>
+          )}
+        </section>
+
         <section className="lp-wrap lp-cta">
           <div>
             <h2>Tem material separado em casa?</h2>
             <p>Agende a coleta e acompanhe a pesagem pelo celular.</p>
           </div>
           <div className="lp-actions">
-            <a className="lp-btn lp-btn-light" href="/login">
+            <a className="lp-btn lp-btn-light" href={CADASTRO_COLETA}>
               Agendar coleta <Icon name="arrow" size={18} />
             </a>
             <a className="lp-btn lp-btn-outline-light" href="/cooperador">
@@ -590,25 +587,6 @@ export default function PaginaInicial() {
             </a>
           </div>
         </section>
-        {depoimentos.length > 0 && (
-          <section
-            className="lp-wrap lp-section"
-            aria-label="Depoimentos da comunidade"
-          >
-            <div className="lp-wrap">
-              <h2>Quem recicla conta sua experiência</h2>
-              <div className="cc-usuarios">
-                {depoimentos.map((d) => (
-                  <blockquote className="ws-card" key={d.id}>
-                    <strong>{d.nota}/5</strong>
-                    <p>{d.comentario}</p>
-                    <cite>{d.autor}</cite>
-                  </blockquote>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
       </main>
 
       <footer className="lp-wrap lp-footer">

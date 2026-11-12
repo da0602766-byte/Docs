@@ -1,0 +1,15 @@
+.cc-modal.cc-checkout { width: min(36rem, calc(100% - 16px)); }
+.cc-checkout-form { display: grid; gap: 15px; }
+.cc-checkout-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center;
+  gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 12px;
+}
+.cc-checkout-item img { border-radius: 8px; object-fit: cover; }
+.cc-checkout-item span { display: block; font-size: .84rem; color: var(--muted); }
+.cc-checkout-form fieldset { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.cc-checkout-form legend { padding-inline: 5px; font-weight: 700; }
+.cc-checkout-form fieldset > .ws-field { margin-top: 10px; }
+.cc-checkout-resumo { display: grid; gap: 8px; background: var(--soft); padding: 12px; border-radius: 12px; }
+.cc-checkout-resumo div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
+.cc-checkout-form > .ws-help { margin: 0; }
+.cc-historico .ws-cell-sub { overflow-wrap: anywhere; }

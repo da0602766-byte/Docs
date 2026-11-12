@@ -88,14 +88,15 @@ export function Situacao({ valor }) {
 export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
   const [mais, setMais] = useState(false);
   const conta = useRef(null);
+  const menuMovel = useRef(null);
   // O menu da conta fecha sem tirar o foco de quem usa o teclado.
   useEffect(() => {
     const fechar = (evento) => {
       if (evento.type === "keydown" && evento.key !== "Escape") return;
-      if (evento.type === "pointerdown" && conta.current?.contains(evento.target)) return;
-      if (conta.current?.open) {
-        conta.current.open = false;
-        if (evento.type === "keydown") conta.current.querySelector("summary")?.focus();
+      for (const menu of [conta.current, menuMovel.current]) {
+        if (!menu?.open || (evento.type === "pointerdown" && menu.contains(evento.target))) continue;
+        menu.open = false;
+        if (evento.type === "keydown") menu.querySelector("summary")?.focus();
       }
     };
     document.addEventListener("pointerdown", fechar);
@@ -109,8 +110,8 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
   const todos =
     perfil.tipo === "morador"
       ? [
+          ["cici", "Início", "leaf"],
           ["minhas", "Coletas", "box"],
-          ["agendar", "Agendar", "calendar"],
           ["carteira", "Loja", "leaf"],
           ["comunidade", "Comunidade", "community"],
           ["perfil", "Perfil", "pin"],
@@ -127,7 +128,7 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
         ];
   const principais =
     perfil.tipo === "morador"
-      ? ["minhas", "agendar", "carteira", "comunidade"]
+      ? ["cici", "minhas", "carteira", "comunidade"]
       : ["rota", "calendario", "avaliacoes", "comunidade"];
   const itens = [
     ...todos.filter(([id]) => principais.includes(id)),
@@ -143,6 +144,10 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
       : []),
   ];
   const navegar = (id) => {
+    if (menuMovel.current?.open) {
+      menuMovel.current.open = false;
+      if (id !== "mais") menuMovel.current.querySelector("summary")?.focus();
+    }
     if (id === "mais") {
       setMais(true);
       return;
@@ -150,6 +155,7 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
     setMais(false);
     aoMudarTela(id);
   };
+  const telaAtiva = tela === "agendar" ? "cici" : tela;
   const iniciais = perfil.nome
     .trim()
     .split(/\s+/)
@@ -163,6 +169,21 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
       </a>
       <header className="ws-header">
         <div className="ws-container ws-header-inner">
+          <details ref={menuMovel} className="ws-menu-movel">
+            <summary aria-label="Menu de navegação">
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </summary>
+            <nav className="ws-mobile-nav" aria-label="Navegação no celular">
+              {itens.map(([id, nome, icone]) => (
+                <button key={id} type="button" aria-current={telaAtiva === id ? "page" : undefined}
+                  onClick={() => navegar(id)}>
+                  <Icone name={icone} size={18} /> {nome}
+                </button>
+              ))}
+            </nav>
+          </details>
           <div className="ws-brand">
             <span className="ws-logo">
               <span className="ws-logo-mark">
@@ -178,7 +199,7 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
             {itens.map(([id, nome, icone]) => (
               <button
                 key={id}
-                aria-current={tela === id ? "page" : undefined}
+                aria-current={telaAtiva === id ? "page" : undefined}
                 onClick={() => navegar(id)}
               >
                 <Icone name={icone} size={18} />
@@ -210,21 +231,6 @@ export function Navegacao({ perfil, tela, aoMudarTela, aoSair, abrirAviso }) {
           </div>
         </div>
       </header>
-      <nav
-        className="ws-bottom-nav ws-bottom-morador"
-        aria-label="Navegação no celular"
-      >
-        {itens.map(([id, nome, icone]) => (
-          <button
-            key={id}
-            aria-current={tela === id ? "page" : undefined}
-            onClick={() => navegar(id)}
-          >
-            <Icone name={icone} />
-            {nome}
-          </button>
-        ))}
-      </nav>
       {mais && (
         <Modal titulo="Mais do Ciclo Certo" fechar={() => setMais(false)}>
           <nav className="com-menu-mais" aria-label="Mais opções">

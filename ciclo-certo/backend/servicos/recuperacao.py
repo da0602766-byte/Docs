@@ -1,38 +1,24 @@
 """Recuperação por canal de e-mail com expiração, uso único e revogação de sessões."""
 import hashlib
 import secrets
-import ssl
 import smtplib
 from datetime import timedelta
-from email.message import EmailMessage
-from pathlib import Path
 import configuracao
 from repositorios import recuperacao as repo
 from repositorios import usuario as usuarios
 from repositorios import operacao
 from servicos.operacao import agora, Recusa
+from servicos import email_transacional
 from seguranca import gerar_hash_senha
 
 MENSAGEM = {'mensagem': 'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha.'}
 
 def entregar(email, link):
-    mensagem = EmailMessage()
-    mensagem['Subject'] = 'Redefinir sua senha · Ciclo Certo'
-    mensagem['From'] = configuracao.smtp_remetente or 'Ciclo Certo <desenvolvimento@example.org>'
-    mensagem['To'] = email
-    mensagem.set_content(f'Use este link em até 20 minutos para criar uma nova senha:\n{link}\n\nSe você não solicitou, ignore esta mensagem.')
-    if configuracao.recuperacao_local:
-        destino = Path(__file__).resolve().parents[2] / '.test-infra' / 'emails'
-        destino.mkdir(parents=True, exist_ok=True)
-        (destino / (secrets.token_hex(12)+'.eml')).write_bytes(bytes(mensagem))
-        return
-    with smtplib.SMTP(configuracao.smtp_host, configuracao.smtp_porta, timeout=10) as smtp:
-        smtp.starttls(context=ssl.create_default_context())
-        smtp.login(configuracao.smtp_usuario, configuracao.smtp_senha)
-        smtp.send_message(mensagem)
+    email_transacional.entregar(email, 'Redefinir sua senha · Ciclo Certo',
+        f'Use este link em até 20 minutos para criar uma nova senha:\n{link}\n\nSe você não solicitou, ignore esta mensagem.')
 
 def solicitar(s, email):
-    if not configuracao.recuperacao_local and not all((configuracao.smtp_host, configuracao.smtp_usuario, configuracao.smtp_senha, configuracao.smtp_remetente)):
+    if not email_transacional.disponivel():
         raise Recusa('Recuperação por e-mail ainda não configurada. Contate a cooperativa.', 503)
     usuario = usuarios.buscar_por_email(s, str(email).casefold())
     if not usuario:
@@ -52,7 +38,7 @@ def solicitar(s, email):
     except (OSError, smtplib.SMTPException):
         # Não devolve credenciais, token nem a existência da conta ao solicitante.
         import logging
-        logging.getLogger(__name__).error('Falha ao entregar mensagem de recuperação; confira o SMTP.')
+        logging.getLogger(__name__).error('Falha ao entregar mensagem de recuperação.')
     return MENSAGEM
 
 def redefinir(s, token, senha):

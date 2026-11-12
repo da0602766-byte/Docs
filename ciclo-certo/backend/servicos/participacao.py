@@ -13,6 +13,8 @@ def publico(sessao,antes,categoria,identificador=None):
 
 
 def salvar(sessao,usuario,identificador,valor):
+    comunidade.repo.bloquear_autor(sessao,usuario.id)
+    comunidade.exigir_participacao(sessao,usuario,so_grave=True)
     comunidade.exigir_visivel(sessao,identificador,True)
     repo.favorito(sessao,usuario.id,identificador,valor)
     sessao.commit()
@@ -21,6 +23,7 @@ def salvar(sessao,usuario,identificador,valor):
 
 def reenviar(sessao,usuario,identificador,dados):
     comunidade.repo.bloquear_autor(sessao,usuario.id)
+    comunidade.exigir_participacao(sessao,usuario)
     p=comunidade.obter_publicacao(sessao,identificador,True)
     if p.autor_id!=usuario.id: raise Recusa('Somente o autor pode corrigir a publicação.',403)
     if p.estado!='rejeitada': raise Recusa('Somente publicações recusadas podem ser reenviadas.')
@@ -38,6 +41,7 @@ def reenviar(sessao,usuario,identificador,dados):
     p.revisao+=1
     p.estado,p.motivo,p.moderado_em,p.moderador_id='pendente',None,None,None
     try:
+        comunidade.moderar_com_cici(sessao,p)
         sessao.commit()
     except IntegrityError:
         sessao.rollback()
@@ -70,6 +74,9 @@ def criar_acao(sessao,usuario,dados):
 
 
 def participar(sessao,usuario,identificador,valor):
+    if valor:
+        comunidade.repo.bloquear_autor(sessao,usuario.id)
+        comunidade.exigir_participacao(sessao,usuario,so_grave=True)
     acao=repo.obter_acao(sessao,identificador)
     if not acao or not acao['ativa'] or acao['fim']<=comunidade.agora() or acao['tipo']!='evento': raise Recusa('Ação indisponível.',404)
     repo.inscrever(sessao,usuario.id,identificador,valor)
@@ -114,6 +121,7 @@ def metricas(sessao,usuario):
 
 
 def detalhe(sessao,usuario,identificador):
+    comunidade.exigir_participacao(sessao,usuario,so_grave=True)
     p=comunidade.obter_publicacao(sessao,identificador)
     if p.estado=='excluida': raise Recusa('Esta publicação foi excluída.',404)
     if p.estado!='aprovada' and p.autor_id!=usuario.id: comunidade.exigir_moderador(sessao,usuario)

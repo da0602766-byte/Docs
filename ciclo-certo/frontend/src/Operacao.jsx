@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useDados, Estado } from "./operacao/interface";
-import Agendar from "./operacao/Agendar";
 import Listagem from "./operacao/Listagem";
 import Detalhe from "./operacao/Detalhe";
 import Carteira from "./operacao/Loja";
@@ -10,10 +9,12 @@ import Perfil from "./operacao/Perfil";
 import Comunidade from "./operacao/Comunidade";
 import { CentralAvisos, Impacto } from "./operacao/Participacao";
 import AcoesBairro, { Convites, Metricas } from "./operacao/AcoesBairro";
+import CiciMorador from "./operacao/CiciMorador";
 
 // A tela principal mantém o detalhe selecionado sem transformar o perfil em autorização.
 export default function Operacao({
   perfil,
+  aoAtualizarPerfil,
   tela,
   mudarTela,
   sair,
@@ -42,68 +43,74 @@ export default function Operacao({
     mudarTela("comunidade");
   };
   useEffect(() => {
-    setSelecionada(null);
-  }, [tela]);
-  if (tela === "comunidade")
+    setSelecionada(perfil.tipo === "morador" && tela === "minhas" ? pedidoAviso?.id ?? null : null);
+  }, [tela, pedidoAviso, perfil.tipo]);
+
+  const mostrarResumo = tela === "cici" || tela === "agendar";
+  function conteudo() {
+    if (tela === "comunidade")
+      return (
+        <Comunidade
+          perfil={perfil}
+          selecionada={publicacao}
+          fecharSelecionada={() => setPublicacao(null)}
+          pergunta={pergunta}
+          limparPergunta={() => setPergunta("")}
+        />
+      );
+    if (tela === "avisos") return <CentralAvisos abrir={abrir} />;
+    if (tela === "impacto") return <Impacto />;
+    if (tela === "acoes")
+      return (
+        <AcoesBairro
+          abrir={abrir}
+          participarConversa={(titulo) => {
+            setPergunta(titulo);
+            mudarTela("comunidade");
+          }}
+        />
+      );
+    if (tela === "convites") return <Convites />;
+    if (tela === "metricas") return <Metricas />;
+    if (!catalogo.dados) return <Estado recurso={catalogo} />;
+    if (perfil.tipo === "cooperativa")
+      return (
+        <Gestao
+          perfil={perfil}
+          tela={tela}
+          catalogo={catalogo.dados}
+          pedidoAviso={pedidoAviso}
+          sair={sair}
+        />
+      );
+    if (tela === "perfil") return <Perfil perfil={perfil} sair={sair} aoAtualizarPerfil={aoAtualizarPerfil} />;
+    if (mostrarResumo) return null;
+    if (tela === "carteira" && perfil.tipo === "morador")
+      return <Carteira enderecoPreferido={perfil.endereco_coleta} />;
+    if (selecionada)
+      return (
+        <Detalhe
+          key={selecionada}
+          id={selecionada}
+          perfil={perfil}
+          catalogo={catalogo.dados}
+          voltar={() => setSelecionada(null)}
+          atualizar={() => setRevisao((n) => n + 1)}
+        />
+      );
     return (
-      <Comunidade
-        perfil={perfil}
-        selecionada={publicacao}
-        fecharSelecionada={() => setPublicacao(null)}
-        pergunta={pergunta}
-        limparPergunta={() => setPergunta("")}
-      />
+      <Listagem perfil={perfil} selecionar={setSelecionada} revisao={revisao} />
     );
-  if (tela === "avisos") return <CentralAvisos abrir={abrir} />;
-  if (tela === "impacto") return <Impacto />;
-  if (tela === "acoes")
-    return (
-      <AcoesBairro
-        abrir={abrir}
-        participarConversa={(titulo) => {
-          setPergunta(titulo);
-          mudarTela("comunidade");
-        }}
-      />
-    );
-  if (tela === "convites") return <Convites />;
-  if (tela === "metricas") return <Metricas />;
-  if (!catalogo.dados) return <Estado recurso={catalogo} />;
-  if (perfil.tipo === "cooperativa")
-    return (
-      <Gestao
-        perfil={perfil}
-        tela={tela}
-        catalogo={catalogo.dados}
-        pedidoAviso={pedidoAviso}
-        sair={sair}
-      />
-    );
-  if (tela === "perfil") return <Perfil perfil={perfil} sair={sair} />;
-  if (tela === "carteira" && perfil.tipo === "morador")
-    return <Carteira catalogo={catalogo.dados} />;
-  if (tela === "agendar" && perfil.tipo === "morador")
-    return (
-      <Agendar
-        catalogo={catalogo.dados}
-        concluir={() => {
-          setRevisao((n) => n + 1);
-          mudarTela("minhas");
-        }}
-      />
-    );
-  if (selecionada)
-    return (
-      <Detalhe
-        key={selecionada}
-        id={selecionada}
-        perfil={perfil}
-        catalogo={catalogo.dados}
-        voltar={() => setSelecionada(null)}
-        atualizar={() => setRevisao((n) => n + 1)}
-      />
-    );
+  }
+
   return (
-    <Listagem perfil={perfil} selecionar={setSelecionada} revisao={revisao} />
+    <>
+      {conteudo()}
+      {perfil.tipo === "morador" && catalogo.dados && (
+        <CiciMorador perfil={perfil} catalogo={catalogo.dados} mudarTela={mudarTela}
+          abrirPublicacao={abrir} mostrarResumo={mostrarResumo} iniciarAgendamento={tela === "agendar"}
+          aoAlterarColetas={() => setRevisao((n) => n + 1)} />
+      )}
+    </>
   );
 }

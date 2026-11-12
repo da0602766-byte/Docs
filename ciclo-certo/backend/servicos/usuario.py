@@ -23,10 +23,18 @@ def cadastrar(sessao, dados_entrada: UsuarioCriar):
         "nome": dados_entrada.nome,
         "email": email,
         "tipo": dados_entrada.tipo,
+        "endereco_coleta": dados_entrada.endereco_coleta,
         "senha_hash": gerar_hash_senha(dados_entrada.senha.get_secret_value()),
     })
     if usuario is None:
         raise EmailEmUso("Já existe um usuário com esse e-mail.")
+    return usuario
+
+
+def salvar_endereco(sessao, usuario, endereco):
+    """Atualiza somente o endereço da conta autenticada."""
+    usuario.endereco_coleta = endereco
+    sessao.commit()
     return usuario
 
 

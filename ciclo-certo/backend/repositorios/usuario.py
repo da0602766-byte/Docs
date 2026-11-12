@@ -15,6 +15,11 @@ def buscar_por_email(sessao, email: str):
     return sessao.scalars(select(Usuario).where(Usuario.email == email)).first()
 
 
+def por_confirmacao_email(sessao, resumo):
+    return sessao.scalar(select(Usuario).where(Usuario.confirmacao_email_hash == resumo)
+                         .with_for_update().execution_options(populate_existing=True))
+
+
 # A listagem administrativa nunca decide qual perfil pode acessar a rota.
 def listar(sessao):
     return list(sessao.scalars(select(Usuario)))

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { solicitar, enviar } from "../api";
 import KitEquipamentos from "./KitEquipamentos";
+import { PesagemCici } from "./CiciOperacao";
 import { Situacao } from "../visual";
 import {
   moeda,
@@ -120,7 +121,7 @@ function Celebracao({ pontos, destino, fechar }) {
   );
 }
 
-export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDialogo = false }) {
+export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDialogo = false, sugerirAvaliacao = false }) {
   const [revisao, setRevisao] = useState(0);
   const recurso = useDados(`/coletas/${id}`, revisao);
   const pesos = useDados(`/coletas/${id}/pesagens`, revisao);
@@ -227,13 +228,24 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             <dl className="cc-dados-pedido">
               <div>
                 <dt>Endereço de retirada</dt>
-                <dd>{coleta.endereco}</dd>
+                <dd>{coleta.endereco}
+                  {perfil.tipo === "cooperativa" && ["agendada", "em_coleta"].includes(coleta.situacao) && (
+                    <a className="cc-link-direcoes" target="_blank" rel="noreferrer"
+                      href={`https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(coleta.endereco)}`}>
+                      Ver trajeto no Google Maps
+                    </a>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Dia e horário</dt>
                 <dd>
                   {data(coleta.dia)} · {coleta.hora || "A combinar"}
                 </dd>
+              </div>
+              <div>
+                <dt>Peso estimado pelo morador</dt>
+                <dd>{coleta.peso_estimado_kg == null ? "Não informado" : numero(coleta.peso_estimado_kg) + " kg"}</dd>
               </div>
               <div>
                 <dt>E-mail do solicitante</dt>
@@ -283,9 +295,15 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             )}
             {perfil.tipo === "cooperativa" &&
               coleta.situacao === "agendada" && (
-                <button className="ws-btn" onClick={() => setModal("assumir")}>
-                  Preparar kit e assumir
-                </button>
+                <>
+                  {coleta.kit_recomendado?.length > 0 && <p className="cc-kit-sugestao">
+                    <strong>Kit recomendado pela Cici</strong><br />
+                    {catalogo.equipamentos?.filter((item) => coleta.kit_recomendado.includes(item.codigo)).map((item) => item.nome).join(" · ")}
+                  </p>}
+                  <button className="ws-btn" onClick={() => { setEquipamentos(coleta.kit_recomendado || []); setModal("assumir"); }}>
+                    Preparar kit e assumir
+                  </button>
+                </>
               )}
             {responsavel && coleta.situacao === "aguardando_avaliacao" && (
               <button
@@ -351,6 +369,10 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             {pesos.dados?.length === 0 && <p>Nenhum peso registrado.</p>}
             {editavel && (
               <>
+                {!editando && <PesagemCici catalogo={catalogo} ocupado={ocupado} aplicar={(item) => {
+                  setMaterial(item.codigo);
+                  setQuilos(item.quilos);
+                }} />}
                 <form className="cc-peso-form" onSubmit={salvarPeso}>
                   <label className="ws-field">
                     Categoria
@@ -410,7 +432,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
                       setModal("finalizar");
                     }}
                   >
-                    Foto e assinatura · finalizar
+                    Assinar e finalizar
                   </button>
                   <button
                     className="ws-btn ws-btn-ghost"
@@ -449,6 +471,11 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
                     ))}
                   </div>
                 </fieldset>
+                {sugerirAvaliacao && !comentario && (
+                  <button type="button" className="ws-btn ws-btn-ghost" onClick={() => setComentario("Obrigada à equipe pelo trabalho na coleta de recicláveis.")}>
+                    Usar sugestão de agradecimento da Cici
+                  </button>
+                )}
                 <label className="ws-field">
                   Comentário (opcional)
                   <textarea
@@ -479,14 +506,11 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
                   disabled={ocupado}
                   onClick={verComprovante}
                 >
-                  Ver foto e assinatura
+                  Ver comprovante
                 </button>
                 {comprovante && (
                   <div className="cc-comprovante">
-                    <img
-                      src={comprovante.foto}
-                      alt="Foto de confirmação da coleta"
-                    />
+                    {comprovante.foto && <img src={comprovante.foto} alt="Foto de confirmação da coleta" />}
                     <img
                       src={comprovante.assinatura}
                       alt={`Assinatura de ${comprovante.nome_signatario}`}
@@ -528,7 +552,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
               {perfil.nome}, você ficará responsável por conferir, pesar e
               finalizar esta coleta.
             </p>
-            <KitEquipamentos itens={catalogo.equipamentos || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
+            <KitEquipamentos itens={catalogo.equipamentos || []} recomendados={coleta.kit_recomendado || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
             <label className="ws-field">
               Observação (opcional)
               <textarea
@@ -551,7 +575,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
       {modal === "equipamentos" && (
         <Modal titulo="Revisar kit da coleta" fechar={() => !ocupado && setModal("")}>
           <form onSubmit={e => { e.preventDefault(); acao("equipamentos", { equipamentos }, "PUT"); }}>
-            <KitEquipamentos itens={catalogo.equipamentos || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
+            <KitEquipamentos itens={catalogo.equipamentos || []} recomendados={coleta.kit_recomendado || []} selecionados={equipamentos} mudar={setEquipamentos} ocupado={ocupado} />
             {erro && <p role="alert">{erro}</p>}
             <button className="ws-btn" disabled={ocupado}>{ocupado ? "Salvando…" : "Salvar kit"}</button>
           </form>
@@ -599,7 +623,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
               e.preventDefault();
               acao("finalizar", {
                 versao: coleta.versao,
-                foto,
+                foto: foto || null,
                 assinatura,
                 nome_signatario: nome,
                 aceite,
@@ -623,7 +647,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
               confirmar, os pesos serão bloqueados.
             </p>
             <label className="ws-field">
-              Foto da coleta
+              Foto da coleta (opcional)
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -674,6 +698,11 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
               Registro de ciência no atendimento; não é uma assinatura digital
               certificada.
             </p>
+            {!assinatura && (
+              <p role="status" className="cc-cuidado">
+                Registre a assinatura para finalizar.
+              </p>
+            )}
             {erro && (
               <p role="alert" className="aviso erro">
                 {erro}
@@ -681,7 +710,7 @@ export default function Detalhe({ id, perfil, catalogo, voltar, atualizar, emDia
             )}
             <button
               className="ws-btn"
-              disabled={ocupado || !foto || !assinatura || !aceite}
+              disabled={ocupado || !assinatura || !aceite}
             >
               Confirmar e solicitar avaliação
             </button>

@@ -18,6 +18,15 @@ def buscar_por_id(sessao, coleta_id: int):
     return sessao.get(Coleta, coleta_id)
 
 
+def paradas_da_rota(sessao, dia, hora):
+    consulta = select(Coleta.id, Coleta.endereco, Coleta.hora).where(
+        Coleta.dia == dia, Coleta.situacao.in_(("agendada", "em_coleta")),
+    )
+    if hora is not None:
+        consulta = consulta.where(Coleta.hora == hora)
+    return sessao.execute(consulta.order_by(Coleta.hora, Coleta.id)).all()
+
+
 # Persiste os valores iniciais já definidos pela regra no serviço.
 def salvar(sessao, dados_coleta: dict):
     coleta = Coleta(**dados_coleta)

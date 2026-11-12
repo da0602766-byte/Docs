@@ -1,6 +1,14 @@
 # IA no Ciclo Certo
 
-## Plano vigente — 10/11/2026
+## Implementação restaurada — 12/11/2026
+
+A IA/Cici já está implementada. Código dos provedores, conversa, moderação e privacidade em `backend/Ia/`; rotas `POST /ia/sugestao-materiais` e `POST /ia/conversa` em `backend/rotas/ia.py`; interface em `frontend/src/Cici.jsx` e nos componentes `Cici*` de `frontend/src/operacao/`. A integração está montada em `backend/main.py`.
+
+`backend/configuracao.py` carrega `.env` e, fora da Vercel, `.env.local`. `IA_HABILITADA` usa `1` por padrão e `IA_PROVEDOR` usa `auto`, com provedores disponíveis conforme as chaves configuradas. Os modelos padrão e o roteamento efetivo estão no código restaurado. As chaves permanecem somente no ambiente do backend. A configuração antiga descrita abaixo pertence ao planejamento.
+
+Os 16 testes de `teste_ia` passaram com provedores simulados, sem chamadas externas. A conferência das fontes publicadas e as demais validações estão em [restauracao-2026-11-12.md](restauracao-2026-11-12.md).
+
+## Plano histórico — 10/11/2026
 
 **Pronto para começar a implementar:** a API já separa autenticação, regras e acesso a dados. O agendamento aceita descrições em `materiais_informados`, e o formulário já oferece sugestões do catálogo e avisos locais. A configuração de Gemini e OpenRouter está preparada. Ainda faltam a rota de assistência, a integração externa, a validação da resposta e a prévia editável.
 

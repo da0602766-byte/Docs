@@ -104,6 +104,7 @@ export default function AvisosComunidade({ perfil, children }) {
             titulo:
               item.estado === "aprovada"
                 ? "Sua publicação foi aprovada!"
+                : item.estado === "sancao" ? "Moderação da Comunidade"
                 : item.estado === "resposta"
                   ? "A conversa continua!"
                   : "Sua publicação precisa de atenção",

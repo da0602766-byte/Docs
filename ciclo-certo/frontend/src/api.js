@@ -14,7 +14,7 @@ function tratarResposta(resposta, protegida, tokenEnviado) {
       const mensagem = Array.isArray(dados.detail)
         ? "Confira os campos: " + dados.detail.map((erro) => erro.loc.at(-1)).join(", ") + "."
         : dados.detail;
-      throw new Error(mensagem || "Não foi possível concluir a solicitação.");
+      throw Object.assign(new Error(mensagem || "Não foi possível concluir a solicitação."), { status: resposta.status });
     }
     return dados;
   });
@@ -30,8 +30,8 @@ export function solicitar(caminho, opcoes = {}, protegida = true) {
 }
 
 // As mutações compartilham autenticação e mensagens de erro da API.
-export function enviar(caminho, dados = {}, method = "POST") {
-  return solicitar(caminho, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
+export function enviar(caminho, dados = {}, method = "POST", opcoes = {}) {
+  return solicitar(caminho, { ...opcoes, method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(dados) });
 }
 
 // O login OAuth2 recebe formulário; a senha não fica salva no navegador.

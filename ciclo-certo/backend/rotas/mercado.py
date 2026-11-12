@@ -1,7 +1,9 @@
 """Contratos HTTP do mercado e gestão; identidade obtida exclusivamente do token."""
 from fastapi import APIRouter, Depends
-from pydantic import Field
+from datetime import date
+from pydantic import Field, model_validator
 from esquemas.operacao import Entrada
+from esquemas.usuario import EnderecoColeta
 from banco import obter_sessao
 from rotas.autenticacao import obter_usuario_atual
 from servicos import mercado as servico
@@ -11,6 +13,14 @@ router = APIRouter(tags=['Mercado e gestão'])
 class Resgate(Entrada):
     produto_id: int = Field(gt=0)
     chave: str = Field(min_length=16, max_length=64, pattern=r'^[a-zA-Z0-9-]+$')
+    endereco_entrega: EnderecoColeta | None = None
+    data_entrega: date | None = None
+
+    @model_validator(mode="after")
+    def validar_entrega(self):
+        if (self.endereco_entrega is None) != (self.data_entrega is None):
+            raise ValueError("Informe o endereço e a data de entrega juntos.")
+        return self
 
 class Moderacao(Entrada):
     publicar: bool

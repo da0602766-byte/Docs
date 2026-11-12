@@ -8,3 +8,4 @@ pwdlib[argon2]>=0.2,<1
 PyJWT>=2.9,<3
 Pillow>=11.3,<13
 tzdata>=2025.2
+jangada-ai[gemini,openai]==1.14.1

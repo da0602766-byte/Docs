@@ -44,6 +44,10 @@ Cadastre em Settings → Environment Variables de cada projeto, para Production.
 | Backend | `ORIGEM_FRONTEND` | Origem HTTPS pública do frontend, por exemplo `https://SEU-FRONT.vercel.app` |
 | Backend | `DATABASE_URL` | URL PostgreSQL do Supabase, com usuário restrito e senha, usando pooler de transações na porta **6543** |
 | Backend | `CHAVE_DO_TOKEN` | Segredo JWT com pelo menos 32 caracteres; preserve o valor local para manter compatibilidade com os tokens atuais |
+| Backend | `GEMINI_API_KEY` | Chave opcional do Gemini, provedor principal do assistente de materiais |
+| Backend | `OPENROUTER_API_KEY` | Chave opcional do OpenRouter, usada como reserva ou como único provedor |
+
+Para ativar o assistente em produção, cadastre pelo menos uma das chaves de IA como segredo em **Settings → Environment Variables → Production** no projeto `ciclo-certo-api`. As variáveis passam a valer em um novo deploy da API. A tela de agendamento também precisa da versão do frontend que inclui **Ajudar com os materiais**. [Documentação de variáveis da Vercel](https://vercel.com/docs/environment-variables).
 
 No projeto Supabase atual, use o host `aws-0-us-east-2.pooler.supabase.com`, usuário `ciclo_certo_backend.plhfkhxzmxzyfygjyzbk` e banco `postgres`. A URL local já contém a senha; para a nuvem, troque somente a porta `5432` por `6543`, mantendo `postgresql+psycopg` e `sslmode=require`. A conexão nessa porta foi validada com TLS. Marque `DATABASE_URL` e `CHAVE_DO_TOKEN` como sensíveis no painel.
 
@@ -65,6 +69,20 @@ O arquivo `backend/.env` é da execução local. Nesta preparação, nenhuma var
 6. Entre com uma conta existente e consulte suas coletas para validar API, CORS e banco. Não crie registros fictícios no banco de uso normal.
 
 Para Preview, use banco e credenciais de teste e configure a origem exata do frontend de teste. Não libere `*.vercel.app` no CORS. Se a API de Preview usar Deployment Protection, o frontend separado também precisará de um acesso de teste autorizado; essa proteção não é alterada pelo código.
+
+## Atualização da Cici e da Comunidade em 12/11/2026
+
+- API `dpl_D2iAjyvzKaGr73sXvrAB6sduWYko` e frontend `dpl_AtettB6zcm2VpfGQiCcLtmAcZqSo` promovidos para os domínios oficiais. Deploy a partir da cópia de trabalho via Vercel CLI.
+- Migração `20261112223151_endereco_preferido_morador` aplicada no Supabase. A coluna de endereço está na tabela protegida por RLS e sem leitura direta pelos papéis `anon` e `authenticated`.
+- A atualização inclui o carrossel, endereço de retirada, troca de assunto na Cici, navegação móvel no topo, leitura dos avisos pelo sino, animação das respostas e moderação de texto da Comunidade.
+
+## Assistente de materiais em produção
+
+Publicado em 11/11/2026 via Vercel CLI a partir da cópia local, sem push. Os segredos `GEMINI_API_KEY` e `OPENROUTER_API_KEY` estão em **Production** no projeto `ciclo-certo-api`. A publicação não exige migração.
+
+- API `dpl_AehAhvHqFXZTg9PpFhkYDFeJEmbg` com `POST /ia/sugestao-materiais` no OpenAPI, saúde 200, autenticação obrigatória e CORS para o site oficial.
+- Frontend `dpl_7M3MZH6UeDyDM9mJ6qFhAVNWqPac` com o botão **Ajudar com os materiais** em **Agendar**. Em navegador, o site publicado preservou o texto após erro e aplicou a sugestão após revisão com respostas simuladas em 390 e 1440 px.
+- As chamadas reais com Gemini e OpenRouter foram verificadas na API local. O teste no site publicado usou sessão simulada e não criou coletas.
 
 ## Contas de cooperativa
 

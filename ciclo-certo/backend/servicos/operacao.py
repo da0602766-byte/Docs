@@ -51,7 +51,7 @@ def saida(sessao, registro, nomes=None):
     if nomes is None:
         email_morador = repo_usuario.buscar_por_id(sessao, registro.morador_id).email
         nomes = repo.nomes(sessao, [registro.morador_id, registro.cooperador_id])
-    campos = ("equipamentos", "id", "morador_id", "endereco", "dia", "hora", "materiais_informados", "situacao", "pontos", "cooperador_id", "responsabilidade", "motivo_cancelamento", "versao", "finalizada_em", "nota", "comentario", "avaliada_em", "pontos_previstos")
+    campos = ("peso_estimado_kg", "equipamentos", "id", "morador_id", "endereco", "dia", "hora", "materiais_informados", "situacao", "pontos", "cooperador_id", "responsabilidade", "motivo_cancelamento", "versao", "finalizada_em", "nota", "comentario", "avaliada_em", "pontos_previstos")
     return {**{c: getattr(registro, c) for c in campos}, "nome_morador": nomes[registro.morador_id],
             "email_morador": email_morador, "nome_cooperador": nomes.get(registro.cooperador_id), "tem_comprovante": registro.finalizada_em is not None}
 
@@ -244,7 +244,7 @@ def finalizar(sessao, identificador, dados, usuario):
     nome = repo_usuario.buscar_por_id(sessao, registro.morador_id).nome
     if " ".join(dados.nome_signatario.casefold().split()) != " ".join(nome.casefold().split()):
         raise Recusa("A confirmação deve ser assinada pelo morador solicitante.", 422)
-    foto = validar_imagem(dados.foto)
+    foto = validar_imagem(dados.foto) if dados.foto is not None else None
     assinatura = validar_imagem(dados.assinatura, assinatura=True)
     instante = agora()
     repo.comprovante(sessao, identificador, dict(foto=foto, assinatura=assinatura, nome_signatario=dados.nome_signatario, criado_em=instante, versao=registro.versao))
@@ -311,7 +311,10 @@ def alterar_perfil(sessao, dados, usuario):
         outro = repo_usuario.buscar_por_email(sessao, email)
         if outro and outro.id != dono.id:
             raise Recusa("Este e-mail já está em uso.")
-        dono.email = email
+        if dono.email != email:
+            dono.email = email
+            dono.email_verificado_em = None
+            dono.confirmacao_email_hash = None
     if dados.nova_senha:
         dono.senha_hash = gerar_hash_senha(dados.nova_senha.get_secret_value())
     dono.versao_token += 1

@@ -23,6 +23,16 @@ class TesteComunidade(unittest.TestCase):
         self.relogio = patch('servicos.comunidade.agora', side_effect=lambda: self.instante)
         self.relogio.start()
         self.addCleanup(self.relogio.stop)
+        # Os testes de moderação manual representam registros pendentes anteriores à IA.
+        self.automatica = patch('servicos.comunidade.moderar_com_cici')
+        self.automatica.start()
+        self.addCleanup(self.automatica.stop)
+        classificador = patch('servicos.comunidade.classificar', return_value='pertinente')
+        self.classificar = classificador.start()
+        self.addCleanup(classificador.stop)
+        denuncias = patch('servicos.comunidade.analisar', return_value=('incerta', None))
+        denuncias.start()
+        self.addCleanup(denuncias.stop)
 
     def criar(self, headers=None, conteudo=None, categoria='Plantio'):
         self.instante += timedelta(seconds=61)
@@ -37,6 +47,47 @@ class TesteComunidade(unittest.TestCase):
 
     def resumo(self, headers=None):
         return self.cliente.get('/comunidade/resumo', headers=headers or self.m).json()
+
+    def test_analise_automatica_publica_apenas_conteudo_aprovado(self):
+        self.automatica.stop()
+        self.classificar.side_effect = ['fora_do_tema', 'pertinente']
+        rejeitada = self.criar(conteudo='Garrafas para reciclagem, mas votem no meu candidato.')
+        aprovada = self.criar(conteudo='Separe garrafas de vidro para a coleta seletiva.')
+        feed = self.cliente.get('/comunidade/publicacoes', headers=self.o).json()['itens']
+        self.assertEqual([item['id'] for item in feed], [aprovada])
+        minhas = self.cliente.get('/comunidade/publicacoes?modo=minhas', headers=self.m).json()['itens']
+        self.assertEqual(next(item for item in minhas if item['id'] == rejeitada)['estado'], 'rejeitada')
+        self.assertEqual(self.resumo()['saldo'], 10)
+        self.assertEqual(len(self.cliente.get('/comunidade/avisos', headers=self.m).json()['itens']), 2)
+
+    def test_falha_da_ia_preserva_rascunho_reenviavel_e_bloqueia_comentario(self):
+        self.automatica.stop()
+        dados = dict(categoria='Reciclagem', conteudo='Separe as latas de alumínio para a coleta.')
+        self.classificar.return_value = 'indisponivel'
+        falha = self.cliente.post('/comunidade/publicacoes', headers=self.m, json=dados)
+        self.assertEqual(falha.status_code, 503)
+        self.assertEqual(self.cliente.get('/comunidade/publicacoes?modo=minhas', headers=self.m).json()['itens'], [])
+        self.classificar.return_value = 'pertinente'
+        criada = self.cliente.post('/comunidade/publicacoes', headers=self.m, json=dados)
+        self.assertEqual(criada.status_code, 201, criada.text)
+        rota = f"/comunidade/publicacoes/{criada.json()['id']}/comentarios"
+        self.classificar.return_value = 'fora_do_tema'
+        recusado = self.cliente.post(rota, headers=self.o, json={'conteudo': 'Votem no meu candidato.'})
+        self.assertEqual(recusado.status_code, 422)
+        self.assertEqual(self.cliente.get(rota, headers=self.o).json()['itens'], [])
+        self.assertEqual(self.classificar.call_args.kwargs['contexto'], (dados['conteudo'],))
+
+    def test_reenvio_e_analisado_antes_de_ir_ao_feed(self):
+        self.automatica.stop()
+        self.classificar.return_value = 'incerto'
+        identificador = self.criar(conteudo='Qualquer coisa que escrevi aqui.')
+        self.instante += timedelta(seconds=61)
+        self.classificar.return_value = 'pertinente'
+        dados = dict(categoria='Plantio', conteudo='Cultivei temperos em um vaso reutilizado.')
+        resposta = self.cliente.put(f'/comunidade/publicacoes/{identificador}/reenviar', headers=self.m, json=dados)
+        self.assertEqual(resposta.status_code, 200, resposta.text)
+        self.assertEqual(resposta.json()['estado'], 'aprovada')
+        self.classificar.assert_called_with(dados['conteudo'], categoria='Plantio')
 
     def test_aprovacao_identidade_e_isolamento_das_coletas(self):
         antes = self.cliente.get('/carteira', headers=self.m).json()

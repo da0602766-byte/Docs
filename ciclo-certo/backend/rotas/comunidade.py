@@ -74,5 +74,5 @@ def denuncias(antes: int | None = Query(None, gt=0), limite: int = Query(20, ge=
 
 
 @router.post('/denuncias/{identificador}/resolver')
-def resolver(identificador: int, sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
-    return servico.resolver_denuncia(sessao, usuario, identificador)
+def resolver(identificador: int, revogar: bool = False, sessao=Depends(obter_sessao), usuario=Depends(obter_usuario_atual)):
+    return servico.resolver_denuncia(sessao, usuario, identificador, revogar)

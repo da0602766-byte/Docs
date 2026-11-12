@@ -2,9 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from banco import obter_sessao
-from esquemas.usuario import UsuarioCriar, UsuarioSaida
-from rotas.autenticacao import exigir_cooperativa, obter_usuario_atual
+from esquemas.usuario import ConfirmacaoEmail, EnderecoPreferido, PerfilProprio, UsuarioCriar, UsuarioSaida
+from rotas.autenticacao import exigir_cooperativa, exigir_morador, obter_usuario_atual
 from servicos import usuario as servico_usuario
+from servicos import confirmacao_email
 from servicos.excecoes import EmailEmUso, AcessoNegado
 
 router = APIRouter(prefix="/usuarios", tags=["Usuários"])
@@ -24,9 +25,24 @@ def cadastrar_usuario(dados: UsuarioCriar, sessao=Depends(obter_sessao)):
 
 
 # Devolve somente quem foi identificado pelo token desta requisição.
-@router.get("/eu", response_model=UsuarioSaida, responses={401: {"description": "Token ausente, inválido ou vencido."}})
+@router.get("/eu", response_model=PerfilProprio, responses={401: {"description": "Token ausente, inválido ou vencido."}})
 def consultar_usuario_atual(usuario=Depends(obter_usuario_atual)):
     return usuario
+
+
+@router.put("/eu/endereco-coleta", response_model=PerfilProprio)
+def salvar_endereco(dados: EnderecoPreferido, usuario=Depends(exigir_morador), sessao=Depends(obter_sessao)):
+    return servico_usuario.salvar_endereco(sessao, usuario, dados.endereco_coleta)
+
+
+@router.post("/eu/confirmacao-email", status_code=202)
+def solicitar_confirmacao_email(usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
+    return confirmacao_email.solicitar(sessao, usuario.id)
+
+
+@router.post("/confirmar-email")
+def confirmar_email(dados: ConfirmacaoEmail, sessao=Depends(obter_sessao)):
+    return confirmacao_email.confirmar(sessao, dados.token.get_secret_value())
 
 
 # Preserva o caminho antigo como consulta administrativa, sem o seletor público de identidades.

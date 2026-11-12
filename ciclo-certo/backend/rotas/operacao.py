@@ -6,6 +6,7 @@ from rotas.autenticacao import obter_usuario_atual
 from esquemas import operacao as entrada
 from servicos import operacao as servico
 from servicos.catalogo import catalogo
+from servicos.equipamentos import recomendar_kit
 
 router = APIRouter(tags=["Operação"])
 
@@ -37,7 +38,11 @@ def agendar(dados: entrada.Agendamento, usuario=Depends(obter_usuario_atual), se
 
 @router.get("/coletas/{identificador}")
 def detalhe(identificador: int, usuario=Depends(obter_usuario_atual), sessao=Depends(obter_sessao)):
-    return servico.saida(sessao, servico.obter_coleta(sessao, identificador, usuario))
+    coleta = servico.obter_coleta(sessao, identificador, usuario)
+    dados = servico.saida(sessao, coleta)
+    if usuario.tipo == "cooperativa" and coleta.situacao in {"agendada", "em_coleta"}:
+        dados["kit_recomendado"] = recomendar_kit(coleta.materiais_informados, coleta.peso_estimado_kg)
+    return dados
 
 
 @router.post("/coletas/{identificador}/assumir")

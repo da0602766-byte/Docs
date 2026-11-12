@@ -1,20 +1,28 @@
 """Trocas atômicas, moderação consentida e exclusão restrita a administradores."""
 from repositorios import mercado as repo
 from repositorios import operacao
-from servicos.operacao import exigir_perfil, Recusa, agora, obter_coleta
-from datetime import timezone
+from servicos.operacao import exigir_perfil, Recusa, agora, local, obter_coleta
+from datetime import timedelta, timezone
 
 def produto_saida(p):
     return {k: getattr(p, k) for k in ('id', 'nome', 'descricao', 'categoria', 'pontos', 'estoque', 'foto', 'ativo')}
 
 def pedido_saida(p):
-    return {**{k: getattr(p, k) for k in ('id', 'produto_id', 'nome', 'pontos')},
+    return {**{k: getattr(p, k) for k in ('id', 'produto_id', 'nome', 'pontos', 'endereco_entrega', 'data_entrega')},
             'criado_em': p.criado_em.astimezone(timezone.utc)}
+
+def datas_entrega():
+    """Disponibilidade simulada dos próximos cinco dias úteis em Brasília."""
+    hoje = local().date()
+    candidatas = (hoje + timedelta(days=intervalo) for intervalo in range(1, 8))
+    return [dia for dia in candidatas if dia.weekday() < 5]
+
 
 def loja(s, usuario):
     exigir_perfil(usuario, 'morador')
     return {'produtos': [produto_saida(p) for p in repo.produtos(s) if p.ativo],
             'pedidos': [pedido_saida(p) for p in repo.pedidos(s, usuario.id)],
+            'datas_entrega': datas_entrega(),
             'pontos': sum(m.pontos for m in operacao.movimentos(s, usuario.id))}
 
 def resgatar(s, dados, usuario):
@@ -23,9 +31,13 @@ def resgatar(s, dados, usuario):
     operacao.usuario(s, usuario.id)
     anterior = next((p for p in repo.pedidos(s, usuario.id) if p.chave == dados.chave), None)
     if anterior:
-        if anterior.produto_id != dados.produto_id:
+        if (anterior.produto_id, anterior.endereco_entrega, anterior.data_entrega) != (
+            dados.produto_id, dados.endereco_entrega, dados.data_entrega
+        ):
             raise Recusa('Esta chave já identifica outra troca.')
         return pedido_saida(anterior)
+    if dados.data_entrega is not None and dados.data_entrega not in datas_entrega():
+        raise Recusa('Esta data de entrega não está disponível. Escolha outra data.')
     produto = repo.produto(s, dados.produto_id)
     if not produto:
         raise Recusa('Produto não encontrado.', 404)
@@ -36,7 +48,8 @@ def resgatar(s, dados, usuario):
     if sum(m.pontos for m in operacao.movimentos(s, usuario.id)) < produto.pontos:
         raise Recusa('Saldo de pontos insuficiente.')
     pedido = repo.salvar_pedido(s, usuario_id=usuario.id, produto_id=produto.id, nome=produto.nome,
-                               pontos=produto.pontos, chave=dados.chave, criado_em=agora())
+                               pontos=produto.pontos, chave=dados.chave, criado_em=agora(),
+                               endereco_entrega=dados.endereco_entrega, data_entrega=dados.data_entrega)
     produto.estoque -= 1
     operacao.movimento(s, dict(usuario_id=usuario.id, chave='pedido-' + str(pedido.id), tipo='produto', pontos=-produto.pontos, centavos=0, criado_em=agora()))
     operacao.confirmar(s)

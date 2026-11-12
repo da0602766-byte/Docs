@@ -109,7 +109,7 @@ class TesteOperacao(unittest.TestCase):
         return r.json()
 
     def agendar(self):
-        return self.post("/coletas", dict(endereco="Rua das Flores, 123", dia=str(self.dia), hora="08:00", materiais_informados=["Cobre", "Vidro transparente"]), self.m, 201)
+        return self.post("/coletas", dict(endereco="Rua das Flores, 123", dia=str(self.dia), hora="08:00", materiais_informados=["Cobre", "Vidro transparente"], peso_estimado_kg="2.5"), self.m, 201)
 
     def assumir(self):
         coleta = self.agendar()
@@ -158,7 +158,7 @@ class TesteOperacao(unittest.TestCase):
     def test_cancelamento_avisa_e_reabre_vaga(self):
         self.cliente.put("/agenda", json=dict(dia=str(self.dia), hora="08:00", capacidade=1), headers=self.c)
         coleta = self.assumir()
-        r = self.cliente.post("/coletas", json=dict(endereco="Rua das Flores, 123", dia=str(self.dia), hora="08:00", materiais_informados=["pet"]), headers=self.m)
+        r = self.cliente.post("/coletas", json=dict(endereco="Rua das Flores, 123", dia=str(self.dia), hora="08:00", materiais_informados=["pet"], peso_estimado_kg="1"), headers=self.m)
         self.assertEqual(r.status_code, 409)
         motivo = "Morador ausente no horário combinado."
         self.post(f"/coletas/{coleta['id']}/cancelar", {"motivo": motivo})
@@ -318,7 +318,7 @@ class TesteOperacao(unittest.TestCase):
 
     def test_ultima_vaga_concorrente(self):
         self.cliente.put("/agenda", json=dict(dia=str(self.dia), hora="09:00", capacidade=1), headers=self.c)
-        dados = dict(endereco="Rua da Concorrência, 123", dia=str(self.dia), hora="09:00", materiais_informados=["PET"])
+        dados = dict(endereco="Rua da Concorrência, 123", dia=str(self.dia), hora="09:00", materiais_informados=["PET"], peso_estimado_kg="1")
         with ThreadPoolExecutor(max_workers=2) as pool:
             respostas = list(pool.map(lambda h: self.cliente.post("/coletas", json=dados, headers=h), [self.m, self.o]))
         self.assertEqual(sorted(r.status_code for r in respostas), [201, 409])
@@ -331,7 +331,45 @@ class TesteOperacao(unittest.TestCase):
         rota = dict(dia=str(self.dia), hora="08:00", capacidade=0)
         self.assertEqual(self.cliente.put("/agenda", json=rota, headers=self.c).status_code, 409)
         self.assertEqual(self.cliente.put("/agenda", json=rota, headers=self.m).status_code, 403)
-        self.post("/coletas", dict(endereco="Rua Teste, 123", dia="2020-01-01", hora="08:00", materiais_informados=["PET"]), self.m, 422)
+        self.post("/coletas", dict(endereco="Rua Teste, 123", dia="2020-01-01", hora="08:00", materiais_informados=["PET"], peso_estimado_kg="1"), self.m, 422)
+
+    def test_checkout_valida_data_e_preserva_entrega_no_historico(self):
+        coleta = self.finalizar()
+        self.post(f"/coletas/{coleta['id']}/avaliar", {"nota": 5}, self.m)
+        loja = self.cliente.get("/mercado", headers=self.m).json()
+        produto = next(p for p in loja["produtos"] if p["estoque"] and p["pontos"] <= loja["pontos"])
+        datas = loja["datas_entrega"]
+        self.assertEqual(len(datas), 5)
+        rota = "/mercado/resgates"
+        dados = dict(produto_id=produto["id"], chave=uuid4().hex,
+                     endereco_entrega="Rua da Reciclagem, 120, Contagem - MG", data_entrega=datas[0])
+        self.post(rota, {**dados, "data_entrega": "2000-01-01"}, self.m, 409)
+        self.post(rota, {**dados, "endereco_entrega": None}, self.m, 422)
+        pedido = self.post(rota, dados, self.m)
+        self.assertEqual(self.post(rota, dados, self.m), pedido)
+        self.post(rota, {**dados, "data_entrega": datas[1]}, self.m, 409)
+        self.assertEqual(pedido["endereco_entrega"], dados["endereco_entrega"])
+        self.assertEqual(pedido["data_entrega"], datas[0])
+        self.assertEqual(self.cliente.get("/mercado", headers=self.m).json()["pedidos"], [pedido])
+        self.assertEqual(self.cliente.get("/mercado", headers=self.o).json()["pedidos"], [])
+
+    def test_endereco_preferido_fica_no_proprio_perfil(self):
+        endereco = "Rua da Reciclagem, 120, Jardim Verde, Contagem - MG"
+        email = uuid4().hex + "@example.org"
+        dados = dict(nome="Pessoa Teste", email=email, senha="SenhaTeste123!", tipo="morador", endereco_coleta=endereco)
+        criada = self.cliente.post("/usuarios", json=dados)
+        self.assertEqual(criada.status_code, 201, criada.text)
+        self.assertNotIn("endereco_coleta", criada.json())
+        token = self.cliente.post("/login", data=dict(username=email, password=dados["senha"])).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        self.assertEqual(self.cliente.get("/usuarios/eu", headers=headers).json()["endereco_coleta"], endereco)
+        self.assertIsNone(self.cliente.get("/usuarios/eu", headers=self.m).json()["endereco_coleta"])
+        self.assertNotIn(endereco, self.cliente.get("/usuarios", headers=self.c).text)
+        rota = "/usuarios/eu/endereco-coleta"
+        self.assertEqual(self.cliente.put(rota, headers=self.c, json={"endereco_coleta": endereco}).status_code, 403)
+        removido = self.cliente.put(rota, headers=headers, json={"endereco_coleta": None})
+        self.assertEqual(removido.status_code, 200, removido.text)
+        self.assertIsNone(removido.json()["endereco_coleta"])
 
     def test_perfil_senha_email_e_revogacao(self):
         dados = dict(senha_atual="errada", email="novo@example.org")

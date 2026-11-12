@@ -19,3 +19,19 @@ def validar_equipamentos(codigos):
     if any(c not in {e["codigo"] for e in EQUIPAMENTOS} for c in codigos):
         raise Recusa("Escolha equipamentos do catálogo da coleta.", 422)
     return list(dict.fromkeys(codigos))
+
+
+def recomendar_kit(materiais, peso_estimado):
+    """Regras explicáveis: identifica cuidados e apoio de transporte, sem reservar itens."""
+    import re
+    import unicodedata
+    texto = unicodedata.normalize("NFKD", " ".join(materiais).casefold())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    kit = ["balanca", "luvas", "sacos"]
+    fragil = re.search(r"\b(?:vidros?|cacos?|ceramica|espelhos?|eletronic[oa]s?|baterias?|pilhas?)\b", texto)
+    volumoso = re.search(r"\b(?:moveis|eletrodomesticos?|volumosos?|sucata|chapas?)\b", texto)
+    if fragil:
+        kit.extend(["caixas", "botas"])
+    if volumoso or (peso_estimado is not None and peso_estimado >= 15):
+        kit.extend(["carrinho", "cordas", "botas"])
+    return list(dict.fromkeys(kit))

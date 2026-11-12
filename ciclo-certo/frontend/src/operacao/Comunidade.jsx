@@ -369,6 +369,7 @@ function Confirmacao({ acao, fechar, concluir }) {
     aprovar: "Aprovar publicação",
     rejeitar: "Rejeitar publicação",
     resolver: "Concluir análise da denúncia",
+    revogar: "Revogar restrição da Cici",
   };
   const precisaMotivo = ["denunciar", "rejeitar"].includes(acao.tipo);
   async function confirmar(evento) {
@@ -390,11 +391,11 @@ function Confirmacao({ acao, fechar, concluir }) {
           aprovar: acao.tipo === "aprovar",
           motivo,
         });
-      if (acao.tipo === "resolver")
-        await enviar(`${base}/denuncias/${acao.id}/resolver`);
+      if (["resolver", "revogar"].includes(acao.tipo))
+        await enviar(`${base}/denuncias/${acao.id}/resolver${acao.tipo === "revogar" ? "?revogar=true" : ""}`);
       concluir(
         acao.tipo === "denunciar"
-          ? "Denúncia recebida. A moderação irá analisar o conteúdo."
+          ? "Denúncia recebida. A Cici analisa o conteúdo e encaminha casos incertos à moderação."
           : "Alteração salva.",
       );
     } catch (e) {
@@ -426,6 +427,7 @@ function Confirmacao({ acao, fechar, concluir }) {
             a cota do autor antes de conceder os pontos.
           </p>
         )}
+        {acao.tipo === "revogar" && <p>A restrição será encerrada e a pessoa receberá um aviso.</p>}
         {acao.tipo === "resolver" && (
           <p>
             Conclua após analisar o conteúdo. Se for necessário removê-lo, use a
@@ -519,6 +521,16 @@ export default function Comunidade({
   const feed = useFeedComunidade(caminho, revisao);
   const regras = resumo.dados;
   const atualizar = () => setRevisao((n) => n + 1);
+  const restricaoAte = regras?.restricao_ate;
+  useEffect(() => {
+    if (!restricaoAte) return;
+    const prazo = new Date(restricaoAte).getTime() - Date.now();
+    const timer = window.setTimeout(() => {
+      setRevisaoResumo((n) => n + 1);
+      setRevisao((n) => n + 1);
+    }, Math.max(1000, prazo + 150));
+    return () => window.clearTimeout(timer);
+  }, [restricaoAte]);
   useEffect(() => {
     if (pergunta) {
       setTexto(pergunta + "\n\n");
@@ -557,7 +569,7 @@ export default function Comunidade({
     setErro("");
     prepararAudio();
     try {
-      await enviar(`${base}/publicacoes`, {
+      const resultado = await enviar(`${base}/publicacoes`, {
         categoria: novaCategoria,
         conteudo: texto,
         youtube_url: video.trim() || null,
@@ -573,10 +585,13 @@ export default function Comunidade({
       setCategoria("");
       setFiltroPerfil("");
       setAviso({
-        publicacao: true,
+        publicacao: resultado.estado === "aprovada",
         sonoro: true,
-        texto:
-          "Publicação enviada para análise. Acompanhe em Minhas publicações.",
+        texto: resultado.estado === "aprovada"
+          ? "A Cici verificou sua publicação e ela já está no feed."
+          : resultado.estado === "rejeitada"
+            ? "A publicação precisa de ajustes. Veja o motivo em Minhas publicações."
+            : "Acompanhe a revisão do vídeo em Minhas publicações.",
       });
       atualizar();
     } catch (e) {
@@ -656,6 +671,7 @@ export default function Comunidade({
           <span>Som {som ? "ligado" : "desligado"}</span>
         </button>
       </div>
+      {regras?.restricao && <p className="cc-cuidado" role="status">{regras.restricao}</p>}
       {resumo.erro && (
         <div className="com-estado">
           <Estado recurso={resumo} />
@@ -809,7 +825,18 @@ export default function Comunidade({
                     {item.excluido ? "Conteúdo já excluído." : item.conteudo}
                   </p>
                   <p className="com-motivo">Motivo: {item.motivo}</p>
+                  <p className="com-motivo">Análise da Cici: {({
+                    pendente: "Aguardando análise", incerta: "Revisão humana necessária",
+                    sem_infracao: "Sem infração clara", ofensa: "Ataque pessoal", ameaca: "Ameaça",
+                    odio: "Discurso de ódio", assedio_grave: "Assédio grave",
+                    ja_aplicada: "Conteúdo já analisado e sancionado", alterado: "O conteúdo mudou durante a análise",
+                  })[item.analise] || "Aguardando análise"}</p>
+                  {item.evidencia && <p className="com-motivo">Trecho: “{item.evidencia}”</p>}
+                  {item.sancao_ate && <p className="com-motivo">{item.revogada_em ? "Restrição revogada" :
+                    `Restrição até ${new Date(item.sancao_ate).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (Brasília)`}</p>}
                   <div className="com-acoes">
+                    {item.sancao_ate && !item.revogada_em && new Date(item.sancao_ate).getTime() > Date.now() &&
+                      <button onClick={() => setAcao({ tipo: "revogar", id: item.id })}>Revogar restrição</button>}
                     {!item.excluido && (
                       <button
                         onClick={() =>
@@ -824,11 +851,7 @@ export default function Comunidade({
                         Excluir conteúdo
                       </button>
                     )}
-                    <button
-                      onClick={() => setAcao({ tipo: "resolver", id: item.id })}
-                    >
-                      Concluir análise
-                    </button>
+                    {!item.resolvido_em && <button onClick={() => setAcao({ tipo: "resolver", id: item.id })}>Concluir análise</button>}
                   </div>
                 </article>
               ) : (

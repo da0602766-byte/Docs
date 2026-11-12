@@ -15,7 +15,7 @@ class Horario(Base):
 class Comprovante(Base):
     __tablename__ = "comprovantes"
     coleta_id = Column(Integer, ForeignKey("coletas.id"), primary_key=True)
-    foto = Column(Text, nullable=False)
+    foto = Column(Text)
     assinatura = Column(Text, nullable=False)
     nome_signatario = Column(String(80), nullable=False)
     criado_em = Column(DateTime(timezone=True), nullable=False)

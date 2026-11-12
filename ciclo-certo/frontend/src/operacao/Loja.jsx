@@ -1,32 +1,46 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { enviar } from "../api";
-import { useDados, Estado, Cabecalho, Modal, numero } from "./interface";
+import { useDados, Estado, Cabecalho, Modal, numero, data } from "./interface";
+import EnderecoColeta from "./EnderecoColeta";
+import "./checkout.css";
 
 // A confirmação conserva a chave em falhas de rede; preço e saldo vêm do servidor.
-export default function Loja() {
+export default function Loja({ aoTrocar, enderecoPreferido = "" }) {
   const [revisao, setRevisao] = useState(0);
   const recurso = useDados("/mercado", revisao);
   const extrato = useDados("/carteira", revisao);
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState("Todas");
   const [escolha, setEscolha] = useState(null);
+  const [endereco, setEndereco] = useState("");
+  const [dia, setDia] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
-  async function trocar() {
+  const enviando = useRef(false);
+  const datasEntrega = recurso.dados?.datas_entrega || [];
+  async function trocar(evento) {
+    evento.preventDefault();
+    if (enviando.current || !datasEntrega.includes(dia)) return;
+    enviando.current = true;
     setOcupado(true);
     setErro("");
     try {
       const pedido = await enviar("/mercado/resgates", {
         produto_id: escolha.produto.id,
         chave: escolha.chave,
+        endereco_entrega: endereco.trim(),
+        data_entrega: dia,
       });
       setSucesso(`Troca nº ${pedido.id} confirmada: ${pedido.nome}.`);
       setEscolha(null);
       setRevisao((n) => n + 1);
+      aoTrocar?.();
     } catch (e) {
       setErro(e.message);
+      setRevisao((n) => n + 1);
     } finally {
+      enviando.current = false;
       setOcupado(false);
     }
   }
@@ -116,6 +130,8 @@ export default function Loja() {
                 disabled={!p.estoque || saldo < p.pontos}
                 onClick={() => {
                   setErro("");
+                  setEndereco(enderecoPreferido || "");
+                  setDia("");
                   setEscolha({ produto: p, chave: crypto.randomUUID() });
                 }}
               >
@@ -146,6 +162,9 @@ export default function Loja() {
               <small className="ws-cell-sub">
                 {new Date(p.criado_em).toLocaleString("pt-BR")}
               </small>
+              {p.data_entrega && <small className="ws-cell-sub">
+                Entrega simulada em {data(p.data_entrega)} · {p.endereco_entrega}
+              </small>}
             </span>
             <strong>−{numero(p.pontos)} pts</strong>
           </div>
@@ -163,24 +182,41 @@ export default function Loja() {
       </details>
       {escolha && (
         <Modal
-          titulo="Confirmar troca"
+          titulo="Finalizar troca"
+          className="cc-checkout"
           fechar={() => !ocupado && setEscolha(null)}
         >
-          <p>{escolha.produto.nome}</p>
-          <p>
-            Serão utilizados{" "}
-            <strong>{numero(escolha.produto.pontos)} pontos</strong>. Saldo
-            previsto: {numero(saldo - escolha.produto.pontos)} pontos.
-          </p>
-          <p>Recompensa fictícia, sem entrega real.</p>
-          {erro && (
-            <p role="alert" className="aviso erro">
-              {erro}
-            </p>
-          )}
-          <button className="ws-btn" disabled={ocupado} onClick={trocar}>
-            {ocupado ? "Confirmando…" : "Confirmar troca"}
-          </button>
+          <form className="cc-checkout-form" onSubmit={trocar}>
+            <div className="cc-checkout-item">
+              <img src={escolha.produto.foto} alt="" width="72" height="60" />
+              <div><strong>{escolha.produto.nome}</strong><span>1 unidade</span></div>
+              <strong>{numero(escolha.produto.pontos)} pts</strong>
+            </div>
+            <fieldset disabled={ocupado}>
+              <legend>Entrega</legend>
+              <EnderecoColeta endereco={endereco} mudar={setEndereco} rotulo="Endereço de entrega" />
+              <div className="ws-field">
+                <label htmlFor="cc-checkout-data">Data de entrega</label>
+                <select id="cc-checkout-data" required value={datasEntrega.includes(dia) ? dia : ""} onChange={(e) => setDia(e.target.value)}>
+                  <option value="">Escolha uma data</option>
+                  {datasEntrega.map((disponivel) => <option key={disponivel} value={disponivel}>
+                    {new Date(disponivel + "T12:00:00").toLocaleDateString("pt-BR", { dateStyle: "full" })}
+                  </option>)}
+                </select>
+              </div>
+              {!datasEntrega.length && <p className="ws-help" role="status">Nenhuma data disponível no momento.</p>}
+            </fieldset>
+            <section className="cc-checkout-resumo" aria-label="Resumo da troca">
+              <div><span>Total da troca</span><strong>{numero(escolha.produto.pontos)} pontos</strong></div>
+              <div><span>Saldo após a troca</span><strong>{numero(saldo - escolha.produto.pontos)} pontos</strong></div>
+            </section>
+            <p className="ws-help">Troca e entrega simuladas.</p>
+            {erro && <p role="alert" className="aviso erro">{erro}</p>}
+            <button type="submit" className="ws-btn ws-btn-block"
+              disabled={ocupado || !datasEntrega.includes(dia) || endereco.trim().length < 10}>
+              {ocupado ? "Confirmando…" : "Confirmar troca"}
+            </button>
+          </form>
         </Modal>
       )}
     </>

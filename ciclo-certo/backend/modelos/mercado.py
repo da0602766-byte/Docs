@@ -1,5 +1,5 @@
 """Produtos de demonstração e pedidos preservam preço e nome no momento da troca."""
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, UniqueConstraint
 from banco import Base
 
 class Produto(Base):
@@ -22,4 +22,6 @@ class Pedido(Base):
     nome = Column(String(100), nullable=False)
     pontos = Column(Integer, nullable=False)
     chave = Column(String(64), nullable=False)
+    endereco_entrega = Column(String(160))
+    data_entrega = Column(Date)
     criado_em = Column(DateTime(timezone=True), nullable=False)

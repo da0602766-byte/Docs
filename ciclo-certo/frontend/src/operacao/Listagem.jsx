@@ -180,7 +180,7 @@ export default function Listagem({ perfil, selecionar, revisao }) {
                       <h3>{cooperador ? c.nome_morador : data(c.dia)}</h3>
                       <p>{c.endereco}</p>
                       <p className="ws-help">
-                        {c.materiais_informados.join(" · ")}
+                        {c.materiais_informados.join(" · ")}{c.peso_estimado_kg != null && " · Peso estimado: " + Number(c.peso_estimado_kg).toLocaleString("pt-BR") + " kg"}
                       </p>
                       {c.nome_cooperador && (
                         <p className="ws-help">

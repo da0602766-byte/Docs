@@ -1,4 +1,5 @@
 import AvisosComunidade from "./operacao/AvisosComunidade";
+import CiciFlutuante from "./operacao/CiciFlutuante";
 import ComunidadePublica from "./operacao/ComunidadePublica";
 // O aplicativo autentica a pessoa antes de apresentar as quatro telas da cartilha.
 import React, { useEffect, useState } from "react";
@@ -6,16 +7,22 @@ import PaginaInicial from "./PaginaInicial";
 import { Icone, Navegacao } from "./visual";
 import Operacao from "./Operacao";
 import Recuperar from "./Recuperar";
+import ConfirmarEmail from "./ConfirmarEmail";
+import EnderecoColeta from "./operacao/EnderecoColeta";
 import { buscarUsuarioAtual, entrar, cadastrarUsuario, enviar } from "./api";
 import { obterToken, salvarToken, removerToken } from "./sessao";
+import { limparRascunhoCici } from "./regrasCici";
 
 // A pessoa entra ou cria a própria conta; os campos começam vazios, sem credenciais fictícias.
 function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
   const [recuperar, setRecuperar] = useState(false);
-  const [cadastro, setCadastro] = useState(false);
+  const [cadastro, setCadastro] = useState(
+    () => tipo === "morador" && new URLSearchParams(window.location.search).get("cadastro") === "1",
+  );
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [endereco, setEndereco] = useState("");
   // O endereço define o cadastro; a API continua responsável pelas permissões.
   const cooperador = tipo === "cooperativa";
   const podeCadastrar = !cooperador || import.meta.env.DEV;
@@ -23,19 +30,21 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
   const [mensagem, setMensagem] = useState("");
 
   // O cadastro é confirmado antes do login; a sessão pertence à aba e ao perfil.
-  function enviar(evento) {
+  function enviarAcesso(evento) {
     evento.preventDefault();
     setEnviando(true);
     setMensagem("");
     aoLimparAviso();
     const preparacao = cadastro
-      ? cadastrarUsuario({ nome, email, senha, tipo })
+      ? cadastrarUsuario({ nome, email, senha, tipo,
+          ...(!cooperador && endereco.trim() ? { endereco_coleta: endereco.trim() } : {}) })
       : Promise.resolve();
     preparacao
       .then(() => entrar(email, senha))
       .then((dados) => {
         salvarToken(dados.access_token);
         if (cadastro) {
+          enviar("/usuarios/eu/confirmacao-email").catch(() => {});
           try {
             const sessao = sessionStorage.getItem("cc-visita");
             if (sessao)
@@ -132,7 +141,7 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
                 ? "Entre com sua conta da cooperativa."
                 : "Entre com sua conta de morador para acessar suas coletas."}
           </p>
-          <form onSubmit={enviar}>
+          <form onSubmit={enviarAcesso}>
             {cadastro && (
               <label className="ws-field">
                 <span className="ws-label">Nome</span>
@@ -173,6 +182,13 @@ function Login({ aoEntrar, aviso, tipo, aoLimparAviso }) {
                 <span className="ws-help">Use de 8 a 72 caracteres.</span>
               )}
             </label>
+            {cadastro && !cooperador && (
+              <fieldset className="cc-endereco-cadastro" disabled={enviando}>
+                <legend>Endereço de retirada</legend>
+                <p className="ws-help">Preencha para reaproveitar o endereço nas próximas coletas. Inclua complemento ou ponto de referência, se ajudar a encontrar o local.</p>
+                <EnderecoColeta endereco={endereco} mudar={setEndereco} obrigatorio={false} rotulo="Endereço de retirada (opcional)" />
+              </fieldset>
+            )}
             <button
               className="ws-btn ws-btn-block"
               disabled={enviando}
@@ -282,9 +298,9 @@ function Aplicacao() {
               ? "acoes"
               : usuario.tipo === "morador" &&
                   parametros.get("destino") === "agendar"
-                ? "agendar"
+                ? parametros.get("cici") === "1" ? "cici" : "agendar"
                 : usuario.tipo === "morador"
-                  ? "minhas"
+                  ? "cici"
                   : "rota",
         );
         enviar("/comunidade/acesso").catch(() => {});
@@ -317,6 +333,7 @@ function Aplicacao() {
   // A saída remove somente o token; a senha nunca foi persistida.
   function sair() {
     removerToken();
+    limparRascunhoCici();
     setPaginaInicial(false);
     setToken(null);
     setPerfil(null);
@@ -338,6 +355,7 @@ function Aplicacao() {
     return (
       <Operacao
         perfil={perfil}
+        aoAtualizarPerfil={setPerfil}
         tela={tela}
         mudarTela={setTela}
         sair={sair}
@@ -346,72 +364,81 @@ function Aplicacao() {
     );
   }
 
-  if (window.location.pathname === "/redefinir")
-    return <Recuperar voltar={() => window.location.assign("/login")} />;
-  if (!token && paginaInicial) return <PaginaInicial />;
-  if (!token)
-    return (
-      <Login
-        aoEntrar={receberToken}
-        aviso={aviso}
-        tipo={tipoAcesso}
-        aoLimparAviso={() => setAviso("")}
-      />
-    );
-  if (carregando)
-    return (
-      <main className="ws pagina-centralizada">
-        <p className="estado carregando">Carregando seu perfil...</p>
-      </main>
-    );
-  if (erro || !perfil)
-    return (
-      <main className="ws pagina-centralizada">
-        <div className="erro-com-acao" role="alert">
-          <p>{erro || "Não foi possível carregar seu perfil."}</p>
-          <button
-            className="ws-btn"
-            onClick={() => setTentativa((valor) => valor + 1)}
-            type="button"
-          >
-            Tentar novamente
-          </button>
-          <button className="ws-btn ws-btn-ghost" onClick={sair} type="button">
-            Voltar ao login
-          </button>
-        </div>
-      </main>
-    );
-  return (
-    <div className="ws">
-      <AvisosComunidade key={perfil.id} perfil={perfil}>
-        <Navegacao
-          perfil={perfil}
-          tela={tela}
-          aoMudarTela={(destino) => {
-            setTela(destino);
-            window.scrollTo(0, 0);
-          }}
-          aoSair={sair}
-          abrirAviso={(id) => {
-            setTela("rota");
-            setPedidoAviso({ id, versao: Date.now() });
-          }}
+  function renderPagina() {
+    if (window.location.pathname === "/redefinir")
+      return <Recuperar voltar={() => window.location.assign("/login")} />;
+    if (!token && paginaInicial) return <PaginaInicial />;
+    if (!token)
+      return (
+        <Login
+          aoEntrar={receberToken}
+          aviso={aviso}
+          tipo={tipoAcesso}
+          aoLimparAviso={() => setAviso("")}
         />
-        <main id="conteudo" className="ws-container ws-main" key={perfil.id}>
-          {conteudoPrincipal()}
+      );
+    if (carregando)
+      return (
+        <main className="ws pagina-centralizada">
+          <p className="estado carregando">Carregando seu perfil...</p>
         </main>
-        <footer className="rodape-app">
-          Ciclo Certo · Cada material tem um novo começo.
-        </footer>
-      </AvisosComunidade>
-    </div>
-  );
+      );
+    if (erro || !perfil)
+      return (
+        <main className="ws pagina-centralizada">
+          <div className="erro-com-acao" role="alert">
+            <p>{erro || "Não foi possível carregar seu perfil."}</p>
+            <button
+              className="ws-btn"
+              onClick={() => setTentativa((valor) => valor + 1)}
+              type="button"
+            >
+              Tentar novamente
+            </button>
+            <button className="ws-btn ws-btn-ghost" onClick={sair} type="button">
+              Voltar ao login
+            </button>
+          </div>
+        </main>
+      );
+    return (
+      <div className={`ws ws-${perfil.tipo}-app`}>
+        <AvisosComunidade key={perfil.id} perfil={perfil}>
+          <Navegacao
+            perfil={perfil}
+            tela={tela}
+            aoMudarTela={(destino) => {
+              setPedidoAviso(null);
+              setTela(destino);
+              window.scrollTo(0, 0);
+            }}
+            aoSair={sair}
+            abrirAviso={(id) => {
+              setTela(perfil.tipo === "morador" ? "minhas" : "rota");
+              setPedidoAviso({ id, versao: Date.now() });
+            }}
+          />
+          <main id="conteudo" className="ws-container ws-main" key={perfil.id}>
+            {conteudoPrincipal()}
+          </main>
+          <footer className="rodape-app">
+            Ciclo Certo · Cada material tem um novo começo.
+          </footer>
+        </AvisosComunidade>
+      </div>
+    );
+  }
+
+  return <>
+    {renderPagina()}
+    {!token && <CiciFlutuante cooperador={tipoAcesso === "cooperativa"} destino={paginaInicial ? "#cici" : undefined} />}
+  </>;
 }
 
 export default function App() {
+  if (window.location.pathname === "/confirmar-email") return <ConfirmarEmail />;
   return window.location.pathname.startsWith("/comunidade") ? (
-    <ComunidadePublica />
+    <><ComunidadePublica /><CiciFlutuante /></>
   ) : (
     <Aplicacao />
   );

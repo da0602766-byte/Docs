@@ -13,6 +13,8 @@ import {
 import Detalhe from "./Detalhe";
 import Perfil from "./Perfil";
 import EditorMercado from "./EditorMercado";
+import PainelCooperador from "./PainelCooperador";
+import RotaColetas from "./RotaColetas";
 
 // Polling serial preserva o formulário aberto e ignora respostas após desmontagem.
 export default function Gestao({ perfil, tela, catalogo, sair, pedidoAviso }) {
@@ -132,7 +134,13 @@ export default function Gestao({ perfil, tela, catalogo, sair, pedidoAviso }) {
         <Avaliacoes revisao={revisao} ocupado={ocupado} acao={acao} />
       ) : (
         <>
-          <div className="cc-indicadores">
+          {tela === "rota" && !carregando && (
+            <>
+              <PainelCooperador coletas={coletas.filter((coleta) => coleta.dia === hoje())} catalogo={catalogo} abrir={setSelecionada} />
+              <RotaColetas coletas={coletas} abrir={setSelecionada} />
+            </>
+          )}
+          {tela !== "rota" && <div className="cc-indicadores">
             {[
               ["agendada", "Pendentes"],
               ["em_coleta", "Em andamento"],
@@ -146,7 +154,8 @@ export default function Gestao({ perfil, tela, catalogo, sair, pedidoAviso }) {
                 </strong>
               </div>
             ))}
-          </div>
+          </div>}
+          {tela === "rota" && <h2 className="cooperador-todos">Todos os pedidos</h2>}
           {!historico && !calendario && (
             <div className="cc-abas" aria-label="Fluxo de atendimento">
               {[
@@ -259,6 +268,7 @@ export default function Gestao({ perfil, tela, catalogo, sair, pedidoAviso }) {
                     <small>
                       {data(c.dia)} · {c.hora || "Sem horário"}
                     </small>
+                    {c.peso_estimado_kg != null && <small>Peso estimado: {Number(c.peso_estimado_kg).toLocaleString("pt-BR")} kg</small>}
                   </span>
                   <span>
                     <Situacao valor={c.situacao} />

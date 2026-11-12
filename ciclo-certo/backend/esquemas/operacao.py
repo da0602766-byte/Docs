@@ -14,6 +14,7 @@ class Agendamento(Entrada):
     dia: date
     hora: str = Field(pattern=r"^\d{2}:\d{2}$")
     materiais_informados: list[str] = Field(min_length=1, max_length=30)
+    peso_estimado_kg: Decimal = Field(gt=0, max_digits=12, decimal_places=3, allow_inf_nan=False)
 
 
 class KitEquipamentos(Entrada):
@@ -36,7 +37,7 @@ class Cancelamento(Entrada):
 
 class Finalizacao(Entrada):
     versao: int = Field(ge=0)
-    foto: str = Field(max_length=2200000)
+    foto: str | None = Field(default=None, max_length=2200000)
     assinatura: str = Field(max_length=350000)
     nome_signatario: str = Field(min_length=2, max_length=80)
     aceite: Literal[True]
